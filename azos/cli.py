@@ -30,7 +30,8 @@ def _build_parser() -> argparse.ArgumentParser:
         description=(
             "AZ-OS + AZ Interface — ethical overlay framework "
             "(Aziel Eliab, 2026). Integrity precedes execution. "
-            "Not a kernel, not malware. Propagation is invitation."
+            "Not a kernel, not malware. Propagation is invitation. "
+            "Control surface: `azos ui` at http://127.0.0.1:8800."
         ),
     )
     sub = parser.add_subparsers(dest="cmd", required=True)

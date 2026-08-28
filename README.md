@@ -12,6 +12,19 @@ A **minimal ethical overlay framework** and its control surface.
 
 **Forks are welcome and always allowed.**
 
+## Quick start
+
+```bash
+python -m venv .venv && source .venv/bin/activate && pip install -e ".[dev]"
+azos ui
+```
+
+Open http://127.0.0.1:8800 — **AZ Interface is the control surface.** Loopback only. No CDN, no telemetry. Not a kernel, not a worm.
+
+Counted download: [https://azos-download-tracker.vibelock.workers.dev/](https://azos-download-tracker.vibelock.workers.dev/)
+
+
+
 See the combined papers: [docs/whitepaper.md](docs/whitepaper.md).
 How to contribute: [CONTRIBUTING.md](CONTRIBUTING.md).
 
@@ -106,6 +119,22 @@ Binds **127.0.0.1:8800**. Self-contained CSS. No CDN.
 - Invite card (not a silent error).
 
 ---
+
+
+## iPhone & Android
+
+Flutter sources: [`mobile/`](mobile/). Application id `com.azieeliab.azos`. Offline. No analytics. Dark matte / gold.
+
+Control surface: invite, halt, revoke labels. Not a kernel or worm. Integrity precedes execution.
+
+```bash
+cd mobile
+flutter create --org com.azieeliab --project-name azos .
+flutter pub get
+flutter run
+```
+
+The `android/` and `ios/` folders in this tree are skeleton READMEs until you run `flutter create .` (this machine has no Flutter SDK on PATH). Then open `android/` in Android Studio or `ios/Runner.xcworkspace` in Xcode. Not a store listing.
 
 ## Tests
 

@@ -57,3 +57,12 @@ def test_halt_then_status(tmp_path: Path, monkeypatch, capsys) -> None:
     out = capsys.readouterr().out
     assert '"halted": true' in out
     assert '"lumen": "running"' in out
+
+
+def test_help_lists_ui_and_version() -> None:
+    from azos.cli import _build_parser
+
+    text = _build_parser().format_help()
+    assert "ui" in text
+    assert "version" in text
+    assert "azos ui" in text or "127.0.0.1:8800" in text
