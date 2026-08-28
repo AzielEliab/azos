@@ -112,11 +112,17 @@ function githubAssetUrl(owner, repo, tag, asset) {
   return `https://github.com/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/releases/download/${encodeURIComponent(tag)}/${encodeURIComponent(asset)}`;
 }
 
+function totalKey() {
+  return PROJECT + "|__total__";
+}
+
 async function increment(env, dims) {
   const key = kvKey(dims);
   const n = parseInt((await env.DOWNLOADS.get(key)) || "0", 10) + 1;
   await env.DOWNLOADS.put(key, String(n));
-  return n;
+  const t = parseInt((await env.DOWNLOADS.get(totalKey())) || "0", 10) + 1;
+  await env.DOWNLOADS.put(totalKey(), String(t));
+  return t;
 }
 
 async function listAllKeys(env) {
@@ -154,9 +160,11 @@ async function collectStats(env) {
     breakdown.push({ project, owner, repo, branch, fork: forkFlag, count: n });
   }
 
+  const totalDirect = parseInt((await env.DOWNLOADS.get(totalKey())) || "0", 10);
+  const shown = Number.isFinite(totalDirect) && totalDirect > 0 ? totalDirect : total;
   return {
     project: PROJECT,
-    total,
+    total: shown,
     by_repo,
     by_branch,
     by_fork,
