@@ -156,6 +156,16 @@ Intended public URL after a human deploys it:
 
 ---
 
+## Layout
+
+```
+azos/               library (arc, gate, exec, log, lumen, interface, cli)
+tests/              pytest
+docs/whitepaper.md  combined papers
+mobile/             Flutter iPhone + Android (`flutter create .`)
+workers/download-tracker/   Cloudflare Worker (undeployed)
+```
+
 ## Malware comparison (constraints, not code)
 
 AZ-OS is compared to malware **structurally** in the whitepaper: default
