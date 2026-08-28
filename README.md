@@ -172,3 +172,28 @@ AZ-OS is compared to malware **structurally** in the whitepaper: default
 deny, no self-replication, no stealth, no disk wipe, invite instead of
 infection. This repository does **not** implement malware, ransomware,
 or host-disk wipes.
+
+## Use with Grok, ChatGPT, Venice
+
+Live HTTPS runtime on the download-tracker Worker (does **not** increment the download counter):
+
+- OpenAPI 3.1: https://azos-download-tracker.vibelock.workers.dev/openapi.json
+- Health: https://azos-download-tracker.vibelock.workers.dev/v1/health
+- How to wire tools: https://azos-download-tracker.vibelock.workers.dev/ai
+- MCP catalog: https://aziel-runtime.vibelock.workers.dev/mcp
+
+POST /v1/status, /v1/invite, /v1/halt, /v1/revoke (labels / overlay receipts only). Motto: Integrity precedes execution. NOT a kernel, worm, or remote machine takeover. Hosted halt is a token in the JSON, not killing the caller OS.
+
+**ChatGPT Actions:** GPT Editor → Actions → Import from URL → `https://azos-download-tracker.vibelock.workers.dev/openapi.json` (no auth).
+
+**Grok / xAI tools:** add an HTTP/OpenAPI tool pointing at `https://azos-download-tracker.vibelock.workers.dev/openapi.json`.
+
+**Venice HTTP tools:** add an HTTP tool with method, URL, and JSON body from that spec. Start with GET `https://azos-download-tracker.vibelock.workers.dev/v1/health`.
+
+```bash
+curl -sS -X POST https://azos-download-tracker.vibelock.workers.dev/v1/halt \
+  -H 'content-type: application/json' \
+  -d '{}'
+```
+
+GET `/download` still serves the gzip tarball and is counted.
