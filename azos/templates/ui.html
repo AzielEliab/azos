@@ -1,0 +1,379 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AZ-OS · AZ Interface</title>
+  <style>
+    :root {
+      --bg: #0a0c10;
+      --panel: #12151c;
+      --ink: #e6e8ee;
+      --muted: #8b93a7;
+      --line: #2a3140;
+      --arc: #e4b84a;
+      --lumen: #5ee0d0;
+      --pass: #6fdd8b;
+      --fail: #ff6b6b;
+      --halt: #ff8a5b;
+      --btn: #e4b84a;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; background: var(--bg); color: var(--ink); }
+    body {
+      font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+      line-height: 1.45;
+    }
+    header, main, footer { max-width: 52rem; margin: 0 auto; padding: 1.25rem 1.4rem; }
+    header { padding-top: 1.75rem; }
+    .tag {
+      font-size: .72rem; letter-spacing: .14em; text-transform: uppercase;
+      color: var(--arc); font-weight: 650;
+    }
+    h1 { font-size: 1.85rem; margin: .35rem 0 .4rem; letter-spacing: .01em; }
+    .lede { color: var(--muted); margin: 0 0 1rem; }
+    .overlay {
+      border: 1px solid var(--line); background: var(--panel);
+      border-radius: 10px; padding: .9rem 1.05rem; color: var(--muted); font-size: .95rem;
+    }
+    .overlay strong { color: var(--ink); }
+    .statusbar {
+      display: flex; flex-wrap: wrap; gap: .6rem 1.1rem; align-items: center;
+      margin: 1.1rem 0 0; font-size: .9rem;
+    }
+    .pill {
+      display: inline-flex; align-items: center; gap: .4rem;
+      border: 1px solid var(--line); border-radius: 999px;
+      padding: .2rem .7rem; background: #0e1118;
+    }
+    .dot { width: .55rem; height: .55rem; border-radius: 50%; background: var(--muted); }
+    .dot.on { background: var(--lumen); box-shadow: 0 0 8px var(--lumen); }
+    .dot.halt { background: var(--halt); }
+    .dot.ok { background: var(--pass); }
+    .dot.no { background: var(--fail); }
+    h2 { font-size: 1.05rem; margin: 1.6rem 0 .6rem; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+    .card {
+      background: var(--panel); border: 1px solid var(--line);
+      border-radius: 10px; padding: 1rem 1.1rem; margin: .7rem 0;
+    }
+    label { display: block; margin: .55rem 0 .25rem; font-size: .82rem; color: var(--muted); }
+    label span { color: var(--ink); font-weight: 600; }
+    input[type=text], textarea, select {
+      width: 100%; background: #0b0f14; color: var(--ink);
+      border: 1px solid var(--line); border-radius: 7px;
+      padding: .5rem .65rem; font: inherit;
+    }
+    textarea { min-height: 4.2rem; resize: vertical; }
+    .row { display: flex; gap: .6rem; flex-wrap: wrap; margin: .7rem 0; }
+    button {
+      background: var(--btn); color: #141108; border: 0; border-radius: 7px;
+      padding: .55rem .95rem; font-weight: 700; cursor: pointer; font-size: .95rem;
+    }
+    button.secondary { background: #2a3340; color: var(--ink); font-weight: 600; }
+    button.danger { background: var(--fail); color: #1a0505; }
+    button:disabled { opacity: .4; cursor: not-allowed; }
+    .gates { display: grid; grid-template-columns: 1fr; gap: .45rem; }
+    .gate {
+      display: grid; grid-template-columns: 7.5rem 3.2rem 1fr;
+      gap: .5rem; align-items: baseline; font-size: .9rem;
+    }
+    .gate .name { text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-size: .75rem; }
+    .pass { color: var(--pass); font-weight: 700; }
+    .fail { color: var(--fail); font-weight: 700; }
+    .token {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      word-break: break-all; font-size: .85rem;
+    }
+    .invite {
+      border-color: var(--arc);
+      background: linear-gradient(180deg, #1a160c 0%, var(--panel) 40%);
+    }
+    .invite h3 { margin: 0 0 .4rem; color: var(--arc); font-size: 1rem; }
+    pre {
+      white-space: pre-wrap; font-size: .82rem; color: var(--ink);
+      font-family: ui-sans-serif, system-ui, sans-serif; margin: 0;
+    }
+    .log {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: .78rem; max-height: 12rem; overflow: auto;
+      background: #0b0f14; border: 1px solid var(--line); border-radius: 8px;
+      padding: .7rem .8rem;
+    }
+    .check { display: flex; gap: .5rem; align-items: flex-start; margin: .6rem 0; color: var(--muted); font-size: .9rem; }
+    .check input { margin-top: .2rem; }
+    .extend { display: none; }
+    .extend.show { display: block; }
+    footer { color: var(--muted); font-size: .82rem; padding-bottom: 2.5rem; }
+    .kicker { color: var(--lumen); font-size: .75rem; letter-spacing: .08em; text-transform: uppercase; }
+    #msg { min-height: 1.2rem; color: var(--muted); font-size: .9rem; }
+  </style>
+</head>
+<body>
+<header>
+  <div class="tag">AZ-OS · AZ Interface · v0.1.0 · loopback</div>
+  <h1>AZ-OS + AZ Interface</h1>
+  <p class="lede">Integrity precedes execution. The Interface is the control surface.</p>
+  <div class="overlay">
+    <strong>This is an overlay, not a kernel.</strong>
+    AZ-OS is a portable folder and a local control surface. It does not boot hardware,
+    replace your operating system, load a hypervisor, or install a bootloader.
+    Nothing executes without an ARC token issued after five gates pass.
+    Propagation is invitation, not infection.
+  </div>
+  <div class="statusbar" id="statusbar">
+    <span class="pill"><span class="dot" id="dot-lumen"></span> Lumen <strong id="lumen-label">…</strong></span>
+    <span class="pill"><span class="dot" id="dot-halt"></span> Halt <strong id="halt-label">…</strong></span>
+    <span class="pill"><span class="dot" id="dot-token"></span> Token <strong id="token-label">none</strong></span>
+    <span class="pill">Log <strong id="log-label">0</strong></span>
+  </div>
+</header>
+<main>
+  <h2>Request execution</h2>
+  <form class="card" id="request-form" autocomplete="off">
+    <label for="action"><span>Action</span> — registered safe builtin</label>
+    <select id="action" name="action">
+      <option value="echo">echo</option>
+      <option value="list_modules">list_modules</option>
+      <option value="status">status</option>
+      <option value="purge_session">purge_session</option>
+    </select>
+    <label for="definition"><span>Definition</span> — what exactly is proposed?</label>
+    <textarea id="definition" name="definition" placeholder="Print a bounded status string from a registered builtin."></textarea>
+    <label for="evidence"><span>Evidence</span> — why is this justified?</label>
+    <textarea id="evidence" name="evidence" placeholder="Action is on the closed SAFE_ACTIONS list in azos.exec."></textarea>
+    <label for="impact"><span>Impact</span> — what will change?</label>
+    <textarea id="impact" name="impact" placeholder="In-process result only. No host disk, no other machines."></textarea>
+    <label for="actor"><span>Responsibility</span> — who owns the outcome? (root/user is a name, not a privilege)</label>
+    <input id="actor" name="actor" type="text" placeholder="operator" spellcheck="false">
+    <label class="check">
+      <input type="checkbox" id="extend_module">
+      <span>I am extending / loading a new module (requires comprehension).</span>
+    </label>
+    <div class="extend" id="extend-fields">
+      <label class="check">
+        <input type="checkbox" id="comprehension">
+        <span>Comprehension: I understand this module and its bounds. Understanding precedes modification.</span>
+      </label>
+      <label for="intent"><span>Restate intent</span> — short restatement in your own words</label>
+      <textarea id="intent" placeholder="I want this overlay to run only the named builtin, nothing else."></textarea>
+    </div>
+    <div class="row">
+      <button type="submit" id="request-btn">Request execution</button>
+    </div>
+  </form>
+
+  <div class="card" id="gate-card">
+    <div class="kicker">Five-gate result</div>
+    <div class="gates" id="gates">
+      <p class="lede">Submit a request. Default is deny. A FAIL issues an invite, not a silent block.</p>
+    </div>
+    <p class="token" id="token-box"></p>
+  </div>
+
+  <h2>Authorized actions</h2>
+  <div class="card">
+    <p class="lede">Buttons enable only with a live ARC token. Halt freezes execution; Lumen keeps running.</p>
+    <div class="row">
+      <button type="button" id="btn-list" disabled>list_modules</button>
+      <button type="button" id="btn-echo" disabled>echo</button>
+      <button type="button" id="btn-status" disabled>status</button>
+    </div>
+    <label for="echo-msg">echo message (never a shell)</label>
+    <input id="echo-msg" type="text" placeholder="ok" maxlength="200">
+    <p id="msg"></p>
+    <div class="row">
+      <button type="button" class="secondary" id="btn-halt">Halt</button>
+      <button type="button" class="secondary" id="btn-revoke" disabled>Revoke token</button>
+    </div>
+  </div>
+
+  <h2>Purge session</h2>
+  <div class="card">
+    <p class="lede">Deletes the <code>.azos/</code> session directory only. Never <code>$HOME</code>, never OS files. Type CONFIRM.</p>
+    <label for="confirm">Type CONFIRM</label>
+    <input id="confirm" type="text" placeholder="CONFIRM" spellcheck="false">
+    <div class="row">
+      <button type="button" class="danger" id="btn-purge">Purge .azos</button>
+    </div>
+  </div>
+
+  <h2>Invite</h2>
+  <div class="card invite" id="invite-card">
+    <h3>Unauthorized environments receive an invite — not a silent error.</h3>
+    <pre id="invite-text">Loading invite…</pre>
+  </div>
+
+  <h2>Execution log</h2>
+  <div class="card">
+    <p class="lede">Append-only sha256 chain. Time-bound actions are final. No rewrite.</p>
+    <div class="log" id="log">—</div>
+  </div>
+</main>
+<footer>
+  <p><strong>Integrity precedes execution.</strong> Overlay, not a kernel. Not malware. Propagation is invitation.</p>
+  <p>Apache-2.0 · Aziel Eliab · 2026 · Bound to 127.0.0.1:8800 · Forks welcome and always allowed.</p>
+</footer>
+<script>
+(function () {
+  const $ = (id) => document.getElementById(id);
+  let token = null;
+
+  function setMsg(text, ok) {
+    const el = $("msg");
+    el.textContent = text || "";
+    el.style.color = ok === false ? "var(--fail)" : "var(--muted)";
+  }
+
+  function enableActions(on) {
+    ["btn-list", "btn-echo", "btn-status", "btn-revoke"].forEach((id) => {
+      $(id).disabled = !on;
+    });
+  }
+
+  function renderGates(gates, passed, issued) {
+    const names = ["definition", "evidence", "impact", "integrity", "responsibility"];
+    const box = $("gates");
+    box.innerHTML = "";
+    names.forEach((name) => {
+      const g = (gates && gates[name]) || { pass: false, reason: "not evaluated" };
+      const row = document.createElement("div");
+      row.className = "gate";
+      row.innerHTML =
+        '<span class="name">' + name + "</span>" +
+        '<span class="' + (g.pass ? "pass" : "fail") + '">' + (g.pass ? "PASS" : "FAIL") + "</span>" +
+        "<span>" + (g.reason || "") + "</span>";
+      box.appendChild(row);
+    });
+    const tb = $("token-box");
+    if (passed && issued) {
+      tb.textContent = "Token issued (present once): " + issued;
+    } else if (gates) {
+      tb.textContent = "Blocked. No token. See invite below.";
+    } else {
+      tb.textContent = "";
+    }
+  }
+
+  async function refresh() {
+    const st = await (await fetch("/api/status")).json();
+    $("lumen-label").textContent = st.lumen || "unknown";
+    $("dot-lumen").className = "dot " + (st.lumen === "running" ? "on" : "");
+    $("halt-label").textContent = st.halted ? "halted" : "live";
+    $("dot-halt").className = "dot " + (st.halted ? "halt" : "ok");
+    const active = st.tokens && st.tokens.active;
+    $("token-label").textContent = token ? "live (this session)" : (active ? "active in .azos" : "none");
+    $("dot-token").className = "dot " + ((token || active) ? "ok" : "no");
+    $("log-label").textContent = String(st.log_length || 0);
+    enableActions(Boolean(token) && !st.halted);
+    const log = await (await fetch("/api/log")).json();
+    const lines = (log.entries || []).map(function (e) {
+      return (e.hash || "").slice(0, 12) + "  " + e.action + "  " + e.timestamp;
+    });
+    $("log").textContent = lines.length ? lines.join("\n") : "empty (append-only once executions exist)";
+  }
+
+  $("extend_module").addEventListener("change", function () {
+    $("extend-fields").classList.toggle("show", $("extend_module").checked);
+  });
+
+  $("request-form").addEventListener("submit", async function (ev) {
+    ev.preventDefault();
+    const body = {
+      action: $("action").value,
+      definition: $("definition").value,
+      evidence: $("evidence").value,
+      impact: $("impact").value,
+      actor: $("actor").value,
+      extend_module: $("extend_module").checked,
+      comprehension: $("comprehension").checked,
+      intent: $("intent").value
+    };
+    const res = await fetch("/api/request", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    });
+    const data = await res.json();
+    token = data.token || null;
+    renderGates(data.gates, data.passed, data.token);
+    if (data.invite) {
+      $("invite-text").textContent = data.invite;
+    }
+    setMsg(data.passed ? "Token issued. Actions enabled." : "Blocked — invite shown, not a silent error.", data.passed);
+    await refresh();
+  });
+
+  async function run(name) {
+    if (!token) {
+      setMsg("No live token. Request execution first — or see the invite.", false);
+      return;
+    }
+    const payload = { name: name, token: token };
+    if (name === "echo") payload.message = $("echo-msg").value || "ok";
+    const res = await fetch("/api/exec", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (!data.ok) {
+      setMsg(data.error || "unauthorized", false);
+      if (data.invite) $("invite-text").textContent = data.invite;
+    } else {
+      setMsg(JSON.stringify(data.result), true);
+    }
+    await refresh();
+  }
+
+  $("btn-list").addEventListener("click", function () { run("list_modules"); });
+  $("btn-echo").addEventListener("click", function () { run("echo"); });
+  $("btn-status").addEventListener("click", function () { run("status"); });
+
+  $("btn-halt").addEventListener("click", async function () {
+    await fetch("/api/halt", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+    enableActions(false);
+    setMsg("Halted. Lumen still running. Revoke and purge remain available.");
+    await refresh();
+  });
+
+  $("btn-revoke").addEventListener("click", async function () {
+    if (!token) return;
+    const res = await fetch("/api/revoke", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token: token })
+    });
+    const data = await res.json();
+    token = null;
+    enableActions(false);
+    setMsg(data.ok ? "Token revoked." : (data.error || "revoke failed"), data.ok);
+    await refresh();
+  });
+
+  $("btn-purge").addEventListener("click", async function () {
+    const typed = $("confirm").value;
+    const res = await fetch("/api/purge", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ confirm: typed })
+    });
+    const data = await res.json();
+    if (!res.ok || data.ok === false) {
+      setMsg(data.error || "purge refused", false);
+      return;
+    }
+    token = null;
+    enableActions(false);
+    $("confirm").value = "";
+    setMsg("Session .azos purged. Lumen still running.");
+    await refresh();
+  });
+
+  fetch("/api/invite").then(function (r) { return r.json(); }).then(function (d) {
+    $("invite-text").textContent = d.invite || "";
+  });
+  refresh();
+})();
+</script>
+</body>
+</html>
