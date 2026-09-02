@@ -226,3 +226,14 @@ curl -sS -X POST https://azos-download-tracker.vibelock.workers.dev/v1/halt \
 ```
 
 GET `/download` still serves the gzip tarball and is counted.
+
+## Cite this
+
+Aziel Eliab. AZ-OS. https://github.com/AzielEliab/azos. https://azos-download-tracker.vibelock.workers.dev. https://doi.org/10.5281/zenodo.21431711.
+
+- Catalog: https://aziel-runtime.vibelock.workers.dev/
+- Worker homepage: https://azos-download-tracker.vibelock.workers.dev/
+- Counted download (gzip HTTP 200, no 302): https://azos-download-tracker.vibelock.workers.dev/download
+- GitHub: https://github.com/AzielEliab/azos
+- Citation JSON: https://azos-download-tracker.vibelock.workers.dev/cite.json
+- DOI: https://doi.org/10.5281/zenodo.21431711
