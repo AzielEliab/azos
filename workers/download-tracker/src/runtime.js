@@ -76,9 +76,11 @@ function aiHowTo(base) {
 }
 
 const PRODUCT = "azos";
+const EXAMPLE_PAYLOAD = {};
+
 const VERSION = "0.1.0";
 const BASE = "https://azos-download-tracker.vibelock.workers.dev";
-const SKILL = "---\nname: AZ-OS\ndescription: Use when labeling overlay integrity (invite / halt token / revoke receipt). Never treat hosted halt as killing an OS. Hosted /v1 via this Worker or aziel-runtime. Author Aziel Eliab.\n---\n\n# AZ-OS\n\nIntegrity precedes execution.\n\nAuthor: **Aziel Eliab**.\n\nUse when labeling overlay integrity (invite / halt token / revoke receipt). Never treat hosted halt as killing an OS.\n\nAlways send `User-Agent: Mozilla/5.0`. Cloudflare Workers may 403 an empty agent.\n\n## Endpoints (this Worker)\n\nHost: `https://azos-download-tracker.vibelock.workers.dev`\n\n| Method | Path | What |\n|--------|------|------|\n| GET | `/v1/health` | Liveness. Does not increment downloads. |\n| GET | `/v1/skill` | This markdown. Does not increment downloads. |\n| POST | `/v1/status` | Overlay status labels. |\n| POST | `/v1/invite` | Voluntary invite text (not infection). |\n| POST | `/v1/halt` | Halt overlay token. Does not kill the caller OS. |\n| POST | `/v1/revoke` | Revoke label / overlay receipt only. |\n\nOpenAPI: `https://azos-download-tracker.vibelock.workers.dev/openapi.json`\n\nCatalog OpenAPI: `https://aziel-runtime.vibelock.workers.dev/openapi.json`\n\nMCP: `POST https://aziel-runtime.vibelock.workers.dev/mcp`\n\nCatalog aliases under `/p/azos/\u2026`.\n\n## How to call (Mozilla/5.0)\n\n```bash\ncurl -s -A 'Mozilla/5.0' https://azos-download-tracker.vibelock.workers.dev/v1/health\ncurl -s -A 'Mozilla/5.0' -X POST https://azos-download-tracker.vibelock.workers.dev/v1/invite \\\n  -H 'content-type: application/json' -d '{}'\ncurl -s -A 'Mozilla/5.0' https://azos-download-tracker.vibelock.workers.dev/v1/skill\n```\n\nGrok: import the catalog OpenAPI as a custom tool. ChatGPT: GPT Actions. Venice: HTTP tools.\n\n## Local (after one-click install)\n\n```bash\ncurl -fsSL https://azos-download-tracker.vibelock.workers.dev/install.sh | bash\nazos ui\n```\n\nThen open http://127.0.0.1:8800 (this computer only).\n\n## Honest banner\n\nTHIS IS: a portable ethical overlay + AZ Interface control surface. THIS IS NOT: a kernel, worm, remote machine takeover, or a silent block. Hosted halt is a token in JSON, not killing the caller OS. Author Aziel Eliab.\n\nDOI: https://doi.org/10.5281/zenodo.21431711  \nRecord: https://zenodo.org/records/21431711\n\nApache-2.0 (or the repo LICENSE). Forks are welcome and always allowed.\n";
+const SKILL = "---\nname: AZ-OS\ndescription: Use when labeling overlay integrity (invite / halt token / revoke receipt). Never treat hosted halt as killing an OS. Hosted /v1 via this Worker or aziel-runtime. Author Aziel Eliab.\n---\n\n# AZ-OS\n\nIntegrity precedes execution.\n\nAuthor: **Aziel Eliab**.\n\nUse when labeling overlay integrity (invite / halt token / revoke receipt). Never treat hosted halt as killing an OS.\n\nAlways send `User-Agent: Mozilla/5.0`. Cloudflare Workers may 403 an empty agent.\n\n## Endpoints (this Worker)\n\nHost: `https://azos-download-tracker.vibelock.workers.dev`\n\n| Method | Path | What |\n|--------|------|------|\n| GET | `/v1/health` | Liveness. Does not increment downloads. |\n| GET | `/v1/skill` | This markdown. Does not increment downloads. |\n| POST | `/v1/status` | Overlay status labels. |\n| POST | `/v1/invite` | Voluntary invite text (not infection). |\n| POST | `/v1/halt` | Halt overlay token. Does not kill the caller OS. |\n| POST | `/v1/revoke` | Revoke label / overlay receipt only. |\n\nOpenAPI: `https://azos-download-tracker.vibelock.workers.dev/openapi.json`\n\nCatalog OpenAPI: `https://aziel-runtime.vibelock.workers.dev/openapi.json`\n\nMCP: `POST https://aziel-runtime.vibelock.workers.dev/mcp`\n\nCatalog aliases under `/p/azos/\u2026`.\n\n## How to call (Mozilla/5.0)\n\n```bash\ncurl -s -A 'Mozilla/5.0' https://azos-download-tracker.vibelock.workers.dev/v1/health\ncurl -s -A 'Mozilla/5.0' -X POST https://azos-download-tracker.vibelock.workers.dev/v1/invite \\\n  -H 'content-type: application/json' -d '{}'\ncurl -s -A 'Mozilla/5.0' https://azos-download-tracker.vibelock.workers.dev/v1/skill\n```\n\nGrok: import the catalog OpenAPI as a custom tool. ChatGPT: GPT Actions. Venice: HTTP tools.\n\n## Local (after one-click install)\n\n```bash\ncurl -fsSL https://azos-download-tracker.vibelock.workers.dev/install.sh | bash\nazos ui\n```\n\nThen open http://127.0.0.1:8800 (this computer only).\n\n## Honest banner\n\nTHIS IS: a portable ethical overlay + AZ Interface control surface. THIS IS NOT: a kernel, worm, remote machine takeover, or a silent block. Hosted halt is a token in JSON, not killing the caller OS. Author Aziel Eliab.\n\nDOI: https://doi.org/10.5281/zenodo.21431711  \nRecord: https://zenodo.org/records/21431711\n\nApache-2.0 (or the repo LICENSE). Forks are welcome and always allowed.\n\n## Catalog + local UI\n\nAuthor: **Aziel Eliab**. Honest scope: Read-only status / principles. Does not grant remote shell.\n\n- Catalog product: https://aziel-runtime.vibelock.workers.dev/p/azos/\n- Catalog OpenAPI: https://aziel-runtime.vibelock.workers.dev/openapi.json\n- Catalog MCP: `POST https://aziel-runtime.vibelock.workers.dev/mcp`\n- This Worker skill: `GET https://azos-download-tracker.vibelock.workers.dev/v1/skill`\n- This Worker OpenAPI: https://azos-download-tracker.vibelock.workers.dev/openapi.json\n- Sample payload: `GET https://azos-download-tracker.vibelock.workers.dev/v1/example`\n\nLocal UI: **Import JSON file** (`type=file`) and **Export JSON**. Then `azos doctor`.\n\nGrok: import catalog or Worker OpenAPI as a custom tool. ChatGPT: GPT Actions. Venice: HTTP tools.\n";
 
 const MOTTO = "Integrity precedes execution.";
 const DOWNLOAD_URL = "https://azos-download-tracker.vibelock.workers.dev/";
@@ -148,6 +150,7 @@ function openapiDoc() {
     servers: [{ url: BASE }],
     paths: {
       
+            "/v1/example": { get: { operationId: "azosExample", summary: "Sample JSON payload. Does not increment downloads.", responses: { "200": { description: "OK" } } } },
       "/v1/skill": {
         get: {
           operationId: "azos_skill",
@@ -167,8 +170,18 @@ function openapiDoc() {
 export async function handleRuntime(request, url, env) {
   const path = url.pathname;
   if (path === "/v1/health" && request.method === "GET") {
-    return runtimeJson(overlayMeta({ ok: true, product: PRODUCT, version: VERSION }));
+    return runtimeJson(overlayMeta({ ok: true, author: "Aziel Eliab", product: PRODUCT, version: VERSION }));
   }
+  if ((path === "/v1/example" || path === "/v1/example/") && (request.method === "GET" || request.method === "HEAD")) {
+    return runtimeJson({
+      ok: true,
+      product: PRODUCT,
+      author: "Aziel Eliab",
+      example: EXAMPLE_PAYLOAD,
+      note: "Sample payload only. Does not increment downloads.",
+    });
+  }
+
   if (path === "/v1/skill" && request.method === "GET") {
     return new Response(SKILL, {
       status: 200,
