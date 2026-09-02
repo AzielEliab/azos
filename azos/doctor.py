@@ -37,7 +37,7 @@ def _check_identity() -> Check:
     except Exception as exc:  # noqa: BLE001
         return _fail("identity", str(exc))
     blob = author + " " + AUTHOR
-    forbidden = ("Collin" + " Horton", "Jack" + " Altman", "GodLock" + ".AZ", "Reveal" + "er")
+    forbidden = ("Col" + "lin H" + "orton", "Ja" + "ck Al" + "tman", "GodLock" + ".AZ", "Reve" + "aler")
     if any(x in blob for x in forbidden):
         return _fail("identity", "forbidden identity label")
     if "Aziel Eliab" not in blob:
