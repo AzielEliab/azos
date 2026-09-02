@@ -78,6 +78,8 @@ function aiHowTo(base) {
 const PRODUCT = "azos";
 const VERSION = "0.1.0";
 const BASE = "https://azos-download-tracker.vibelock.workers.dev";
+const SKILL = "---\nname: AZ-OS\ndescription: Use when labeling overlay integrity (invite / halt token / revoke receipt). Never treat hosted halt as killing an OS. Hosted /v1 via this Worker or aziel-runtime. Author Aziel Eliab.\n---\n\n# AZ-OS\n\nIntegrity precedes execution.\n\nAuthor: **Aziel Eliab**.\n\nUse when labeling overlay integrity (invite / halt token / revoke receipt). Never treat hosted halt as killing an OS.\n\nAlways send `User-Agent: Mozilla/5.0`. Cloudflare Workers may 403 an empty agent.\n\n## Endpoints (this Worker)\n\nHost: `https://azos-download-tracker.vibelock.workers.dev`\n\n| Method | Path | What |\n|--------|------|------|\n| GET | `/v1/health` | Liveness. Does not increment downloads. |\n| GET | `/v1/skill` | This markdown. Does not increment downloads. |\n| POST | `/v1/status` | Overlay status labels. |\n| POST | `/v1/invite` | Voluntary invite text (not infection). |\n| POST | `/v1/halt` | Halt overlay token. Does not kill the caller OS. |\n| POST | `/v1/revoke` | Revoke label / overlay receipt only. |\n\nOpenAPI: `https://azos-download-tracker.vibelock.workers.dev/openapi.json`\n\nCatalog OpenAPI: `https://aziel-runtime.vibelock.workers.dev/openapi.json`\n\nMCP: `POST https://aziel-runtime.vibelock.workers.dev/mcp`\n\nCatalog aliases under `/p/azos/\u2026`.\n\n## How to call (Mozilla/5.0)\n\n```bash\ncurl -s -A 'Mozilla/5.0' https://azos-download-tracker.vibelock.workers.dev/v1/health\ncurl -s -A 'Mozilla/5.0' -X POST https://azos-download-tracker.vibelock.workers.dev/v1/invite \\\n  -H 'content-type: application/json' -d '{}'\ncurl -s -A 'Mozilla/5.0' https://azos-download-tracker.vibelock.workers.dev/v1/skill\n```\n\nGrok: import the catalog OpenAPI as a custom tool. ChatGPT: GPT Actions. Venice: HTTP tools.\n\n## Local (after one-click install)\n\n```bash\ncurl -fsSL https://azos-download-tracker.vibelock.workers.dev/install.sh | bash\nazos ui\n```\n\nThen open http://127.0.0.1:8800 (this computer only).\n\n## Honest banner\n\nTHIS IS: a portable ethical overlay + AZ Interface control surface. THIS IS NOT: a kernel, worm, remote machine takeover, or a silent block. Hosted halt is a token in JSON, not killing the caller OS. Author Aziel Eliab.\n\nDOI: https://doi.org/10.5281/zenodo.21431711  \nRecord: https://zenodo.org/records/21431711\n\nApache-2.0 (or the repo LICENSE). Forks are welcome and always allowed.\n";
+
 const MOTTO = "Integrity precedes execution.";
 const DOWNLOAD_URL = "https://azos-download-tracker.vibelock.workers.dev/";
 const SOURCE_URL = "https://github.com/AzielEliab/azos";
@@ -145,7 +147,15 @@ function openapiDoc() {
     },
     servers: [{ url: BASE }],
     paths: {
-      "/v1/health": { get: { operationId: "azosHealth", summary: "Liveness", responses: { "200": { description: "OK" } } } },
+      
+      "/v1/skill": {
+        get: {
+          operationId: "azos_skill",
+          summary: "Return skill markdown. Does not increment download KV.",
+          responses: { "200": { description: "markdown" } },
+        },
+      },
+"/v1/health": { get: { operationId: "azosHealth", summary: "Liveness", responses: { "200": { description: "OK" } } } },
       "/v1/status": { post: { operationId: "azosStatus", summary: "Overlay status labels", responses: { "200": { description: "Status overlay receipt" } } } },
       "/v1/invite": { post: { operationId: "azosInvite", summary: "Voluntary invite text (not infection)", responses: { "200": { description: "Invite" } } } },
       "/v1/halt": { post: { operationId: "azosHalt", summary: "Return a halt overlay token. Does not kill the caller OS.", responses: { "200": { description: "Halt token" } } } },
@@ -158,6 +168,12 @@ export async function handleRuntime(request, url, env) {
   const path = url.pathname;
   if (path === "/v1/health" && request.method === "GET") {
     return runtimeJson(overlayMeta({ ok: true, product: PRODUCT, version: VERSION }));
+  }
+  if (path === "/v1/skill" && request.method === "GET") {
+    return new Response(SKILL, {
+      status: 200,
+      headers: { "Content-Type": "text/markdown; charset=utf-8", "Cache-Control": "private, no-store", ...runtimeCors() },
+    });
   }
   if (path === "/openapi.json" && request.method === "GET") return runtimeJson(openapiDoc());
   if (path === "/ai" && request.method === "GET") {

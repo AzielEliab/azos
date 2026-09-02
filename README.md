@@ -19,6 +19,35 @@ python -m venv .venv && source .venv/bin/activate && pip install -e ".[dev]"
 azos ui
 ```
 
+
+## One-click install
+
+```bash
+curl -fsSL https://azos-download-tracker.vibelock.workers.dev/install.sh | bash
+```
+
+The script curls the **counted** tarball from this project's Worker
+(`/download`, User-Agent `Mozilla/5.0`), extracts, makes a venv, and
+`pip install -e .`. Then run `azos ui`.
+
+Or tap **Download** / **One-click install** on the Worker homepage:
+https://azos-download-tracker.vibelock.workers.dev/
+
+## Counted download (Cloudflare Worker)
+
+**This is the counted download.** GitHub releases exist as a mirror.
+The Worker serves the gzip itself (HTTP 200, no 302 to GitHub).
+
+- Homepage: [https://azos-download-tracker.vibelock.workers.dev/](https://azos-download-tracker.vibelock.workers.dev/)
+- Direct tarball: [azos-0.1.0.tar.gz](https://azos-download-tracker.vibelock.workers.dev/download?asset=azos-0.1.0.tar.gz)
+- One-click install: [https://azos-download-tracker.vibelock.workers.dev/install.sh](https://azos-download-tracker.vibelock.workers.dev/install.sh)
+- Skill: [https://azos-download-tracker.vibelock.workers.dev/v1/skill](https://azos-download-tracker.vibelock.workers.dev/v1/skill)
+- OpenAPI: [https://azos-download-tracker.vibelock.workers.dev/openapi.json](https://azos-download-tracker.vibelock.workers.dev/openapi.json)
+- GitHub: [https://github.com/AzielEliab/azos](https://github.com/AzielEliab/azos)
+- Zenodo DOI: [10.5281/zenodo.21431711](https://doi.org/10.5281/zenodo.21431711) · [record](https://zenodo.org/records/21431711)
+
+Isolated counter: Worker `azos-download-tracker`, KV `AZOS_DOWNLOADS`. `/v1` does not increment downloads.
+
 Open http://127.0.0.1:8800 — **AZ Interface is the control surface.** Loopback only. No CDN, no telemetry. Not a kernel, not a worm.
 
 Counted download: [https://azos-download-tracker.vibelock.workers.dev/](https://azos-download-tracker.vibelock.workers.dev/)

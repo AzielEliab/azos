@@ -159,6 +159,8 @@
     </div>
     <div class="row">
       <button type="submit" id="request-btn">Request execution</button>
+      <label>Import JSON <input type="file" id="import-json" accept="application/json,.json"></label>
+      <button type="button" class="secondary" id="export-json">Export JSON</button>
     </div>
   </form>
 
@@ -371,6 +373,57 @@
 
   fetch("/api/invite").then(function (r) { return r.json(); }).then(function (d) {
     $("invite-text").textContent = d.invite || "";
+  });
+  var lastRequest = null;
+  document.getElementById("export-json").addEventListener("click", function () {
+    const payload = lastRequest || {
+      action: $("action").value,
+      definition: $("definition").value,
+      evidence: $("evidence").value,
+      impact: $("impact").value,
+      actor: $("actor").value,
+      extend_module: $("extend_module").checked,
+      comprehension: $("comprehension").checked,
+      intent: $("intent").value
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "azos-request.json";
+    a.click();
+    URL.revokeObjectURL(a.href);
+  });
+  const importEl = document.getElementById("import-json");
+  if (importEl) importEl.addEventListener("change", function () {
+    const f = importEl.files && importEl.files[0];
+    if (!f) return;
+    const reader = new FileReader();
+    reader.onload = function () {
+      let obj;
+      try { obj = JSON.parse(String(reader.result || "{}")); } catch (e) { return; }
+      const r = obj.request || obj;
+      if (r.action) $("action").value = r.action;
+      if (r.definition) $("definition").value = r.definition;
+      if (r.evidence) $("evidence").value = r.evidence;
+      if (r.impact) $("impact").value = r.impact;
+      if (r.actor) $("actor").value = r.actor;
+      if (r.intent) $("intent").value = r.intent;
+      lastRequest = r;
+    };
+    reader.readAsText(f);
+  });
+  const origSubmit = $("request-form").onsubmit;
+  $("request-form").addEventListener("submit", function () {
+    lastRequest = {
+      action: $("action").value,
+      definition: $("definition").value,
+      evidence: $("evidence").value,
+      impact: $("impact").value,
+      actor: $("actor").value,
+      extend_module: $("extend_module").checked,
+      comprehension: $("comprehension").checked,
+      intent: $("intent").value
+    };
   });
   refresh();
 })();
