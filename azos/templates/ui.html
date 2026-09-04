@@ -259,6 +259,7 @@
       const node = $("tpl-shell").content.cloneNode(true);
       openWin("shell", "AZ-OS Shell", node);
       wireShell();
+      refresh();
       return;
     }
     if (name === "ethics") {
