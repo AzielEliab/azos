@@ -1,6 +1,7 @@
-"""Request a builtin through the five gates, then run it.
+"""Request a shell session through the five gates, then run a command.
 
-Not a kernel. Not malware. Overlay session lives under ./_out/.azos.
+Ethics-coded remote shell. Not a kernel. Not malware. Not host bash.
+Session lives under ./_out/.azos.
 """
 
 from __future__ import annotations
@@ -17,10 +18,10 @@ ROOT.mkdir(exist_ok=True)
 def main() -> None:
     rt = Runtime(root=ROOT)
     proposal = Proposal(
-        action="echo",
-        definition="Print a bounded status string from a registered builtin.",
-        evidence="echo is on the closed SAFE_ACTIONS list in azos.exec.",
-        impact="Returns a JSON string. Writes nothing outside .azos.",
+        action="shell",
+        definition="Open an ethics-gated AZ-OS shell session in the session vfs.",
+        evidence="Example operator requested a principle-bound shell.",
+        impact="Sandbox workspace under .azos only. No host subprocess.",
         actor="example-operator",
     )
     result = rt.request(proposal)
@@ -28,8 +29,9 @@ def main() -> None:
     if not result.passed:
         print(result.invite)
         return
-    out = rt.run("echo", token=result.token, args={"message": "integrity precedes execution"})
-    print(out)
+    opened = rt.open_session(token=result.token, actor="example-operator")
+    out = rt.run_command("uname", session_id=opened["session"], token=result.token)
+    print(out.get("stdout"))
     print("log length:", len(rt.log))
     rt.lumen.stop()
 

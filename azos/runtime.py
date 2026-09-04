@@ -1,4 +1,4 @@
-"""Composition root: ARC + Lumen + gate + exec + log."""
+"""Composition root: ARC + Lumen + gate + exec + log + ethics-coded shell."""
 
 from __future__ import annotations
 
@@ -8,12 +8,14 @@ from pathlib import Path
 from typing import Any
 
 from azos.arc import ARC
+from azos.ethics import KIND, scope_dict
 from azos.exec import SAFE_ACTIONS, Executor
 from azos.gate import Proposal, authorize
 from azos.invite import invite_text
 from azos.log import ExecutionLog
 from azos.lumen import Lumen
 from azos.paths import SESSION_DIRNAME
+from azos.shell import Shell
 
 __all__ = ["Runtime", "RequestResult", "SAFE_ACTIONS"]
 
@@ -55,6 +57,7 @@ class Runtime:
         self._load_state()
         self.lumen = Lumen(self)
         self.executor = Executor(self)
+        self.shell = Shell(self)
         if start_lumen:
             self.lumen.start()
 
@@ -104,11 +107,25 @@ class Runtime:
     ) -> dict[str, Any]:
         return self.executor.run(name, token=token, args=args)
 
+    def open_session(self, *, token: str | None = None, actor: str = "") -> dict[str, Any]:
+        return self.shell.open(token=token, actor=actor)
+
+    def run_command(
+        self,
+        command: str,
+        *,
+        session_id: str,
+        token: str | None = None,
+    ) -> dict[str, Any]:
+        return self.shell.execute(command, session_id=session_id, token=token)
+
     def status(self) -> dict[str, Any]:
         arc = self.arc.snapshot()
+        scope = scope_dict()
         return {
             "overlay": "AZ-OS",
             "interface": "AZ Interface",
+            "kind": KIND,
             "version": _version(),
             "session": str(self.session_dir),
             "halted": self._halted,
@@ -116,8 +133,8 @@ class Runtime:
             "tokens": arc,
             "log_length": len(self.log),
             "builtins": sorted(SAFE_ACTIONS),
-            "kernel": False,
-            "malware": False,
+            "shell": self.shell.snapshot(),
+            **scope,
         }
 
     def halt(self) -> dict[str, Any]:

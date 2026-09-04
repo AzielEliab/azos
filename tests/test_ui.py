@@ -25,7 +25,9 @@ def test_html_is_self_contained() -> None:
     assert "CONFIRM" in html
     assert "Lumen" in html
     assert "invite" in html.lower()
-    assert "overlay" in html.lower()
+    assert "overlay" in html.lower() or "remote shell" in html.lower()
+    assert "azos$" in html
+    assert "/api/shell" in html
 
 
 def test_ui_get_root_contains_azos_and_interface(tmp_path: Path) -> None:

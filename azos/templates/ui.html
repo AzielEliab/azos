@@ -106,19 +106,31 @@
     footer { color: var(--muted); font-size: .82rem; padding-bottom: 2.5rem; }
     .kicker { color: var(--lumen); font-size: .75rem; letter-spacing: .08em; text-transform: uppercase; }
     #msg { min-height: 1.2rem; color: var(--muted); font-size: .9rem; }
+    .term {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: .82rem; min-height: 14rem; max-height: 22rem; overflow: auto;
+      background: #07090d; border: 1px solid var(--line); border-radius: 8px;
+      padding: .7rem .8rem; white-space: pre-wrap; color: #d5dbe8;
+    }
+    .term .in { color: var(--arc); }
+    .term .err { color: var(--fail); }
+    .prompt-row { display: flex; gap: .5rem; align-items: center; margin-top: .65rem; }
+    .prompt-row span { color: var(--arc); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-weight: 700; }
+    .prompt-row input { flex: 1; }
+    .ethics-line { font-size: .78rem; color: var(--muted); margin: .45rem 0 0; }
   </style>
 </head>
 <body>
 <header>
-  <div class="tag">AZ-OS · AZ Interface · v0.1.0 · loopback</div>
+  <div class="tag">AZ-OS · AZ Interface · v0.2.0 · ethics-coded remote shell · loopback</div>
   <h1>AZ-OS + AZ Interface</h1>
-  <p class="lede">Integrity precedes execution. The Interface is the control surface.</p>
+  <p class="lede">Integrity precedes execution. The Interface is the control surface of an ethics-coded remote shell.</p>
   <div class="overlay">
-    <strong>This is an overlay, not a kernel.</strong>
-    AZ-OS is a portable folder and a local control surface. It does not boot hardware,
-    replace your operating system, load a hypervisor, or install a bootloader.
-    Nothing executes without an ARC token issued after five gates pass.
-    Propagation is invitation, not infection.
+    <strong>This is a true remote shell gated by coded ethics.</strong>
+    Protocols: HTTP on 127.0.0.1:8800 (this surface), CLI stdin, HTTPS JSON on the Worker.
+    Auth: ARC token after the five gates. Sandbox: session vfs under <code>.azos/workspace</code>.
+    Not a kernel, not malware, not unrestricted host bash, not SSH.
+    Every session and every command is principle-bound. Propagation is invitation, not infection.
   </div>
   <div class="statusbar" id="statusbar">
     <span class="pill"><span class="dot" id="dot-lumen"></span> Lumen <strong id="lumen-label">…</strong></span>
@@ -130,8 +142,9 @@
 <main>
   <h2>Request execution</h2>
   <form class="card" id="request-form" autocomplete="off">
-    <label for="action"><span>Action</span> — registered safe builtin</label>
+    <label for="action"><span>Action</span> — registered safe builtin or shell session</label>
     <select id="action" name="action">
+      <option value="shell" selected>shell</option>
       <option value="echo">echo</option>
       <option value="list_modules">list_modules</option>
       <option value="status">status</option>
@@ -172,6 +185,22 @@
     <p class="token" id="token-box"></p>
   </div>
 
+  <h2>Ethics-coded shell</h2>
+  <div class="card">
+    <p class="lede">Open a session after a live ARC token. Each command is re-gated. Sandbox vfs only — no host subprocess.</p>
+    <div class="row">
+      <button type="button" id="btn-session" disabled>Open shell session</button>
+      <button type="button" id="btn-close" disabled>Close session</button>
+    </div>
+    <div class="term" id="term">Request execution, then open a session. Integrity precedes execution.</div>
+    <div class="prompt-row">
+      <span>azos$</span>
+      <input id="shell-line" type="text" placeholder="help" maxlength="4096" disabled autocomplete="off" spellcheck="false">
+      <button type="button" id="btn-run" disabled>Run</button>
+    </div>
+    <p class="ethics-line" id="ethics-line">Gates idle.</p>
+  </div>
+
   <h2>Authorized actions</h2>
   <div class="card">
     <p class="lede">Buttons enable only with a live ARC token. Halt freezes execution; Lumen keeps running.</p>
@@ -180,7 +209,7 @@
       <button type="button" id="btn-echo" disabled>echo</button>
       <button type="button" id="btn-status" disabled>status</button>
     </div>
-    <label for="echo-msg">echo message (never a shell)</label>
+    <label for="echo-msg">echo message (in-process; never a host shell)</label>
     <input id="echo-msg" type="text" placeholder="ok" maxlength="200">
     <p id="msg"></p>
     <div class="row">
@@ -212,13 +241,14 @@
   </div>
 </main>
 <footer>
-  <p><strong>Integrity precedes execution.</strong> Overlay, not a kernel. Not malware. Propagation is invitation.</p>
+  <p><strong>Integrity precedes execution.</strong> Ethics-coded remote shell. Not a kernel. Not malware. Not unrestricted host bash. Propagation is invitation.</p>
   <p>Apache-2.0 · Aziel Eliab · 2026 · Bound to 127.0.0.1:8800 · Forks welcome and always allowed.</p>
 </footer>
 <script>
 (function () {
   const $ = (id) => document.getElementById(id);
   let token = null;
+  let sessionId = null;
 
   function setMsg(text, ok) {
     const el = $("msg");
@@ -227,9 +257,34 @@
   }
 
   function enableActions(on) {
-    ["btn-list", "btn-echo", "btn-status", "btn-revoke"].forEach((id) => {
+    ["btn-list", "btn-echo", "btn-status", "btn-revoke", "btn-session"].forEach((id) => {
       $(id).disabled = !on;
     });
+    const live = on && Boolean(sessionId);
+    $("btn-run").disabled = !live;
+    $("btn-close").disabled = !live;
+    $("shell-line").disabled = !live;
+  }
+
+  function termAppend(text, cls) {
+    const el = $("term");
+    const line = document.createElement("div");
+    if (cls) line.className = cls;
+    line.textContent = text;
+    if (el.textContent.indexOf("Request execution") === 0 && el.childNodes.length <= 1) {
+      el.textContent = "";
+    }
+    el.appendChild(line);
+    el.scrollTop = el.scrollHeight;
+  }
+
+  function renderEthics(gates) {
+    const names = ["definition", "evidence", "impact", "integrity", "responsibility"];
+    const bits = names.map(function (name) {
+      const g = (gates && gates[name]) || { pass: false };
+      return name.slice(0, 3) + " " + (g.pass ? "PASS" : "FAIL");
+    });
+    $("ethics-line").textContent = "Ethics: " + bits.join(" · ");
   }
 
   function renderGates(gates, passed, issued) {
@@ -331,8 +386,80 @@
   $("btn-echo").addEventListener("click", function () { run("echo"); });
   $("btn-status").addEventListener("click", function () { run("status"); });
 
+  $("btn-session").addEventListener("click", async function () {
+    if (!token) {
+      setMsg("No live token. Request execution first.", false);
+      return;
+    }
+    const res = await fetch("/api/session", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token: token, actor: $("actor").value || "operator" })
+    });
+    const data = await res.json();
+    if (!data.ok && !data.session) {
+      setMsg(data.error || "session refused", false);
+      if (data.invite) $("invite-text").textContent = data.invite;
+      return;
+    }
+    sessionId = data.session;
+    termAppend("session " + sessionId + "  cwd " + (data.cwd || "/"), "in");
+    termAppend("sandbox: session vfs · auth: ARC · protocol: http-loopback");
+    setMsg("Shell session open. Commands are principle-bound.", true);
+    await refresh();
+  });
+
+  async function runShell() {
+    if (!token || !sessionId) {
+      setMsg("Open a shell session first.", false);
+      return;
+    }
+    const line = $("shell-line").value;
+    if (!line.trim()) return;
+    termAppend("azos$ " + line, "in");
+    $("shell-line").value = "";
+    const res = await fetch("/api/shell", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token: token, session: sessionId, command: line })
+    });
+    const data = await res.json();
+    renderEthics(data.gates);
+    if (data.stdout) termAppend(data.stdout.replace(/\n$/, ""));
+    if (!data.ok) {
+      termAppend(data.error || "denied", "err");
+      if (data.invite) $("invite-text").textContent = data.invite;
+    }
+    if (data.closed) {
+      sessionId = null;
+      termAppend("session closed.");
+    }
+    await refresh();
+  }
+
+  $("btn-run").addEventListener("click", function () { runShell(); });
+  $("shell-line").addEventListener("keydown", function (ev) {
+    if (ev.key === "Enter") {
+      ev.preventDefault();
+      runShell();
+    }
+  });
+
+  $("btn-close").addEventListener("click", async function () {
+    if (!sessionId) return;
+    await fetch("/api/close", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token: token, session: sessionId })
+    });
+    termAppend("session closed.");
+    sessionId = null;
+    await refresh();
+  });
+
   $("btn-halt").addEventListener("click", async function () {
     await fetch("/api/halt", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+    sessionId = null;
     enableActions(false);
     setMsg("Halted. Lumen still running. Revoke and purge remain available.");
     await refresh();
@@ -347,6 +474,7 @@
     });
     const data = await res.json();
     token = null;
+    sessionId = null;
     enableActions(false);
     setMsg(data.ok ? "Token revoked." : (data.error || "revoke failed"), data.ok);
     await refresh();
@@ -365,6 +493,7 @@
       return;
     }
     token = null;
+    sessionId = null;
     enableActions(false);
     $("confirm").value = "";
     setMsg("Session .azos purged. Lumen still running.");

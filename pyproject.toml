@@ -4,14 +4,16 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "azos"
-version = "0.1.0"
-description = "AZ-OS + AZ Interface: ethical overlay framework. Integrity precedes execution. Not a kernel, not malware."
+version = "0.2.0"
+description = "AZ-OS: ethics-coded remote shell. Integrity precedes execution. Not a kernel, not malware, not unrestricted host bash."
 readme = "README.md"
 license = {file = "LICENSE"}
 authors = [{name = "Aziel Eliab"}]
 requires-python = ">=3.10"
 keywords = [
     "az-os",
+    "remote-shell",
+    "ethics",
     "overlay",
     "authorization",
     "integrity",

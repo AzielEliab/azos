@@ -23,7 +23,7 @@ Xcode.
 
 ## Honest scope
 
-NOT a kernel, bootloader, hypervisor, worm, or malware. Propagation is invitation, not infection.
+Ethics-coded remote shell. NOT a kernel, bootloader, hypervisor, worm, malware, or unrestricted host bash. Propagation is invitation, not infection.
 
 ## Desktop package (counted download)
 

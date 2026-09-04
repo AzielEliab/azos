@@ -4,7 +4,7 @@
 set -euo pipefail
 
 HOST="${AZOS_HOME_HOST:-https://azos-download-tracker.vibelock.workers.dev}"
-ASSET="${AZOS_HOME_ASSET:-azos-0.1.0.tar.gz}"
+ASSET="${AZOS_HOME_ASSET:-azos-0.2.0.tar.gz}"
 WORKDIR="${AZOS_HOME:-$HOME/azos}"
 
 mkdir -p "$WORKDIR"
@@ -27,6 +27,6 @@ python -m pip install -e .
 
 echo
 echo "Installed AZ-OS."
-echo "Run:  azos ui"
+echo "Run:  azos ui    or    azos shell"
 echo "Then open http://127.0.0.1:8800  (loopback only)"
-echo "Author: Aziel Eliab."
+echo "Ethics-coded remote shell. Author: Aziel Eliab."
