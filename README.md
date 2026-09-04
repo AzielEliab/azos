@@ -1,8 +1,10 @@
 # AZ-OS + AZ Interface
 
 A **prefab ethics-coded remote shell**: all Aziel catalog software hooked in,
-Windows-style desktop (Ever Blooming sigil, no words), TemporalLock ×
+Windows-style desktop (sigil / brand mark, no words), TemporalLock ×
 StaticClock integrity lattice.
+
+**AzielTether** is the downloadable survival mesh for AZ-OS and sibling Aziel software (prefer-central × peer sync; public boards stay mesh-free): https://github.com/AzielEliab/azieltether · https://azieltether-download-tracker.vibelock.workers.dev/
 
 **Author:** Aziel Eliab
 **Date:** July–September 2026
@@ -69,7 +71,7 @@ AZ-OS is a **prefab true remote shell**. Every catalog product (FoldLock,
 TemporalLock, StaticClock, ShadowLock, VeilLock, VibeLock, SpectralLock,
 MirageGrid, AZAI/JEEVES, GodLock client hooks, and the rest) ships as an
 **installed desktop app**. The Interface is a Windows-identical shell
-whose Start glyph is the Ever Blooming sigil (gold rose + five-point
+whose Start glyph is the Aziel Eliab seal (gold rose + five-point
 star + circle + foliage swirls — **no words**).
 
 Every session and command is bound to the five coded ethics principles.

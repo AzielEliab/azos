@@ -12,7 +12,7 @@ This document merges three July 2026 papers:
 
 This tree is the software described by those papers: a **prefab true
 remote shell gated by coded ethics**, with catalog apps installed, a
-Windows-style desktop (Ever Blooming sigil, no words), and a
+Windows-style desktop (sigil / brand mark, no words), and a
 TemporalLock × StaticClock integrity lattice. It is **not** a kernel,
 bootloader, hypervisor, worm, malware, or unrestricted host bash.
 

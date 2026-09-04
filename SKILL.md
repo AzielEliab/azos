@@ -7,7 +7,7 @@ description: Use when calling the AZ-OS ethics-coded remote shell (hosted /v1 or
 
 Integrity precedes execution. Author: **Aziel Eliab**.
 
-**THIS IS:** prefab AZ-OS — a true remote shell gated by coded ethics. Every catalog product ships as an installed app. Windows-style desktop; Ever Blooming sigil (rose + star, no words). TemporalLock × StaticClock integrity lattice. Every session and command is principle-bound.
+**THIS IS:** prefab AZ-OS — a true remote shell gated by coded ethics. Every catalog product ships as an installed app. Windows-style desktop; sigil / brand mark (rose + star, no words). TemporalLock × StaticClock integrity lattice. Every session and command is principle-bound.
 
 **THIS IS NOT:** a kernel, bootloader, hypervisor, worm, malware, unrestricted host bash, or SSH. Hosted `/v1` does not increment downloads or views.
 

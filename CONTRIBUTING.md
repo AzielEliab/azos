@@ -55,4 +55,4 @@ Python 3.10+. Core is stdlib only (`hashlib`, `secrets`, `json`,
 - Prefab catalog apps: `azos/prefab.py`
 - Integrity lattice: `azos/lattice.py`
 - Hosted shell: `workers/download-tracker/src/runtime.js`
-- Ever Blooming sigil (no words): `azos/templates/sigil.svg`
+- Sigil / brand mark (no words): `azos/templates/sigil.svg`
