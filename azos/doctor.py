@@ -46,6 +46,39 @@ def _check_identity() -> Check:
 
 
 
+def _check_prefab_lattice() -> Check:
+    try:
+        from azos.lattice import IntegrityLattice
+        from azos.prefab import prefab_apps
+    except Exception as exc:  # noqa: BLE001
+        return _fail("prefab-lattice", str(exc))
+    if len(prefab_apps()) < 25:
+        return _fail("prefab-lattice", "catalog short")
+    lat = IntegrityLattice()
+    lat.bind("doctor", summary="self-check", evidence="doctor")
+    if not lat.verify():
+        return _fail("prefab-lattice", "lattice verify")
+    return _ok("prefab-lattice", f"{len(prefab_apps())} apps")
+
+
+def _check_ethics_shell() -> Check:
+    try:
+        from azos.ethics import KIND, SHELL_VERBS, scope_dict
+        from azos.shell import Shell
+    except Exception as exc:  # noqa: BLE001
+        return _fail("ethics-shell", str(exc))
+    if KIND != "ethics_coded_remote_shell":
+        return _fail("ethics-shell", KIND)
+    if "ls" not in SHELL_VERBS or "bash" in SHELL_VERBS:
+        return _fail("ethics-shell", "verb list")
+    scope = scope_dict()
+    if scope.get("host_subprocess") is not False:
+        return _fail("ethics-shell", "host subprocess must be false")
+    if not getattr(Shell, "execute", None):
+        return _fail("ethics-shell", "Shell.execute missing")
+    return _ok("ethics-shell", KIND)
+
+
 def _check_json_roundtrip() -> Check:
     from azos.jsonio import export_json, import_json
 
@@ -68,6 +101,8 @@ def _check_json_roundtrip() -> Check:
 CHECKS: tuple[Callable[[], Check], ...] = (
     _check_version,
     _check_identity,
+    _check_ethics_shell,
+    _check_prefab_lattice,
     _check_json_roundtrip,
 )
 
@@ -89,6 +124,7 @@ def run_doctor(*, as_json: bool = False) -> int:
         "checks": results,
         "version": __version__,
         "author": AUTHOR,
+        "kind": "ethics_coded_remote_shell",
         "network": False,
         "telemetry": False,
     }

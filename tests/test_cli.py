@@ -11,7 +11,7 @@ from tests.conftest import passing_proposal
 
 def test_version(capsys) -> None:
     assert main(["version"]) == 0
-    assert "azos 0.1.0" in capsys.readouterr().out
+    assert "azos 0.3.0" in capsys.readouterr().out
 
 
 def test_status_json(tmp_path: Path, monkeypatch, capsys) -> None:
@@ -65,4 +65,5 @@ def test_help_lists_ui_and_version() -> None:
     text = _build_parser().format_help()
     assert "ui" in text
     assert "version" in text
+    assert "shell" in text
     assert "azos ui" in text or "127.0.0.1:8800" in text

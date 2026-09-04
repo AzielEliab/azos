@@ -60,6 +60,10 @@ class Lumen:
         if not confirm:
             raise AzosError("purge requires --confirm (or typed CONFIRM in the UI)")
         self.runtime.arc.revoke_all()
+        if hasattr(self.runtime, "shell"):
+            self.runtime.shell.reset()
+        if hasattr(self.runtime, "lattice"):
+            self.runtime.lattice.reset()
         target = safe_purge(self.runtime.session_dir)
         self.runtime.log.reload_empty()
         # Do not persist state: that would recreate .azos after purge.

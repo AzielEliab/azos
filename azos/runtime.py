@@ -1,4 +1,4 @@
-"""Composition root: ARC + Lumen + gate + exec + log."""
+"""Composition root: ARC + Lumen + gate + exec + log + ethics-coded shell."""
 
 from __future__ import annotations
 
@@ -8,12 +8,17 @@ from pathlib import Path
 from typing import Any
 
 from azos.arc import ARC
+from azos.errors import AuthorizationError
+from azos.ethics import KIND, scope_dict
 from azos.exec import SAFE_ACTIONS, Executor
 from azos.gate import Proposal, authorize
 from azos.invite import invite_text
+from azos.lattice import IntegrityLattice
 from azos.log import ExecutionLog
 from azos.lumen import Lumen
 from azos.paths import SESSION_DIRNAME
+from azos.prefab import prefab_snapshot
+from azos.shell import Shell
 
 __all__ = ["Runtime", "RequestResult", "SAFE_ACTIONS"]
 
@@ -53,8 +58,10 @@ class Runtime:
         self.log = ExecutionLog(self.session_dir / "exec.jsonl")
         self._halted = False
         self._load_state()
+        self.lattice = IntegrityLattice(self.session_dir)
         self.lumen = Lumen(self)
         self.executor = Executor(self)
+        self.shell = Shell(self)
         if start_lumen:
             self.lumen.start()
 
@@ -94,6 +101,11 @@ class Runtime:
                 invite=invite_text(),
             )
         token = self.arc.issue(action=proposal.action, actor=proposal.actor)
+        self.lattice.bind(
+            f"request:{proposal.action}",
+            summary=f"ARC token issued for {proposal.action}",
+            evidence="five ethics gates passed",
+        )
         return RequestResult(passed=True, token=token, gates=gates, invite=None)
 
     def run(
@@ -104,11 +116,40 @@ class Runtime:
     ) -> dict[str, Any]:
         return self.executor.run(name, token=token, args=args)
 
+    def open_session(self, *, token: str | None = None, actor: str = "") -> dict[str, Any]:
+        opened = self.shell.open(token=token, actor=actor)
+        opened["lattice"] = self.lattice.bind(
+            "session:open",
+            summary="ethics-gated shell session opened",
+            evidence=f"actor {actor or 'operator'}",
+        )
+        return opened
+
+    def run_command(
+        self,
+        command: str,
+        *,
+        session_id: str,
+        token: str | None = None,
+    ) -> dict[str, Any]:
+        if not self.lattice.verify():
+            raise AuthorizationError("integrity: TemporalLock×StaticClock lattice failed")
+        out = self.shell.execute(command, session_id=session_id, token=token)
+        if out.get("ok"):
+            out["lattice"] = self.lattice.bind(
+                f"shell:{(command or 'cmd').split()[0][:32]}",
+                summary="principle-bound command",
+                evidence="ethics gates passed",
+            )
+        return out
+
     def status(self) -> dict[str, Any]:
         arc = self.arc.snapshot()
+        scope = scope_dict()
         return {
             "overlay": "AZ-OS",
             "interface": "AZ Interface",
+            "kind": KIND,
             "version": _version(),
             "session": str(self.session_dir),
             "halted": self._halted,
@@ -116,12 +157,20 @@ class Runtime:
             "tokens": arc,
             "log_length": len(self.log),
             "builtins": sorted(SAFE_ACTIONS),
-            "kernel": False,
-            "malware": False,
+            "shell": self.shell.snapshot(),
+            **scope,
+            "prefab": prefab_snapshot(),
+            "lattice": self.lattice.snapshot(),
         }
 
     def halt(self) -> dict[str, Any]:
-        return self.lumen.halt()
+        out = self.lumen.halt()
+        out["lattice"] = self.lattice.bind(
+            "halt",
+            summary="execution authority halted",
+            evidence="Lumen keeps custody",
+        )
+        return out
 
     def purge(self, *, confirm: bool) -> dict[str, Any]:
         return self.lumen.purge_session(confirm=confirm)

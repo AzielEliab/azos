@@ -25,7 +25,13 @@ def test_html_is_self_contained() -> None:
     assert "CONFIRM" in html
     assert "Lumen" in html
     assert "invite" in html.lower()
-    assert "overlay" in html.lower()
+    assert "overlay" in html.lower() or "remote shell" in html.lower()
+    assert "azos$" in html
+    assert "/api/shell" in html
+    assert "taskbar" in html
+    assert "/sigil.svg" in html
+    assert "THE EVER BLOOMING FLOWER" not in html.upper()
+    assert "windows logo" not in html.lower()
 
 
 def test_ui_get_root_contains_azos_and_interface(tmp_path: Path) -> None:
@@ -50,6 +56,13 @@ def test_ui_get_root_contains_azos_and_interface(tmp_path: Path) -> None:
         assert status.status == 200
         assert payload["lumen"] == "running"
         assert payload["overlay"] == "AZ-OS"
+        conn.request("GET", "/sigil.svg")
+        sig = conn.getresponse()
+        svg = sig.read().decode("utf-8")
+        assert sig.status == 200
+        assert "<svg" in svg
+        assert "EVER BLOOMING" not in svg.upper()
+        assert "<text" not in svg.lower()
         conn.close()
     finally:
         httpd.shutdown()

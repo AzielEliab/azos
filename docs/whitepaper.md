@@ -10,17 +10,28 @@ This document merges three July 2026 papers:
 2. *AZOS & AZ Interface — ARC, Lumen, and the control surface*
 3. *Malware comparison — structural constraints only*
 
-This tree is the software overlay described by those papers. It is **not**
-a kernel, bootloader, hypervisor, worm, or malware implementation.
+This tree is the software described by those papers: a **prefab true
+remote shell gated by coded ethics**, with catalog apps installed, a
+Windows-style desktop (Ever Blooming sigil, no words), and a
+TemporalLock × StaticClock integrity lattice. It is **not** a kernel,
+bootloader, hypervisor, worm, malware, or unrestricted host bash.
 
 ---
 
-## 1. AZ-OS is an overlay
+## 1. AZ-OS is an ethics-coded remote shell
 
-AZ-OS is a **portable folder**. You place it next to work you already do.
-It does not replace the host operating system. It does not boot hardware.
-It does not schedule processes below user space. It does not virtualize
-a machine.
+AZ-OS is a **portable folder** that opens a **principle-bound remote
+shell**. You place it next to work you already do. It does not replace
+the host operating system. It does not boot hardware. It does not
+schedule processes below user space. It does not virtualize a machine.
+
+Honest scope:
+
+- **Protocols** — HTTPS JSON (hosted Worker), HTTP loopback
+  `127.0.0.1:8800` (AZ Interface), CLI stdin (`azos shell`).
+- **Auth** — ARC 32-byte token after the five ethics gates. Hashed at rest.
+- **Sandbox** — session vfs (`.azos/workspace/<id>/` locally; KV vfs
+  hosted). Closed verb list. No host subprocess. No SSH.
 
 The unit of installation is a directory you chose to run. The unit of
 removal is that directory plus, if you ask, the session folder `.azos/`.
@@ -39,10 +50,11 @@ AZ-OS without the Interface is a library. **AZ Interface is the product.**
 
 The Interface (`azos ui`, `127.0.0.1:8800`) is where:
 
-- a human proposes an action
+- a human proposes an action (including opening a shell session)
 - five gates return PASS or FAIL in the open
 - ARC issues a token, or the request is blocked
 - blocked requests show an **invite**, not a silent error
+- a shell session opens; each command is re-gated
 - action buttons exist, and they are disabled until a live token exists
 - Halt stops execution authority
 - Lumen continues to display as running after Halt
@@ -66,8 +78,10 @@ ARC (authority, revocation, custody) issues execution tokens.
 - Revocation is final for that token.
 - A string such as `root` or `user` does **not** auto-grant a token.
 
-No module and no action runs without a token from ARC. Default is deny.
-`run()` of an unsigned or unauthorized name raises `AuthorizationError`.
+No module, session, or command runs without a token from ARC. Default is
+deny. `run()` of an unsigned or unauthorized name raises
+`AuthorizationError`. A live session is evidence for later commands, not
+a privilege skip.
 
 ---
 
@@ -122,7 +136,7 @@ new (or still-live) token, which requires the gates.
 
 ---
 
-## 7. Safe builtins
+## 7. Safe builtins and the ethics-coded shell
 
 `azos.exec` dispatches a closed allow-list:
 
@@ -130,11 +144,20 @@ new (or still-live) token, which requires the gates.
 - `echo`
 - `status`
 - `purge_session`
+- `shell`
 
-There is no `eval()`, no `exec()` of user strings, no `subprocess`, and
-no shell. Echo never leaves the process. Purge as a builtin still
-requires a live token; CLI `azos purge --confirm` is a Lumen operation
-so it remains available after halt.
+`shell` is the ethics-coded remote shell: a session plus a sandboxed
+vfs. Registered verbs (`help`, `pwd`, `ls`, `cat`, `write`, `echo`,
+`mkdir`, `rm`, `cd`, `status`, `principles`, `invite`, `modules`,
+`history`, `whoami`, `session`, `halt`, `exit`, `id`, `uname`) are
+re-run through the five gates. Denied verbs (`bash`, `ssh`, `curl`, …)
+fail integrity.
+
+There is no `eval()`, no `exec()` of user strings, and no host
+`subprocess`. Echo never leaves the process. The shell never becomes
+unrestricted host bash. Purge as a builtin still requires a live token;
+CLI `azos purge --confirm` is a Lumen operation so it remains available
+after halt.
 
 ---
 
@@ -168,7 +191,7 @@ ransomware “defenses” that wipe a host disk, or self-replication.
 | Privilege | Steal root | `root` is a name, not a grant |
 | Host disk | Encrypt / destroy | Refuses OS paths; never `$HOME` |
 | Mutation | Pack, obfuscate | Append-only log; no rewrite |
-| Control surface | None, or C2 | AZ Interface on loopback |
+| Control surface | None, or C2 | AZ Interface on loopback; hosted HTTPS JSON |
 | Halt | Kill-switch for the operator | Halt stops *our* execution; Lumen keeps custody |
 | New code | Drop unsigned payloads | Integrity gate; comprehension required even to *ask* |
 
@@ -183,9 +206,12 @@ only.
 - A real kernel, bootloader, or hypervisor
 - A worm, self-replicator, or installer that writes outside the session
 - Host-disk wipe, format, or ransomware logic
-- `eval` / subprocess / shell dispatch of user strings
-- A UI bound to `0.0.0.0`
+- `eval` / host `subprocess` / unrestricted bash of user strings
+- SSH, raw TCP, or a bind to `0.0.0.0`
 - A CDN for the Interface
+
+The ethics-coded remote shell is in scope. Unrestricted host execution
+is not.
 
 ---
 

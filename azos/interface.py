@@ -1,8 +1,9 @@
 """AZ Interface — the control surface. Bind 127.0.0.1:8800.
 
-Not cosmetic. Request → five gates → token or invite. Action buttons
-only enable with a live token. Halt. Purge with typed CONFIRM. Lumen
-status stays running after halt. Self-contained CSS, no CDN.
+Not cosmetic. Request → five gates → token or invite. Ethics-coded
+shell session. Action buttons only enable with a live token. Halt.
+Purge with typed CONFIRM. Lumen status stays running after halt.
+Self-contained CSS, no CDN.
 """
 
 from __future__ import annotations
@@ -29,7 +30,7 @@ def _html_bytes() -> bytes:
 
 def make_handler(runtime: Runtime):
     class Handler(BaseHTTPRequestHandler):
-        server_version = "AZ-Interface/0.1.0"
+        server_version = "AZ-Interface/0.3.0"
 
         def log_message(self, fmt: str, *args: object) -> None:
             return
@@ -60,8 +61,19 @@ def make_handler(runtime: Runtime):
             if path in {"/", "/index.html"}:
                 self._send(200, _html_bytes(), "text/html; charset=utf-8")
                 return
+            if path in {"/sigil.svg", "/brand/sigil.svg"}:
+                self._send(200, (WEB / "sigil.svg").read_bytes(), "image/svg+xml")
+                return
             if path == "/api/status":
                 self._json(200, runtime.status())
+                return
+            if path == "/api/prefab":
+                from azos.prefab import prefab_snapshot
+
+                self._json(200, prefab_snapshot())
+                return
+            if path == "/api/lattice":
+                self._json(200, runtime.lattice.snapshot())
                 return
             if path == "/api/invite":
                 self._json(200, {"invite": invite_text()})
@@ -112,6 +124,58 @@ def make_handler(runtime: Runtime):
                     )
                     return
                 self._json(200, {"ok": True, "result": out})
+                return
+
+            if path == "/api/session":
+                token = payload.get("token")
+                token_s = str(token) if token else None
+                actor = str(payload.get("actor") or "operator")
+                try:
+                    opened = runtime.open_session(token=token_s, actor=actor)
+                except Exception as exc:
+                    self._json(
+                        403,
+                        {"ok": False, "error": str(exc), "invite": invite_text()},
+                    )
+                    return
+                self._json(200, {"ok": True, **opened})
+                return
+
+            if path == "/api/shell":
+                token = payload.get("token")
+                token_s = str(token) if token else None
+                session_id = str(payload.get("session") or payload.get("session_id") or "")
+                command = str(payload.get("command") or payload.get("line") or "")
+                if not session_id:
+                    self._json(
+                        400,
+                        {"ok": False, "error": "session id required", "invite": invite_text()},
+                    )
+                    return
+                try:
+                    out = runtime.run_command(command, session_id=session_id, token=token_s)
+                except Exception as exc:
+                    self._json(
+                        403,
+                        {"ok": False, "error": str(exc), "invite": invite_text()},
+                    )
+                    return
+                self._json(200 if out.get("ok") else 403, out)
+                return
+
+            if path == "/api/close":
+                token = payload.get("token")
+                token_s = str(token) if token else None
+                session_id = str(payload.get("session") or payload.get("session_id") or "")
+                try:
+                    out = runtime.shell.close(session_id, token=token_s)
+                except Exception as exc:
+                    self._json(
+                        403,
+                        {"ok": False, "error": str(exc), "invite": invite_text()},
+                    )
+                    return
+                self._json(200, out)
                 return
 
             if path == "/api/halt":
@@ -175,7 +239,7 @@ def serve(
     bound_host, bound_port = httpd.server_address[:2]
     print(
         f"AZ Interface http://{bound_host}:{bound_port}  "
-        "(overlay control surface; loopback only; not a kernel)"
+        "(prefab Windows-style shell; Ever Blooming sigil; loopback only)"
     )
     try:
         httpd.serve_forever()

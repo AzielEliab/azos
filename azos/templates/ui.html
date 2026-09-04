@@ -3,430 +3,518 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>AZ-OS · AZ Interface</title>
+  <title>AZ-OS</title>
   <style>
     :root {
-      --bg: #0a0c10;
-      --panel: #12151c;
-      --ink: #e6e8ee;
-      --muted: #8b93a7;
-      --line: #2a3140;
-      --arc: #e4b84a;
-      --lumen: #5ee0d0;
+      --desk-a: #1b3a5c;
+      --desk-b: #0c1a2c;
+      --task: rgba(28,28,28,.88);
+      --win: #202020;
+      --win2: #2b2b2b;
+      --ink: #f3f3f3;
+      --muted: #b4b4b4;
+      --line: #3d3d3d;
+      --accent: #60cdff;
+      --gold: #e4b84a;
       --pass: #6fdd8b;
       --fail: #ff6b6b;
-      --halt: #ff8a5b;
-      --btn: #e4b84a;
+      --close: #e81123;
     }
     * { box-sizing: border-box; }
-    html, body { margin: 0; padding: 0; background: var(--bg); color: var(--ink); }
+    html, body { margin: 0; height: 100%; overflow: hidden; color: var(--ink);
+      font-family: "Segoe UI", ui-sans-serif, system-ui, sans-serif; }
     body {
-      font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-      line-height: 1.45;
+      background:
+        radial-gradient(1200px 700px at 70% 20%, #2a5a7a 0%, transparent 55%),
+        radial-gradient(900px 600px at 15% 80%, #3a2a14 0%, transparent 50%),
+        linear-gradient(165deg, var(--desk-a), var(--desk-b));
     }
-    header, main, footer { max-width: 52rem; margin: 0 auto; padding: 1.25rem 1.4rem; }
-    header { padding-top: 1.75rem; }
-    .tag {
-      font-size: .72rem; letter-spacing: .14em; text-transform: uppercase;
-      color: var(--arc); font-weight: 650;
-    }
-    h1 { font-size: 1.85rem; margin: .35rem 0 .4rem; letter-spacing: .01em; }
-    .lede { color: var(--muted); margin: 0 0 1rem; }
-    .overlay {
-      border: 1px solid var(--line); background: var(--panel);
-      border-radius: 10px; padding: .9rem 1.05rem; color: var(--muted); font-size: .95rem;
-    }
-    .overlay strong { color: var(--ink); }
-    .statusbar {
-      display: flex; flex-wrap: wrap; gap: .6rem 1.1rem; align-items: center;
-      margin: 1.1rem 0 0; font-size: .9rem;
-    }
-    .pill {
-      display: inline-flex; align-items: center; gap: .4rem;
-      border: 1px solid var(--line); border-radius: 999px;
-      padding: .2rem .7rem; background: #0e1118;
-    }
-    .dot { width: .55rem; height: .55rem; border-radius: 50%; background: var(--muted); }
-    .dot.on { background: var(--lumen); box-shadow: 0 0 8px var(--lumen); }
-    .dot.halt { background: var(--halt); }
-    .dot.ok { background: var(--pass); }
-    .dot.no { background: var(--fail); }
-    h2 { font-size: 1.05rem; margin: 1.6rem 0 .6rem; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
-    .card {
-      background: var(--panel); border: 1px solid var(--line);
-      border-radius: 10px; padding: 1rem 1.1rem; margin: .7rem 0;
-    }
-    label { display: block; margin: .55rem 0 .25rem; font-size: .82rem; color: var(--muted); }
-    label span { color: var(--ink); font-weight: 600; }
-    input[type=text], textarea, select {
-      width: 100%; background: #0b0f14; color: var(--ink);
-      border: 1px solid var(--line); border-radius: 7px;
-      padding: .5rem .65rem; font: inherit;
-    }
-    textarea { min-height: 4.2rem; resize: vertical; }
-    .row { display: flex; gap: .6rem; flex-wrap: wrap; margin: .7rem 0; }
-    button {
-      background: var(--btn); color: #141108; border: 0; border-radius: 7px;
-      padding: .55rem .95rem; font-weight: 700; cursor: pointer; font-size: .95rem;
-    }
-    button.secondary { background: #2a3340; color: var(--ink); font-weight: 600; }
-    button.danger { background: var(--fail); color: #1a0505; }
-    button:disabled { opacity: .4; cursor: not-allowed; }
-    .gates { display: grid; grid-template-columns: 1fr; gap: .45rem; }
-    .gate {
-      display: grid; grid-template-columns: 7.5rem 3.2rem 1fr;
-      gap: .5rem; align-items: baseline; font-size: .9rem;
-    }
-    .gate .name { text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-size: .75rem; }
+    #desktop { position: absolute; inset: 0 0 48px 0; padding: 12px 8px; display: flex; flex-direction: column; flex-wrap: wrap; align-content: flex-start; gap: 6px 10px; }
+    .icon { width: 84px; text-align: center; padding: 6px 4px; border-radius: 6px; cursor: default; user-select: none; }
+    .icon:hover, .icon:focus { background: rgba(255,255,255,.12); outline: 0; }
+    .icon .tile { width: 48px; height: 48px; margin: 0 auto 4px; border-radius: 8px; display: grid; place-items: center;
+      background: linear-gradient(180deg, #3a3a3a, #1f1f1f); border: 1px solid #555; color: var(--gold); font-weight: 700; }
+    .icon img { width: 48px; height: 48px; }
+    .icon .lab { font-size: 11px; text-shadow: 0 1px 2px #000; line-height: 1.2; }
+    #taskbar { position: absolute; left: 0; right: 0; bottom: 0; height: 48px; background: var(--task);
+      border-top: 1px solid #444; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 0 10px; }
+    #start-btn { width: 40px; height: 40px; border: 0; background: transparent; border-radius: 6px; padding: 4px; cursor: pointer; }
+    #start-btn:hover { background: rgba(255,255,255,.1); }
+    #start-btn img { width: 32px; height: 32px; display: block; }
+    .tb-search { width: 220px; height: 32px; border-radius: 16px; border: 1px solid #555; background: #2d2d2d; color: var(--ink); padding: 0 12px; font: inherit; }
+    .tb-app { width: 40px; height: 40px; border: 0; background: transparent; color: var(--ink); border-radius: 6px; cursor: pointer; }
+    .tb-app:hover { background: rgba(255,255,255,.1); }
+    #tray { position: absolute; right: 12px; bottom: 0; height: 48px; display: flex; align-items: center; gap: 10px; font-size: 12px; color: #ddd; }
+    #start { display: none; position: absolute; left: 50%; bottom: 56px; transform: translateX(-50%); width: min(720px, 94vw);
+      background: #242424; border: 1px solid #4a4a4a; border-radius: 12px; padding: 16px 18px 14px; box-shadow: 0 16px 48px #0008; }
+    #start.show { display: block; }
+    #start h2 { margin: 0 0 10px; font-size: 13px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
+    .pinned { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; }
+    .pin { background: #2f2f2f; border: 1px solid #444; border-radius: 8px; padding: 10px 6px; text-align: center; cursor: pointer; color: var(--ink); font-size: 11px; }
+    .pin:hover { background: #3a3a3a; }
+    .win { position: absolute; min-width: 420px; min-height: 280px; width: 640px; height: 460px; background: var(--win2);
+      border: 1px solid #555; border-radius: 8px; box-shadow: 0 12px 40px #0009; display: flex; flex-direction: column; overflow: hidden; }
+    .win.max { inset: 0 0 48px 0; width: auto; height: auto; border-radius: 0; }
+    .win.hid { display: none; }
+    .title { height: 32px; background: var(--win); display: flex; align-items: center; padding: 0 4px 0 10px; cursor: move; user-select: none; }
+    .title b { flex: 1; font-size: 12px; font-weight: 600; }
+    .chrome { display: flex; }
+    .chrome button { width: 46px; height: 32px; border: 0; background: transparent; color: var(--ink); cursor: pointer; }
+    .chrome button:hover { background: #3a3a3a; }
+    .chrome .x:hover { background: var(--close); }
+    .body { flex: 1; overflow: auto; padding: 12px 14px; font-size: 13px; }
+    .body p { color: var(--muted); }
+    input[type=text], textarea, select { width: 100%; background: #1a1a1a; color: var(--ink); border: 1px solid #555; border-radius: 4px; padding: .45rem .55rem; font: inherit; }
+    textarea { min-height: 3.4rem; }
+    button.act { background: #0e639c; color: #fff; border: 0; border-radius: 4px; padding: .4rem .75rem; font-weight: 600; cursor: pointer; }
+    button.act:disabled { opacity: .4; cursor: not-allowed; }
+    button.danger { background: var(--close); color: #fff; border: 0; border-radius: 4px; padding: .4rem .75rem; cursor: pointer; }
+    .row { display: flex; gap: .5rem; flex-wrap: wrap; margin: .55rem 0; }
+    .term { font-family: ui-monospace, Consolas, monospace; font-size: 12px; background: #0c0c0c; border: 1px solid #333; min-height: 160px; max-height: 220px; overflow: auto; padding: 8px; white-space: pre-wrap; }
+    .prompt-row { display: flex; gap: .4rem; align-items: center; margin-top: .5rem; }
+    .prompt-row span { color: var(--gold); font-family: ui-monospace, Consolas, monospace; font-weight: 700; }
+    .gates { display: grid; gap: .3rem; }
+    .gate { display: grid; grid-template-columns: 7rem 3rem 1fr; gap: .4rem; font-size: 12px; }
     .pass { color: var(--pass); font-weight: 700; }
     .fail { color: var(--fail); font-weight: 700; }
-    .token {
-      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-      word-break: break-all; font-size: .85rem;
-    }
-    .invite {
-      border-color: var(--arc);
-      background: linear-gradient(180deg, #1a160c 0%, var(--panel) 40%);
-    }
-    .invite h3 { margin: 0 0 .4rem; color: var(--arc); font-size: 1rem; }
-    pre {
-      white-space: pre-wrap; font-size: .82rem; color: var(--ink);
-      font-family: ui-sans-serif, system-ui, sans-serif; margin: 0;
-    }
-    .log {
-      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-      font-size: .78rem; max-height: 12rem; overflow: auto;
-      background: #0b0f14; border: 1px solid var(--line); border-radius: 8px;
-      padding: .7rem .8rem;
-    }
-    .check { display: flex; gap: .5rem; align-items: flex-start; margin: .6rem 0; color: var(--muted); font-size: .9rem; }
-    .check input { margin-top: .2rem; }
-    .extend { display: none; }
-    .extend.show { display: block; }
-    footer { color: var(--muted); font-size: .82rem; padding-bottom: 2.5rem; }
-    .kicker { color: var(--lumen); font-size: .75rem; letter-spacing: .08em; text-transform: uppercase; }
-    #msg { min-height: 1.2rem; color: var(--muted); font-size: .9rem; }
+    .invite { border: 1px solid var(--gold); padding: 8px; background: #2a230e; white-space: pre-wrap; font-size: 12px; }
+    .kicker { color: var(--gold); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; }
+    #msg { min-height: 1.1rem; color: var(--muted); }
   </style>
 </head>
 <body>
-<header>
-  <div class="tag">AZ-OS · AZ Interface · v0.1.0 · loopback</div>
-  <h1>AZ-OS + AZ Interface</h1>
-  <p class="lede">Integrity precedes execution. The Interface is the control surface.</p>
-  <div class="overlay">
-    <strong>This is an overlay, not a kernel.</strong>
-    AZ-OS is a portable folder and a local control surface. It does not boot hardware,
-    replace your operating system, load a hypervisor, or install a bootloader.
-    Nothing executes without an ARC token issued after five gates pass.
-    Propagation is invitation, not infection.
+  <div id="desktop" aria-label="Desktop"></div>
+  <div id="wins"></div>
+  <div id="start">
+    <h2>Pinned — prefab AZ-OS</h2>
+    <div class="pinned" id="pinned"></div>
+    <p class="kicker" style="margin-top:12px">Integrity precedes execution. Lumen watches. Overlay remote shell.</p>
   </div>
-  <div class="statusbar" id="statusbar">
-    <span class="pill"><span class="dot" id="dot-lumen"></span> Lumen <strong id="lumen-label">…</strong></span>
-    <span class="pill"><span class="dot" id="dot-halt"></span> Halt <strong id="halt-label">…</strong></span>
-    <span class="pill"><span class="dot" id="dot-token"></span> Token <strong id="token-label">none</strong></span>
-    <span class="pill">Log <strong id="log-label">0</strong></span>
+  <div id="taskbar">
+    <button type="button" id="start-btn" title="Start"><img src="/sigil.svg" alt=""></button>
+    <input class="tb-search" id="tb-search" placeholder="Search" spellcheck="false">
+    <button type="button" class="tb-app" data-open="shell">{_}</button>
+    <button type="button" class="tb-app" data-open="ethics">⚖</button>
+    <button type="button" class="tb-app" data-open="lattice">⚙</button>
   </div>
-</header>
-<main>
-  <h2>Request execution</h2>
-  <form class="card" id="request-form" autocomplete="off">
-    <label for="action"><span>Action</span> — registered safe builtin</label>
-    <select id="action" name="action">
-      <option value="echo">echo</option>
-      <option value="list_modules">list_modules</option>
-      <option value="status">status</option>
-      <option value="purge_session">purge_session</option>
-    </select>
-    <label for="definition"><span>Definition</span> — what exactly is proposed?</label>
-    <textarea id="definition" name="definition" placeholder="Print a bounded status string from a registered builtin."></textarea>
-    <label for="evidence"><span>Evidence</span> — why is this justified?</label>
-    <textarea id="evidence" name="evidence" placeholder="Action is on the closed SAFE_ACTIONS list in azos.exec."></textarea>
-    <label for="impact"><span>Impact</span> — what will change?</label>
-    <textarea id="impact" name="impact" placeholder="In-process result only. No host disk, no other machines."></textarea>
-    <label for="actor"><span>Responsibility</span> — who owns the outcome? (root/user is a name, not a privilege)</label>
-    <input id="actor" name="actor" type="text" placeholder="operator" spellcheck="false">
-    <label class="check">
-      <input type="checkbox" id="extend_module">
-      <span>I am extending / loading a new module (requires comprehension).</span>
-    </label>
-    <div class="extend" id="extend-fields">
-      <label class="check">
-        <input type="checkbox" id="comprehension">
-        <span>Comprehension: I understand this module and its bounds. Understanding precedes modification.</span>
-      </label>
-      <label for="intent"><span>Restate intent</span> — short restatement in your own words</label>
-      <textarea id="intent" placeholder="I want this overlay to run only the named builtin, nothing else."></textarea>
-    </div>
-    <div class="row">
-      <button type="submit" id="request-btn">Request execution</button>
-      <label>Import JSON <input type="file" id="import-json" accept="application/json,.json"></label>
-      <button type="button" class="secondary" id="export-json">Export JSON</button>
-    </div>
-  </form>
+  <div id="tray">
+    <span id="dot-lumen">Lumen …</span>
+    <span id="lat-tip">lattice 0</span>
+    <span id="clock"></span>
+  </div>
 
-  <div class="card" id="gate-card">
+  <template id="tpl-ethics">
+    <form id="request-form" autocomplete="off">
+      <p>AZ Interface — request execution. Five gates. Default deny. Invite, not a silent block.</p>
+      <label>Action</label>
+      <select id="action">
+        <option value="shell" selected>shell</option>
+        <option value="echo">echo</option>
+        <option value="list_modules">list_modules</option>
+        <option value="status">status</option>
+        <option value="purge_session">purge_session</option>
+      </select>
+      <label>Definition</label><textarea id="definition" placeholder="Open an ethics-gated shell session."></textarea>
+      <label>Evidence</label><textarea id="evidence" placeholder="Action is on the closed SAFE_ACTIONS list."></textarea>
+      <label>Impact</label><textarea id="impact" placeholder="Session vfs only. No host disk."></textarea>
+      <label>Responsibility</label><input id="actor" type="text" placeholder="operator">
+      <label><input type="checkbox" id="extend_module"> I am extending / loading a new module</label>
+      <div id="extend-fields" style="display:none">
+        <label><input type="checkbox" id="comprehension"> Comprehension</label>
+        <textarea id="intent"></textarea>
+      </div>
+      <div class="row">
+        <button type="submit" class="act" id="request-btn">Request execution</button>
+        <label>Import JSON <input type="file" id="import-json" accept="application/json,.json"></label>
+        <button type="button" class="act" id="export-json">Export JSON</button>
+      </div>
+    </form>
     <div class="kicker">Five-gate result</div>
-    <div class="gates" id="gates">
-      <p class="lede">Submit a request. Default is deny. A FAIL issues an invite, not a silent block.</p>
-    </div>
+    <div class="gates" id="gates"><p>Submit a request.</p></div>
     <p class="token" id="token-box"></p>
-  </div>
+  </template>
 
-  <h2>Authorized actions</h2>
-  <div class="card">
-    <p class="lede">Buttons enable only with a live ARC token. Halt freezes execution; Lumen keeps running.</p>
+  <template id="tpl-shell">
+    <p>Ethics-coded remote shell. Sandbox vfs. No host subprocess.</p>
     <div class="row">
-      <button type="button" id="btn-list" disabled>list_modules</button>
-      <button type="button" id="btn-echo" disabled>echo</button>
-      <button type="button" id="btn-status" disabled>status</button>
+      <button type="button" class="act" id="btn-session" disabled>Open shell session</button>
+      <button type="button" class="act" id="btn-close" disabled>Close session</button>
+      <button type="button" class="act" id="btn-list" disabled>list_modules</button>
+      <button type="button" class="act" id="btn-echo" disabled>echo</button>
+      <button type="button" class="act" id="btn-status" disabled>status</button>
     </div>
-    <label for="echo-msg">echo message (never a shell)</label>
+    <label>echo message (in-process; never a host shell)</label>
     <input id="echo-msg" type="text" placeholder="ok" maxlength="200">
+    <div class="term" id="term">Request execution, then open a session. Integrity precedes execution.</div>
+    <div class="prompt-row">
+      <span>azos$</span>
+      <input id="shell-line" type="text" placeholder="help" maxlength="4096" disabled autocomplete="off" spellcheck="false">
+      <button type="button" class="act" id="btn-run" disabled>Run</button>
+    </div>
+    <p class="ethics-line" id="ethics-line">Gates idle.</p>
     <p id="msg"></p>
     <div class="row">
-      <button type="button" class="secondary" id="btn-halt">Halt</button>
-      <button type="button" class="secondary" id="btn-revoke" disabled>Revoke token</button>
+      <button type="button" class="act" id="btn-halt">Halt</button>
+      <button type="button" class="act" id="btn-revoke" disabled>Revoke token</button>
     </div>
-  </div>
+  </template>
 
-  <h2>Purge session</h2>
-  <div class="card">
-    <p class="lede">Deletes the <code>.azos/</code> session directory only. Never <code>$HOME</code>, never OS files. Type CONFIRM.</p>
-    <label for="confirm">Type CONFIRM</label>
+  <template id="tpl-settings">
+    <p>Purge deletes the <code>.azos/</code> session only. Never <code>$HOME</code>. Type CONFIRM.</p>
     <input id="confirm" type="text" placeholder="CONFIRM" spellcheck="false">
-    <div class="row">
-      <button type="button" class="danger" id="btn-purge">Purge .azos</button>
-    </div>
-  </div>
+    <div class="row"><button type="button" class="danger" id="btn-purge">Purge .azos</button></div>
+    <h3>Invite</h3>
+    <pre class="invite" id="invite-text">Loading invite…</pre>
+    <h3>Execution log</h3>
+    <div class="term" id="log">—</div>
+  </template>
 
-  <h2>Invite</h2>
-  <div class="card invite" id="invite-card">
-    <h3>Unauthorized environments receive an invite — not a silent error.</h3>
-    <pre id="invite-text">Loading invite…</pre>
-  </div>
-
-  <h2>Execution log</h2>
-  <div class="card">
-    <p class="lede">Append-only sha256 chain. Time-bound actions are final. No rewrite.</p>
-    <div class="log" id="log">—</div>
-  </div>
-</main>
-<footer>
-  <p><strong>Integrity precedes execution.</strong> Overlay, not a kernel. Not malware. Propagation is invitation.</p>
-  <p>Apache-2.0 · Aziel Eliab · 2026 · Bound to 127.0.0.1:8800 · Forks welcome and always allowed.</p>
-</footer>
-<script>
+  <script>
 (function () {
   const $ = (id) => document.getElementById(id);
   let token = null;
+  let sessionId = null;
+  let z = 10;
+  const wins = {};
 
-  function setMsg(text, ok) {
-    const el = $("msg");
-    el.textContent = text || "";
-    el.style.color = ok === false ? "var(--fail)" : "var(--muted)";
+  function clock() {
+    const d = new Date();
+    $("clock").textContent = d.toLocaleTimeString([], {hour: "numeric", minute: "2-digit"});
+  }
+  clock();
+  setInterval(clock, 15000);
+
+  $("start-btn").addEventListener("click", function () {
+    $("start").classList.toggle("show");
+  });
+  document.addEventListener("click", function (ev) {
+    if (!$("start").contains(ev.target) && ev.target !== $("start-btn") && !ev.target.closest("#start-btn")) {
+      $("start").classList.remove("show");
+    }
+  });
+
+  function openWin(id, title, htmlOrNode) {
+    if (wins[id]) {
+      wins[id].style.display = "flex";
+      wins[id].classList.remove("hid");
+      focusWin(wins[id]);
+      return wins[id];
+    }
+    const el = document.createElement("div");
+    el.className = "win";
+    el.style.left = (80 + Object.keys(wins).length * 24) + "px";
+    el.style.top = (48 + Object.keys(wins).length * 20) + "px";
+    el.innerHTML = '<div class="title"><b></b><div class="chrome"><button type="button" data-min>—</button><button type="button" data-max>□</button><button type="button" class="x" data-x>×</button></div></div><div class="body"></div>';
+    el.querySelector("b").textContent = title;
+    const body = el.querySelector(".body");
+    if (typeof htmlOrNode === "string") body.innerHTML = htmlOrNode;
+    else if (htmlOrNode) body.appendChild(htmlOrNode);
+    el.querySelector("[data-x]").onclick = () => { el.remove(); delete wins[id]; };
+    el.querySelector("[data-min]").onclick = () => el.classList.add("hid");
+    el.querySelector("[data-max]").onclick = () => el.classList.toggle("max");
+    drag(el, el.querySelector(".title"));
+    el.addEventListener("mousedown", () => focusWin(el));
+    $("wins").appendChild(el);
+    wins[id] = el;
+    focusWin(el);
+    return el;
+  }
+  function focusWin(el) { el.style.zIndex = String(++z); }
+  function drag(el, handle) {
+    let ox = 0, oy = 0, on = false;
+    handle.addEventListener("mousedown", function (e) {
+      if (e.target.closest("button")) return;
+      on = true; ox = e.clientX - el.offsetLeft; oy = e.clientY - el.offsetTop;
+    });
+    window.addEventListener("mousemove", function (e) {
+      if (!on || el.classList.contains("max")) return;
+      el.style.left = (e.clientX - ox) + "px";
+      el.style.top = Math.max(0, e.clientY - oy) + "px";
+    });
+    window.addEventListener("mouseup", function () { on = false; });
   }
 
-  function enableActions(on) {
-    ["btn-list", "btn-echo", "btn-status", "btn-revoke"].forEach((id) => {
-      $(id).disabled = !on;
+  function appWindow(app) {
+    const extra = app.slug === "godlock"
+      ? '<p>Client hook: <a href="https://godlock.uk" style="color:#60cdff">godlock.uk</a> (public HTTPS). Not a VPN.</p>'
+      : "";
+    const html = '<p class="kicker">Installed · hooked into AZ-OS</p>' +
+      "<h3>" + app.name + "</h3>" +
+      "<p>" + app.one_line + "</p>" + extra +
+      "<p>Worker: <code>" + app.worker + "</code></p>" +
+      '<div class="row">' +
+      '<button type="button" class="act" data-href="' + app.skill + '">Skill</button>' +
+      '<button type="button" class="act" data-href="' + app.health + '">Health</button>' +
+      '<button type="button" class="act" data-href="' + app.catalog + '">Catalog</button>' +
+      "</div><p>Prefab ships the hook. Opening a URL is voluntary.</p>";
+    const w = openWin("app-" + app.slug, app.name, html);
+    w.querySelectorAll("[data-href]").forEach(function (b) {
+      b.onclick = function () { window.open(b.getAttribute("data-href"), "_blank", "noopener"); };
     });
   }
 
+  function openNamed(name) {
+    if (name === "shell") {
+      if (wins.shell) { focusWin(wins.shell); wins.shell.classList.remove("hid"); return; }
+      const node = $("tpl-shell").content.cloneNode(true);
+      openWin("shell", "AZ-OS Shell", node);
+      wireShell();
+      refresh();
+      return;
+    }
+    if (name === "ethics") {
+      if (wins.ethics) { focusWin(wins.ethics); wins.ethics.classList.remove("hid"); return; }
+      const node = $("tpl-ethics").content.cloneNode(true);
+      openWin("ethics", "AZ Interface", node);
+      wireEthics();
+      return;
+    }
+    if (name === "lattice") {
+      fetch("/api/lattice").then((r) => r.json()).then(function (d) {
+        openWin("lattice", "Integrity lattice",
+          "<p class='kicker'>TemporalLock × StaticClock</p>" +
+          "<p>Immutable timeslate lattice hash-chained against StaticClock gear-clicks. No rollbacks.</p>" +
+          "<pre class='term'>" + JSON.stringify(d, null, 2) + "</pre>");
+      });
+      return;
+    }
+    if (name === "settings") {
+      if (wins.settings) { focusWin(wins.settings); return; }
+      const node = $("tpl-settings").content.cloneNode(true);
+      openWin("settings", "Settings", node);
+      wireSettings();
+    }
+  }
+
+  document.querySelectorAll("[data-open]").forEach((b) => {
+    b.addEventListener("click", () => openNamed(b.getAttribute("data-open")));
+  });
+
+  async function boot() {
+    const pref = await (await fetch("/api/prefab")).json();
+    const desk = $("desktop");
+    const pin = $("pinned");
+    (pref.apps || []).forEach(function (app, i) {
+      const ic = document.createElement("button");
+      ic.className = "icon";
+      ic.type = "button";
+      const tile = app.slug === "azos"
+        ? '<img src="/sigil.svg" alt="">'
+        : '<div class="tile">' + app.name.slice(0, 1) + "</div>";
+      ic.innerHTML = tile + '<div class="lab">' + app.name + "</div>";
+      ic.onclick = function () {
+        if (app.slug === "azos") openNamed("shell");
+        else if (app.slug === "temporallock" || app.slug === "staticclock") openNamed("lattice");
+        else appWindow(app);
+      };
+      desk.appendChild(ic);
+      if (i < 12) {
+        const p = document.createElement("button");
+        p.className = "pin";
+        p.type = "button";
+        p.textContent = app.name;
+        p.onclick = function () { ic.click(); $("start").classList.remove("show"); };
+        pin.appendChild(p);
+      }
+    });
+    const set = document.createElement("button");
+    set.className = "icon";
+    set.type = "button";
+    set.innerHTML = '<div class="tile">⚙</div><div class="lab">Settings</div>';
+    set.onclick = () => openNamed("settings");
+    desk.appendChild(set);
+    const eth = document.createElement("button");
+    eth.className = "icon";
+    eth.type = "button";
+    eth.innerHTML = '<div class="tile">⚖</div><div class="lab">AZ Interface</div>';
+    eth.onclick = () => openNamed("ethics");
+    desk.appendChild(eth);
+    await refresh();
+    openNamed("ethics");
+  }
+
+  function setMsg(text, ok) {
+    const el = $("msg");
+    if (!el) return;
+    el.textContent = text || "";
+    el.style.color = ok === false ? "var(--fail)" : "var(--muted)";
+  }
+  function enableActions(on) {
+    ["btn-list", "btn-echo", "btn-status", "btn-revoke", "btn-session"].forEach((id) => {
+      const n = $(id); if (n) n.disabled = !on;
+    });
+    const live = on && Boolean(sessionId);
+    ["btn-run", "btn-close", "shell-line"].forEach((id) => {
+      const n = $(id); if (n) n.disabled = !live;
+    });
+  }
   function renderGates(gates, passed, issued) {
-    const names = ["definition", "evidence", "impact", "integrity", "responsibility"];
     const box = $("gates");
+    if (!box) return;
+    const names = ["definition", "evidence", "impact", "integrity", "responsibility"];
     box.innerHTML = "";
     names.forEach((name) => {
       const g = (gates && gates[name]) || { pass: false, reason: "not evaluated" };
       const row = document.createElement("div");
       row.className = "gate";
-      row.innerHTML =
-        '<span class="name">' + name + "</span>" +
-        '<span class="' + (g.pass ? "pass" : "fail") + '">' + (g.pass ? "PASS" : "FAIL") + "</span>" +
-        "<span>" + (g.reason || "") + "</span>";
+      row.innerHTML = '<span>' + name + '</span><span class="' + (g.pass ? "pass" : "fail") + '">' +
+        (g.pass ? "PASS" : "FAIL") + "</span><span>" + (g.reason || "") + "</span>";
       box.appendChild(row);
     });
     const tb = $("token-box");
-    if (passed && issued) {
-      tb.textContent = "Token issued (present once): " + issued;
-    } else if (gates) {
-      tb.textContent = "Blocked. No token. See invite below.";
-    } else {
-      tb.textContent = "";
-    }
+    if (tb) tb.textContent = passed && issued ? ("Token issued (present once): " + issued) : (gates ? "Blocked. No token. See invite." : "");
+  }
+  function renderEthics(gates) {
+    const el = $("ethics-line");
+    if (!el) return;
+    const names = ["definition", "evidence", "impact", "integrity", "responsibility"];
+    el.textContent = "Ethics: " + names.map((n) => {
+      const g = (gates && gates[n]) || { pass: false };
+      return n.slice(0, 3) + " " + (g.pass ? "PASS" : "FAIL");
+    }).join(" · ");
+  }
+  function termAppend(text, cls) {
+    const el = $("term");
+    if (!el) return;
+    const line = document.createElement("div");
+    if (cls) line.className = cls;
+    line.textContent = text;
+    if (el.textContent.indexOf("Request execution") === 0 && el.childNodes.length <= 1) el.textContent = "";
+    el.appendChild(line);
+    el.scrollTop = el.scrollHeight;
   }
 
   async function refresh() {
     const st = await (await fetch("/api/status")).json();
-    $("lumen-label").textContent = st.lumen || "unknown";
-    $("dot-lumen").className = "dot " + (st.lumen === "running" ? "on" : "");
-    $("halt-label").textContent = st.halted ? "halted" : "live";
-    $("dot-halt").className = "dot " + (st.halted ? "halt" : "ok");
-    const active = st.tokens && st.tokens.active;
-    $("token-label").textContent = token ? "live (this session)" : (active ? "active in .azos" : "none");
-    $("dot-token").className = "dot " + ((token || active) ? "ok" : "no");
-    $("log-label").textContent = String(st.log_length || 0);
+    const lum = $("dot-lumen");
+    if (lum) lum.textContent = "Lumen " + (st.lumen || "…");
+    const lat = $("lat-tip");
+    if (lat && st.lattice) lat.textContent = "lattice " + (st.lattice.gear_ticks || 0);
     enableActions(Boolean(token) && !st.halted);
-    const log = await (await fetch("/api/log")).json();
-    const lines = (log.entries || []).map(function (e) {
-      return (e.hash || "").slice(0, 12) + "  " + e.action + "  " + e.timestamp;
-    });
-    $("log").textContent = lines.length ? lines.join("\n") : "empty (append-only once executions exist)";
+    const logEl = $("log");
+    if (logEl) {
+      const log = await (await fetch("/api/log")).json();
+      const lines = (log.entries || []).map((e) => (e.hash || "").slice(0, 12) + "  " + e.action);
+      logEl.textContent = lines.length ? lines.join("\n") : "empty (append-only once executions exist)";
+    }
   }
 
-  $("extend_module").addEventListener("change", function () {
-    $("extend-fields").classList.toggle("show", $("extend_module").checked);
-  });
-
-  $("request-form").addEventListener("submit", async function (ev) {
-    ev.preventDefault();
-    const body = {
-      action: $("action").value,
-      definition: $("definition").value,
-      evidence: $("evidence").value,
-      impact: $("impact").value,
-      actor: $("actor").value,
-      extend_module: $("extend_module").checked,
-      comprehension: $("comprehension").checked,
-      intent: $("intent").value
-    };
-    const res = await fetch("/api/request", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body)
+  let lastRequest = null;
+  function wireEthics() {
+    $("extend_module").addEventListener("change", function () {
+      $("extend-fields").style.display = $("extend_module").checked ? "block" : "none";
     });
-    const data = await res.json();
-    token = data.token || null;
-    renderGates(data.gates, data.passed, data.token);
-    if (data.invite) {
-      $("invite-text").textContent = data.invite;
-    }
-    setMsg(data.passed ? "Token issued. Actions enabled." : "Blocked — invite shown, not a silent error.", data.passed);
-    await refresh();
-  });
-
-  async function run(name) {
-    if (!token) {
-      setMsg("No live token. Request execution first — or see the invite.", false);
-      return;
-    }
-    const payload = { name: name, token: token };
-    if (name === "echo") payload.message = $("echo-msg").value || "ok";
-    const res = await fetch("/api/exec", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
+    $("request-form").addEventListener("submit", async function (ev) {
+      ev.preventDefault();
+      lastRequest = {
+        action: $("action").value, definition: $("definition").value, evidence: $("evidence").value,
+        impact: $("impact").value, actor: $("actor").value, extend_module: $("extend_module").checked,
+        comprehension: $("comprehension").checked, intent: $("intent").value
+      };
+      const res = await fetch("/api/request", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(lastRequest) });
+      const data = await res.json();
+      token = data.token || null;
+      renderGates(data.gates, data.passed, data.token);
+      if (data.invite && $("invite-text")) $("invite-text").textContent = data.invite;
+      setMsg(data.passed ? "Token issued. Actions enabled." : "Blocked — invite shown, not a silent error.", data.passed);
+      await refresh();
     });
-    const data = await res.json();
-    if (!data.ok) {
-      setMsg(data.error || "unauthorized", false);
-      if (data.invite) $("invite-text").textContent = data.invite;
-    } else {
-      setMsg(JSON.stringify(data.result), true);
-    }
-    await refresh();
+    $("export-json").addEventListener("click", function () {
+      const payload = lastRequest || {};
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" }));
+      a.download = "azos-request.json";
+      a.click();
+    });
+    const importEl = $("import-json");
+    if (importEl) importEl.addEventListener("change", function () {
+      const f = importEl.files && importEl.files[0];
+      if (!f) return;
+      const reader = new FileReader();
+      reader.onload = function () {
+        let obj; try { obj = JSON.parse(String(reader.result || "{}")); } catch (e) { return; }
+        const r = obj.request || obj;
+        ["action", "definition", "evidence", "impact", "actor", "intent"].forEach((k) => { if (r[k] && $(k)) $(k).value = r[k]; });
+        lastRequest = r;
+      };
+      reader.readAsText(f);
+    });
   }
 
-  $("btn-list").addEventListener("click", function () { run("list_modules"); });
-  $("btn-echo").addEventListener("click", function () { run("echo"); });
-  $("btn-status").addEventListener("click", function () { run("status"); });
-
-  $("btn-halt").addEventListener("click", async function () {
-    await fetch("/api/halt", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
-    enableActions(false);
-    setMsg("Halted. Lumen still running. Revoke and purge remain available.");
-    await refresh();
-  });
-
-  $("btn-revoke").addEventListener("click", async function () {
-    if (!token) return;
-    const res = await fetch("/api/revoke", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ token: token })
-    });
-    const data = await res.json();
-    token = null;
-    enableActions(false);
-    setMsg(data.ok ? "Token revoked." : (data.error || "revoke failed"), data.ok);
-    await refresh();
-  });
-
-  $("btn-purge").addEventListener("click", async function () {
-    const typed = $("confirm").value;
-    const res = await fetch("/api/purge", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ confirm: typed })
-    });
-    const data = await res.json();
-    if (!res.ok || data.ok === false) {
-      setMsg(data.error || "purge refused", false);
-      return;
+  function wireShell() {
+    async function run(name) {
+      if (!token) { setMsg("No live token. Request execution first — or see the invite.", false); return; }
+      const payload = { name: name, token: token };
+      if (name === "echo") payload.message = ($("echo-msg") && $("echo-msg").value) || "ok";
+      const res = await fetch("/api/exec", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+      const data = await res.json();
+      if (!data.ok) { setMsg(data.error || "unauthorized", false); }
+      else setMsg(JSON.stringify(data.result), true);
+      await refresh();
     }
-    token = null;
-    enableActions(false);
-    $("confirm").value = "";
-    setMsg("Session .azos purged. Lumen still running.");
-    await refresh();
+    $("btn-list").onclick = () => run("list_modules");
+    $("btn-echo").onclick = () => run("echo");
+    $("btn-status").onclick = () => run("status");
+    $("btn-session").onclick = async function () {
+      const res = await fetch("/api/session", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token: token, actor: ($("actor") && $("actor").value) || "operator" }) });
+      const data = await res.json();
+      if (!data.session) { setMsg(data.error || "session refused", false); return; }
+      sessionId = data.session;
+      termAppend("session " + sessionId + "  cwd " + (data.cwd || "/"));
+      setMsg("Shell session open. Commands are principle-bound.", true);
+      await refresh();
+    };
+    async function runShell() {
+      const line = $("shell-line").value;
+      if (!line.trim() || !sessionId) return;
+      termAppend("azos$ " + line);
+      $("shell-line").value = "";
+      const res = await fetch("/api/shell", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token: token, session: sessionId, command: line }) });
+      const data = await res.json();
+      renderEthics(data.gates);
+      if (data.stdout) termAppend(data.stdout.replace(/\n$/, ""));
+      if (!data.ok) termAppend(data.error || "denied");
+      if (data.closed) sessionId = null;
+      await refresh();
+    }
+    $("btn-run").onclick = runShell;
+    $("shell-line").addEventListener("keydown", function (ev) { if (ev.key === "Enter") { ev.preventDefault(); runShell(); } });
+    $("btn-close").onclick = async function () {
+      await fetch("/api/close", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token: token, session: sessionId }) });
+      sessionId = null; termAppend("session closed."); await refresh();
+    };
+    $("btn-halt").onclick = async function () {
+      await fetch("/api/halt", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+      sessionId = null; enableActions(false); setMsg("Halted. Lumen still running."); await refresh();
+    };
+    $("btn-revoke").onclick = async function () {
+      if (!token) return;
+      await fetch("/api/revoke", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token: token }) });
+      token = null; sessionId = null; enableActions(false); await refresh();
+    };
+  }
+
+  function wireSettings() {
+    fetch("/api/invite").then((r) => r.json()).then((d) => { $("invite-text").textContent = d.invite || ""; });
+    $("btn-purge").onclick = async function () {
+      const res = await fetch("/api/purge", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ confirm: $("confirm").value }) });
+      const data = await res.json();
+      if (!res.ok || data.ok === false) { setMsg(data.error || "purge refused", false); return; }
+      token = null; sessionId = null; $("confirm").value = ""; setMsg("Session .azos purged. Lumen still running."); await refresh();
+    };
+  }
+
+  $("tb-search").addEventListener("keydown", function (ev) {
+    if (ev.key !== "Enter") return;
+    const q = $("tb-search").value.toLowerCase();
+    if (q.indexOf("shell") >= 0) openNamed("shell");
+    else if (q.indexOf("lattice") >= 0) openNamed("lattice");
+    else if (q.indexOf("setting") >= 0) openNamed("settings");
+    else openNamed("ethics");
   });
 
-  fetch("/api/invite").then(function (r) { return r.json(); }).then(function (d) {
-    $("invite-text").textContent = d.invite || "";
-  });
-  var lastRequest = null;
-  document.getElementById("export-json").addEventListener("click", function () {
-    const payload = lastRequest || {
-      action: $("action").value,
-      definition: $("definition").value,
-      evidence: $("evidence").value,
-      impact: $("impact").value,
-      actor: $("actor").value,
-      extend_module: $("extend_module").checked,
-      comprehension: $("comprehension").checked,
-      intent: $("intent").value
-    };
-    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = "azos-request.json";
-    a.click();
-    URL.revokeObjectURL(a.href);
-  });
-  const importEl = document.getElementById("import-json");
-  if (importEl) importEl.addEventListener("change", function () {
-    const f = importEl.files && importEl.files[0];
-    if (!f) return;
-    const reader = new FileReader();
-    reader.onload = function () {
-      let obj;
-      try { obj = JSON.parse(String(reader.result || "{}")); } catch (e) { return; }
-      const r = obj.request || obj;
-      if (r.action) $("action").value = r.action;
-      if (r.definition) $("definition").value = r.definition;
-      if (r.evidence) $("evidence").value = r.evidence;
-      if (r.impact) $("impact").value = r.impact;
-      if (r.actor) $("actor").value = r.actor;
-      if (r.intent) $("intent").value = r.intent;
-      lastRequest = r;
-    };
-    reader.readAsText(f);
-  });
-  const origSubmit = $("request-form").onsubmit;
-  $("request-form").addEventListener("submit", function () {
-    lastRequest = {
-      action: $("action").value,
-      definition: $("definition").value,
-      evidence: $("evidence").value,
-      impact: $("impact").value,
-      actor: $("actor").value,
-      extend_module: $("extend_module").checked,
-      comprehension: $("comprehension").checked,
-      intent: $("intent").value
-    };
-  });
-  refresh();
+  boot();
 })();
-</script>
+  </script>
 </body>
 </html>

@@ -4,11 +4,11 @@ import 'package:flutter/material.dart';
 
 import 'theme.dart';
 
-const invite = '''AZ-OS — voluntary overlay (not an infection)
+const invite = '''AZ-OS — ethics-coded remote shell (voluntary; not an infection)
 
-AZ-OS is a portable folder and control surface. It is not a kernel,
-not a bootloader, not a hypervisor, and not malware. You run it because
-you choose to.
+AZ-OS is a true remote shell gated by coded ethics. It is not a kernel,
+not a bootloader, not a hypervisor, and not malware. It is not
+unrestricted host bash and not SSH. You run it because you choose to.
 
 Principles
   1. Integrity precedes execution.
@@ -105,8 +105,8 @@ class _ControlPageState extends State<ControlPage> {
             child: const Padding(
               padding: EdgeInsets.all(12),
               child: Text(
-                'NOT a kernel. NOT a worm. NOT malware. This is a control surface '
-                'for a portable overlay. Propagation is invitation, not infection.',
+                'Ethics-coded remote shell. NOT a kernel. NOT a worm. NOT malware. '
+                'NOT unrestricted host bash. Propagation is invitation, not infection.',
                 style: TextStyle(height: 1.4),
               ),
             ),

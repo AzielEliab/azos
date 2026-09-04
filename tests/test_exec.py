@@ -46,6 +46,7 @@ def test_token_after_pass_allows_builtin(runtime: Runtime) -> None:
     assert out["echo"] == "ok"
     listed = runtime.run("list_modules", token=result.token)
     assert "echo" in listed["modules"]
+    assert "shell" in listed["modules"]
     st = runtime.run("status", token=result.token)
     assert st["overlay"] == "AZ-OS"
     assert st["kernel"] is False
