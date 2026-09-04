@@ -30,7 +30,7 @@ def _html_bytes() -> bytes:
 
 def make_handler(runtime: Runtime):
     class Handler(BaseHTTPRequestHandler):
-        server_version = "AZ-Interface/0.2.0"
+        server_version = "AZ-Interface/0.3.0"
 
         def log_message(self, fmt: str, *args: object) -> None:
             return
@@ -61,8 +61,19 @@ def make_handler(runtime: Runtime):
             if path in {"/", "/index.html"}:
                 self._send(200, _html_bytes(), "text/html; charset=utf-8")
                 return
+            if path in {"/sigil.svg", "/brand/sigil.svg"}:
+                self._send(200, (WEB / "sigil.svg").read_bytes(), "image/svg+xml")
+                return
             if path == "/api/status":
                 self._json(200, runtime.status())
+                return
+            if path == "/api/prefab":
+                from azos.prefab import prefab_snapshot
+
+                self._json(200, prefab_snapshot())
+                return
+            if path == "/api/lattice":
+                self._json(200, runtime.lattice.snapshot())
                 return
             if path == "/api/invite":
                 self._json(200, {"invite": invite_text()})
@@ -228,7 +239,7 @@ def serve(
     bound_host, bound_port = httpd.server_address[:2]
     print(
         f"AZ Interface http://{bound_host}:{bound_port}  "
-        "(ethics-coded remote shell; loopback only; session vfs)"
+        "(prefab Windows-style shell; Ever Blooming sigil; loopback only)"
     )
     try:
         httpd.serve_forever()

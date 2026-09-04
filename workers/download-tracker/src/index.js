@@ -18,7 +18,7 @@ import { handleRuntime } from "./runtime.js";
  */
 
 const PROJECT = "azos";
-const DEFAULT_ASSET = "azos-0.2.0.tar.gz";
+const DEFAULT_ASSET = "azos-0.3.0.tar.gz";
 const DEFAULT_OWNER = "AzielEliab";
 const DEFAULT_REPO = "azos";
 const DEFAULT_BRANCH = "main";
@@ -345,7 +345,7 @@ async function indexHtml(env) {
 <body>
   <h1>AZ-OS</h1>
   <p class="motto">Integrity precedes execution. Author Aziel Eliab.</p>
-  <p class="banner">THIS IS: a true remote shell gated by coded ethics. Sessions and commands are principle-bound (five gates). Protocols: HTTPS JSON, HTTP loopback, CLI stdin. Auth: ARC token. Sandbox: session vfs. THIS IS NOT: a kernel, worm, unrestricted host bash, or SSH. Hosted halt stops the overlay session, not the caller OS. Author Aziel Eliab.</p>
+  <p class="banner">THIS IS: prefab AZ-OS — ethics-coded remote shell with all Aziel software hooked in. Windows-style desktop; Ever Blooming sigil (rose-star, no words) replaces a vendor logo. TemporalLock × StaticClock integrity lattice. THIS IS NOT: a kernel, worm, unrestricted host bash, or SSH. Author Aziel Eliab.</p>
   <div class="card">
     <div class="nums">
       <p class="count">${v}<span>Views</span></p>

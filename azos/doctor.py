@@ -46,6 +46,21 @@ def _check_identity() -> Check:
 
 
 
+def _check_prefab_lattice() -> Check:
+    try:
+        from azos.lattice import IntegrityLattice
+        from azos.prefab import prefab_apps
+    except Exception as exc:  # noqa: BLE001
+        return _fail("prefab-lattice", str(exc))
+    if len(prefab_apps()) < 25:
+        return _fail("prefab-lattice", "catalog short")
+    lat = IntegrityLattice()
+    lat.bind("doctor", summary="self-check", evidence="doctor")
+    if not lat.verify():
+        return _fail("prefab-lattice", "lattice verify")
+    return _ok("prefab-lattice", f"{len(prefab_apps())} apps")
+
+
 def _check_ethics_shell() -> Check:
     try:
         from azos.ethics import KIND, SHELL_VERBS, scope_dict
@@ -87,6 +102,7 @@ CHECKS: tuple[Callable[[], Check], ...] = (
     _check_version,
     _check_identity,
     _check_ethics_shell,
+    _check_prefab_lattice,
     _check_json_roundtrip,
 )
 

@@ -7,7 +7,7 @@ description: Use when calling the AZ-OS ethics-coded remote shell (hosted /v1 or
 
 Integrity precedes execution. Author: **Aziel Eliab**.
 
-**THIS IS:** a true remote shell gated by coded ethics from the AZ-OS whitepaper. Every session and every command is principle-bound (five gates).
+**THIS IS:** prefab AZ-OS — a true remote shell gated by coded ethics. Every catalog product ships as an installed app. Windows-style desktop; Ever Blooming sigil (rose + star, no words). TemporalLock × StaticClock integrity lattice. Every session and command is principle-bound.
 
 **THIS IS NOT:** a kernel, bootloader, hypervisor, worm, malware, unrestricted host bash, or SSH. Hosted `/v1` does not increment downloads or views.
 
@@ -37,6 +37,8 @@ Ops (do **not** increment downloads or views):
 - `POST /v1/session` — open an ethics-gated shell session
 - `POST /v1/exec` — run one principle-bound command in that session
 - `POST /v1/close` — close a session
+- `GET /v1/prefab` — installed catalog apps
+- `GET`/`POST /v1/lattice` — TemporalLock × StaticClock integrity lattice
 - Product POSTs listed in OpenAPI (`invite`, `halt`, `revoke`)
 
 Grok: import OpenAPI as a custom tool. ChatGPT: GPT Actions. Venice: HTTP tools.
@@ -62,7 +64,7 @@ azos doctor
 
 Then open http://127.0.0.1:8800 (loopback only).
 
-Counted download (gzip HTTP 200, no 302): https://azos-download-tracker.vibelock.workers.dev/download?asset=azos-0.2.0.tar.gz
+Counted download (gzip HTTP 200, no 302): https://azos-download-tracker.vibelock.workers.dev/download?asset=azos-0.3.0.tar.gz
 GitHub: https://github.com/AzielEliab/azos
 
 Paper: DOI https://doi.org/10.5281/zenodo.21431711 · https://zenodo.org/records/21431711 · Apache-2.0. Forks welcome.

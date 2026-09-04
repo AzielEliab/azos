@@ -21,7 +21,7 @@ def test_worker_live_count_and_isolation() -> None:
     assert 'href="/download?asset=' in js
     assert "live downloads" in js.lower() or "live download" in js.lower()
     assert "Integrity precedes execution" in js
-    assert "azos-0.2.0.tar.gz" in js
+    assert "azos-0.3.0.tar.gz" in js
     assert "ethics-coded remote shell" in js.lower() or "coded ethics" in js.lower()
     assert "AzielEliab/azos" in js
     homepage = js.split("function indexHtml")[1].split("export default")[0]
@@ -41,7 +41,9 @@ def test_worker_runtime_exposes_ethics_shell() -> None:
     assert "/v1/session" in runtime
     assert "/v1/exec" in runtime
     assert "does not grant remote shell" not in runtime.lower()
-    assert "VERSION = \"0.2.0\"" in runtime
+    assert "VERSION = \"0.3.0\"" in runtime
+    assert "/v1/prefab" in runtime
+    assert "/v1/lattice" in runtime
     assert "Aziel Eliab" in runtime
 
 

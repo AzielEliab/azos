@@ -14,7 +14,7 @@ from typing import Mapping
 AUTHOR = "Aziel Eliab"
 MOTTO = "Integrity precedes execution."
 KIND = "ethics_coded_remote_shell"
-VERSION_HINT = "0.2.0"
+VERSION_HINT = "0.3.0"
 
 PRINCIPLES: tuple[str, ...] = (
     "Integrity precedes execution.",
@@ -133,6 +133,9 @@ SCOPE: Mapping[str, object] = {
     "malware": False,
     "unrestricted_host_shell": False,
     "kills_caller_os": False,
+    "prefab_desktop": True,
+    "windows_shell": True,
+    "integrity_lattice": "temporallock_staticclock",
     "author": AUTHOR,
 }
 

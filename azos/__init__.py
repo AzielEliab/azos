@@ -21,7 +21,7 @@ from azos.gate import GATES, Proposal
 from azos.invite import DOWNLOAD_URL, invite_text
 from azos.runtime import Runtime
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 __author__ = "Aziel Eliab"
 __all__ = [
     "AppendOnlyError",

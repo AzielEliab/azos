@@ -79,7 +79,7 @@ function aiHowTo(base) {
 }
 
 const PRODUCT = "azos";
-const VERSION = "0.2.0";
+const VERSION = "0.3.0";
 const BASE = "https://azos-download-tracker.vibelock.workers.dev";
 const MOTTO = "Integrity precedes execution.";
 const AUTHOR = "Aziel Eliab";
@@ -128,7 +128,7 @@ description: Use when calling the AZ-OS ethics-coded remote shell (hosted /v1 or
 
 Integrity precedes execution. Author: **Aziel Eliab**.
 
-**THIS IS:** a true remote shell gated by coded ethics from the AZ-OS whitepaper. Every session and every command is principle-bound (five gates).
+**THIS IS:** prefab AZ-OS — ethics-coded remote shell with all Aziel software hooked in. Windows-style desktop; Ever Blooming sigil (rose-star, no words). TemporalLock×StaticClock integrity lattice. Sessions and commands are principle-bound.
 
 **THIS IS NOT:** a kernel, bootloader, hypervisor, worm, malware, unrestricted host bash, or SSH. Hosted \`/v1\` does not increment downloads or views.
 
@@ -183,7 +183,7 @@ azos doctor
 
 Then open http://127.0.0.1:8800 (loopback only).
 
-Counted download (gzip HTTP 200, no 302): https://azos-download-tracker.vibelock.workers.dev/download?asset=azos-0.2.0.tar.gz
+Counted download (gzip HTTP 200, no 302): https://azos-download-tracker.vibelock.workers.dev/download?asset=azos-0.3.0.tar.gz
 GitHub: https://github.com/AzielEliab/azos
 
 Paper: DOI https://doi.org/10.5281/zenodo.21431711 · https://zenodo.org/records/21431711 · Apache-2.0. Forks welcome.
@@ -244,6 +244,9 @@ function scopeMeta(obj) {
     host_subprocess: false,
     unrestricted_host_shell: false,
     kills_caller_os: false,
+    prefab: true,
+    windows_shell: true,
+    integrity_lattice: "temporallock_staticclock",
     protocols: ["https-json", "http-loopback", "cli-stdin"],
     auth: "arc-token-after-five-gates",
     sandbox: "session-vfs",
@@ -650,6 +653,29 @@ function openapiDoc() {
           responses: { "200": { description: "Command result" }, "403": { description: "Ethics deny" } },
         },
       },
+      "/v1/prefab": {
+        get: {
+          operationId: "azosPrefab",
+          summary: "Installed catalog apps on prefab AZ-OS",
+          responses: { "200": { description: "Prefab apps" } },
+        },
+      },
+      "/v1/lattice": {
+        get: {
+          operationId: "azosLattice",
+          summary: "TemporalLock × StaticClock integrity lattice snapshot",
+          responses: { "200": { description: "Lattice" } },
+        },
+        post: {
+          operationId: "azosLatticeBind",
+          summary: "Append one gear-click + timeslate. No rollbacks.",
+          requestBody: {
+            required: false,
+            content: { "application/json": { schema: { type: "object" } } },
+          },
+          responses: { "200": { description: "Bound step" } },
+        },
+      },
       "/v1/close": {
         post: {
           operationId: "azosClose",
@@ -692,6 +718,71 @@ export async function handleRuntime(request, url, env) {
   if (path === "/v1/health" && request.method === "GET") {
     return runtimeJson(scopeMeta({ ok: true, product: PRODUCT, version: VERSION }));
   }
+  if (path === "/v1/prefab" && request.method === "GET") {
+    const slugs = ["azos","temporallock","staticclock","shadowlock","foldlock","azai","godlock","vibelock","veillock","spectrallock","miragegrid","codelock","decisiongate","chronolock","azclce","ark","azbot","aziel-corpus","employeelock","whistlelock","trajectorylock","forgereceipts","glossafilter","postking","zsolver"];
+    return runtimeJson(scopeMeta({
+      ok: true,
+      prefab: true,
+      installed: slugs.length,
+      apps: slugs.map((slug) => ({
+        slug,
+        installed: true,
+        hooked: true,
+        author: AUTHOR,
+        catalog: "https://aziel-runtime.vibelock.workers.dev/p/" + slug,
+      })),
+      note: "Prefab AZ-OS ships every catalog product as an installed app hook.",
+    }));
+  }
+  if (path === "/v1/lattice" && request.method === "GET") {
+    let stored = null;
+    if (env && env.DOWNLOADS) {
+      const raw = await env.DOWNLOADS.get("lattice|azos");
+      if (raw) { try { stored = JSON.parse(raw); } catch { stored = null; } }
+    }
+    return runtimeJson(scopeMeta({
+      ok: true,
+      kind: "temporallock_staticclock_lattice",
+      rollback: false,
+      gear_ticks: stored && stored.gears ? stored.gears.length : 0,
+      timeslates: stored && stored.slates ? stored.slates.length : 0,
+      tip: stored && stored.gears && stored.gears.length ? stored.gears[stored.gears.length - 1] : null,
+      note: "GET is a snapshot. POST appends one gear-click + timeslate. No rollbacks.",
+    }));
+  }
+  if (path === "/v1/lattice" && request.method === "POST") {
+    let body = {};
+    try { body = await readJsonBody(request); } catch (e) { return runtimeJson(scopeMeta({ ok: false, error: e.message }), e.status || 400); }
+    let stored = { gears: [], slates: [] };
+    if (env && env.DOWNLOADS) {
+      const raw = await env.DOWNLOADS.get("lattice|azos");
+      if (raw) { try { stored = JSON.parse(raw); } catch { stored = { gears: [], slates: [] }; } }
+    }
+    const prevGear = stored.gears.length ? stored.gears[stored.gears.length - 1].hash : "0".repeat(64);
+    const tick = stored.gears.length + 1;
+    const ts = utcNow();
+    const action = String(body.action || "tick");
+    const gearMaterial = JSON.stringify({ tick, timestamp: ts, action, prev_hash: prevGear });
+    const gearHash = await sha256Hex(gearMaterial);
+    const gear = { tick, timestamp: ts, action, prev_hash: prevGear, hash: gearHash };
+    stored.gears.push(gear);
+    const prevSlate = stored.slates.length ? stored.slates[stored.slates.length - 1].hash : "0".repeat(64);
+    const index = stored.slates.length;
+    const summary = String(body.summary || action);
+    const evidence = String(body.evidence || "hosted lattice bind");
+    const slateMaterial = JSON.stringify({ index, timestamp: ts, summary, evidence, gear_tick: tick, gear_hash: gearHash, prev_hash: prevSlate });
+    const slateHash = await sha256Hex(slateMaterial);
+    const slate = { index, timestamp: ts, summary, evidence, gear_tick: tick, gear_hash: gearHash, prev_hash: prevSlate, hash: slateHash };
+    stored.slates.push(slate);
+    if (env && env.DOWNLOADS) await env.DOWNLOADS.put("lattice|azos", JSON.stringify(stored));
+    return runtimeJson(scopeMeta({
+      ok: true,
+      kind: stored.slates.length === 1 ? "genesis" : "append",
+      rollback: false,
+      gear,
+      slate,
+    }));
+  }
   if (path === "/v1/skill" && request.method === "GET") {
     return new Response(SKILL, {
       status: 200,
@@ -712,6 +803,7 @@ export async function handleRuntime(request, url, env) {
         "GET /v1/health", "GET /v1/skill",
         "POST /v1/status", "POST /v1/invite",
         "POST /v1/session", "POST /v1/exec", "POST /v1/close",
+        "GET /v1/prefab", "GET /v1/lattice", "POST /v1/lattice",
         "POST /v1/halt", "POST /v1/revoke",
         "GET /openapi.json", "GET /ai",
       ],
@@ -889,7 +981,7 @@ export async function handleRuntime(request, url, env) {
   if (
     path === "/v1/status" || path === "/v1/invite" || path === "/v1/halt" ||
     path === "/v1/revoke" || path === "/v1/session" || path === "/v1/exec" ||
-    path === "/v1/close"
+    path === "/v1/close" || path === "/v1/lattice" || path === "/v1/prefab"
   ) {
     return runtimeJson(scopeMeta({ error: "method not allowed" }), 405);
   }

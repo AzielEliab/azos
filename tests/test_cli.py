@@ -11,7 +11,7 @@ from tests.conftest import passing_proposal
 
 def test_version(capsys) -> None:
     assert main(["version"]) == 0
-    assert "azos 0.2.0" in capsys.readouterr().out
+    assert "azos 0.3.0" in capsys.readouterr().out
 
 
 def test_status_json(tmp_path: Path, monkeypatch, capsys) -> None:

@@ -4,7 +4,7 @@
 set -euo pipefail
 
 HOST="${AZOS_HOME_HOST:-https://azos-download-tracker.vibelock.workers.dev}"
-ASSET="${AZOS_HOME_ASSET:-azos-0.2.0.tar.gz}"
+ASSET="${AZOS_HOME_ASSET:-azos-0.3.0.tar.gz}"
 WORKDIR="${AZOS_HOME:-$HOME/azos}"
 
 mkdir -p "$WORKDIR"

@@ -67,5 +67,7 @@ def test_readme_declares_overlay_not_kernel() -> None:
     assert "malware" in readme.lower()
     assert "https://azos-download-tracker.vibelock.workers.dev/" in readme
     assert "remote shell" in readme.lower()
+    assert "prefab" in readme.lower()
+    assert "temporallock" in readme.lower()
     assert "ethics" in readme.lower()
     assert "does not grant remote shell" not in readme.lower()

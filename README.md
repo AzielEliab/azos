@@ -1,6 +1,8 @@
 # AZ-OS + AZ Interface
 
-A **true remote shell gated by coded ethics**, and its control surface.
+A **prefab ethics-coded remote shell**: all Aziel catalog software hooked in,
+Windows-style desktop (Ever Blooming sigil, no words), TemporalLock ×
+StaticClock integrity lattice.
 
 **Author:** Aziel Eliab
 **Date:** July–September 2026
@@ -41,7 +43,7 @@ https://azos-download-tracker.vibelock.workers.dev/
 The Worker serves the gzip itself (HTTP 200, no 302 to GitHub).
 
 - Homepage: [https://azos-download-tracker.vibelock.workers.dev/](https://azos-download-tracker.vibelock.workers.dev/)
-- Direct tarball: [azos-0.2.0.tar.gz](https://azos-download-tracker.vibelock.workers.dev/download?asset=azos-0.2.0.tar.gz)
+- Direct tarball: [azos-0.3.0.tar.gz](https://azos-download-tracker.vibelock.workers.dev/download?asset=azos-0.3.0.tar.gz)
 - One-click install: [https://azos-download-tracker.vibelock.workers.dev/install.sh](https://azos-download-tracker.vibelock.workers.dev/install.sh)
 - Skill: [https://azos-download-tracker.vibelock.workers.dev/v1/skill](https://azos-download-tracker.vibelock.workers.dev/v1/skill)
 - OpenAPI: [https://azos-download-tracker.vibelock.workers.dev/openapi.json](https://azos-download-tracker.vibelock.workers.dev/openapi.json)
@@ -63,11 +65,18 @@ How to contribute: [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## What this is
 
-AZ-OS is a **true remote shell** whose every session and every command
-is bound to the five coded ethics principles from the whitepaper.
+AZ-OS is a **prefab true remote shell**. Every catalog product (FoldLock,
+TemporalLock, StaticClock, ShadowLock, VeilLock, VibeLock, SpectralLock,
+MirageGrid, AZAI/JEEVES, GodLock client hooks, and the rest) ships as an
+**installed desktop app**. The Interface is a Windows-identical shell
+whose Start glyph is the Ever Blooming sigil (gold rose + five-point
+star + circle + foliage swirls — **no words**).
+
+Every session and command is bound to the five coded ethics principles.
 **AZ Interface** (`azos ui`) is the local control surface on
 `127.0.0.1:8800`. Hosted `/v1/session` + `/v1/exec` is the same shell
-over HTTPS JSON.
+over HTTPS JSON. TemporalLock timeslates are hash-chained against
+StaticClock gear-clicks. No rollbacks.
 
 ### Honest scope
 
@@ -111,6 +120,8 @@ evidence, not a bypass.
 
 | Module | Role |
 |--------|------|
+| `azos.prefab` | Catalog products as installed desktop apps. |
+| `azos.lattice` | TemporalLock timeslates × StaticClock gear-clicks. No rollbacks. |
 | `azos.ethics` | Coded principles, scope, registered shell verbs. |
 | `azos.arc` | Issue / revoke execution tokens (32 random bytes, hashed at rest). A root/user string does not auto-grant. |
 | `azos.lumen` | In-process watch loop. After halt, still revokes tokens and purges `.azos/` only. |

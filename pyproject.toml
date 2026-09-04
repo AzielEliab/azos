@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "azos"
-version = "0.2.0"
+version = "0.3.0"
 description = "AZ-OS: ethics-coded remote shell. Integrity precedes execution. Not a kernel, not malware, not unrestricted host bash."
 readme = "README.md"
 license = {file = "LICENSE"}
@@ -49,7 +49,7 @@ Issues = "https://github.com/AzielEliab/azos/issues"
 include = ["azos*"]
 
 [tool.setuptools.package-data]
-azos = ["templates/*.html"]
+azos = ["templates/*.html", "templates/*.svg"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

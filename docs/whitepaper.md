@@ -10,9 +10,11 @@ This document merges three July 2026 papers:
 2. *AZOS & AZ Interface — ARC, Lumen, and the control surface*
 3. *Malware comparison — structural constraints only*
 
-This tree is the software described by those papers: a **true remote
-shell gated by coded ethics**. It is **not** a kernel, bootloader,
-hypervisor, worm, malware, or unrestricted host bash.
+This tree is the software described by those papers: a **prefab true
+remote shell gated by coded ethics**, with catalog apps installed, a
+Windows-style desktop (Ever Blooming sigil, no words), and a
+TemporalLock × StaticClock integrity lattice. It is **not** a kernel,
+bootloader, hypervisor, worm, malware, or unrestricted host bash.
 
 ---
 
