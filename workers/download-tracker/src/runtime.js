@@ -128,7 +128,7 @@ description: Use when calling the AZ-OS ethics-coded remote shell (hosted /v1 or
 
 Integrity precedes execution. Author: **Aziel Eliab**.
 
-**THIS IS:** prefab AZ-OS — ethics-coded remote shell with all Aziel software hooked in. Windows-style desktop; Ever Blooming sigil (rose-star, no words). TemporalLock×StaticClock integrity lattice. Sessions and commands are principle-bound.
+**THIS IS:** prefab AZ-OS — ethics-coded remote shell with all Aziel software hooked in. Windows-style desktop; sigil / brand mark (rose-star, no words). TemporalLock×StaticClock integrity lattice. Sessions and commands are principle-bound.
 
 **THIS IS NOT:** a kernel, bootloader, hypervisor, worm, malware, unrestricted host bash, or SSH. Hosted \`/v1\` does not increment downloads or views.
 

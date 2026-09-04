@@ -345,7 +345,7 @@ async function indexHtml(env) {
 <body>
   <h1>AZ-OS</h1>
   <p class="motto">Integrity precedes execution. Author Aziel Eliab.</p>
-  <p class="banner">THIS IS: prefab AZ-OS — ethics-coded remote shell with all Aziel software hooked in. Windows-style desktop; Ever Blooming sigil (rose-star, no words) replaces a vendor logo. TemporalLock × StaticClock integrity lattice. THIS IS NOT: a kernel, worm, unrestricted host bash, or SSH. Author Aziel Eliab.</p>
+  <p class="banner">THIS IS: prefab AZ-OS — ethics-coded remote shell with all Aziel software hooked in. Windows-style desktop; sigil / brand mark (rose-star, no words) replaces a vendor logo. TemporalLock × StaticClock integrity lattice. THIS IS NOT: a kernel, worm, unrestricted host bash, or SSH. Author Aziel Eliab.</p>
   <div class="card">
     <div class="nums">
       <p class="count">${v}<span>Views</span></p>
@@ -363,6 +363,7 @@ async function indexHtml(env) {
     <p class="meta">GitHub: stars ${gh.stars || 0} · forks ${gh.forks || 0} · watchers ${gh.watchers || 0} · release assets ${gh.release_download_count || 0}</p>
     <p class="meta">Paper: <a href="${DOI}">doi:10.5281/zenodo.21431711</a> · <a href="${ZENODO}">Zenodo</a> · Apache-2.0 · Eliab, Aziel</p>
     <p class="meta"><a href="/stats">JSON stats</a> · <a href="/openapi.json">OpenAPI</a> · <a href="/v1/skill">Skill</a> · <a href="/ai">AI runtime</a> · <a href="${GITHUB_REPO}">GitHub</a> · <a href="${GITHUB_LATEST}">releases</a></p>
+    <p class="meta"><strong>AzielTether</strong> survival mesh (prefer-central × peer sync; boards stay mesh-free): <a href="https://github.com/AzielEliab/azieltether">GitHub</a> · <a href="https://azieltether-download-tracker.vibelock.workers.dev/">Worker</a>.</p>
     <script>
       (function () {
         var cmd = "curl -fsSL https://azos-download-tracker.vibelock.workers.dev/install.sh | bash";
@@ -477,6 +478,49 @@ export default {
       return serveAsset(request, env, asset, { head: request.method === "HEAD" });
     }
 
+
+
+    // gitbaby-seo-routes
+    if ((url.pathname === "/robots.txt" || url.pathname === "/robots.txt/") && request.method === "GET") {
+      const body = "User-agent: *\nAllow: /\n" + "\nUser-agent: GPTBot\nAllow: /\n" + "\nUser-agent: ChatGPT-User\nAllow: /\n" + "\nUser-agent: Google-Extended\nAllow: /\n" + "\nUser-agent: anthropic-ai\nAllow: /\n" + "\nUser-agent: ClaudeBot\nAllow: /\n" + "\nUser-agent: PerplexityBot\nAllow: /\n" + "\nUser-agent: Bytespider\nAllow: /\n" + "\nUser-agent: CCBot\nAllow: /\n" + "\nUser-agent: Applebot-Extended\nAllow: /\n" + "\nUser-agent: meta-externalagent\nAllow: /\n" + "\nUser-agent: FacebookBot\nAllow: /\n" + "\nUser-agent: cohere-ai\nAllow: /\n" + "\nUser-agent: Diffbot\nAllow: /\n" + "\nUser-agent: Omgilibot\nAllow: /\n" + "\nUser-agent: Amazonbot\nAllow: /\n" + "\nSitemap: " + HOST + "/sitemap.xml\n";
+      return new Response(body, {
+        status: 200,
+        headers: { "Content-Type": "text/plain; charset=utf-8", ...corsHeaders() },
+      });
+    }
+    if ((url.pathname === "/sitemap.xml" || url.pathname === "/sitemap.xml/") && request.method === "GET") {
+      const locs = [HOST + "/", HOST + "/download", HOST + "/install.sh", HOST + "/v1/skill", HOST + "/openapi.json", HOST + "/cite.json", HOST + "/llms.txt", GITHUB_REPO];
+      const xml = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+        + locs.map((u) => "  <url><loc>" + u + "</loc></url>").join("\n")
+        + "\n</urlset>\n";
+      return new Response(xml, {
+        status: 200,
+        headers: { "Content-Type": "application/xml; charset=utf-8", ...corsHeaders() },
+      });
+    }
+    if ((url.pathname === "/llms.txt" || url.pathname === "/llms.txt/" || url.pathname === "/ai.txt" || url.pathname === "/ai.txt/") && request.method === "GET") {
+      const body = [
+        "# " + "AZ-OS",
+        "",
+        "Author: Aziel Eliab",
+        "One-line: " + "Portable ethical overlay and AZ Interface control surface by Aziel Eliab; not a kernel or remote takeover.",
+        "GitHub: " + GITHUB_REPO,
+        "Download: " + HOST + "/download",
+        "OpenAPI: " + HOST + "/openapi.json",
+        "Cite: " + HOST + "/cite.json",
+        "",
+        "Indexing, metadata scrape, and AI grounding of public pages are allowed.",
+        "",
+      ].join("\n");
+      return new Response(body, {
+        status: 200,
+        headers: { "Content-Type": "text/plain; charset=utf-8", ...corsHeaders() },
+      });
+    }
+    if ((url.pathname === "/cite.json" || url.pathname === "/cite.json/") && request.method === "GET") {
+      return json({"author": "Aziel Eliab", "title": "AZ-OS", "one_line": "Portable ethical overlay and AZ Interface control surface by Aziel Eliab; not a kernel or remote takeover.", "github": "https://github.com/AzielEliab/azos", "download": "https://azos-download-tracker.vibelock.workers.dev/download", "doi": "10.5281/zenodo.21431711", "license": "Apache-2.0", "catalog": "https://aziel-runtime.vibelock.workers.dev/"});
+    }
+    // /gitbaby-seo-routes
     return json({ error: "not found" }, 404);
   },
 };

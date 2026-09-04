@@ -239,7 +239,7 @@ def serve(
     bound_host, bound_port = httpd.server_address[:2]
     print(
         f"AZ Interface http://{bound_host}:{bound_port}  "
-        "(prefab Windows-style shell; Ever Blooming sigil; loopback only)"
+        "(prefab Windows-style shell; sigil / brand mark; loopback only)"
     )
     try:
         httpd.serve_forever()
