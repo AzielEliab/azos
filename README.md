@@ -50,7 +50,7 @@ The Worker serves the gzip itself (HTTP 200, no 302 to GitHub).
 - Skill: [https://azos-download-tracker.vibelock.workers.dev/v1/skill](https://azos-download-tracker.vibelock.workers.dev/v1/skill)
 - OpenAPI: [https://azos-download-tracker.vibelock.workers.dev/openapi.json](https://azos-download-tracker.vibelock.workers.dev/openapi.json)
 - GitHub: [https://github.com/AzielEliab/azos](https://github.com/AzielEliab/azos)
-- Zenodo DOI: [10.5281/zenodo.21431711](https://doi.org/10.5281/zenodo.21431711) · [record](https://zenodo.org/records/21431711)
+- Cite: [cite.json](https://azos-download-tracker.vibelock.workers.dev/cite.json) (Apache-2.0; no Zenodo DOI is claimed)
 
 Isolated counter: Worker `azos-download-tracker`, KV `AZOS_DOWNLOADS`. `/v1` does not increment downloads.
 
@@ -221,8 +221,10 @@ python -m pytest -q
 ## Download tracker
 
 A live-count Cloudflare Worker lives at `workers/download-tracker/`.
-Isolated counter for **azos** only. Hosted `/v1` is the ethics-coded
-remote shell (session + exec) and does not increment downloads.
+The homepage is the **AZ-OS — Aziel Eliab** product UI (download, install,
+and a workspace for public status / invite / prefab / lattice snapshot).
+Isolated counter for **azos** only. Hosted session / exec / lattice bind
+need full AZ-OS. `/v1` does not increment downloads.
 
 Public URL:
 
