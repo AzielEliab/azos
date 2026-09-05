@@ -60,6 +60,8 @@ def test_worker_homepage_is_product_ui() -> None:
     assert "/v1/prefab" in hp
     assert "/v1/lattice" in hp
     assert "THE EVER BLOOMING FLOWER" not in hp.upper()
+    assert "Claude (Anthropic)" in hp
+    assert "other MCP/OpenAPI-capable assistants" in hp
 
 
 def test_worker_cite_has_no_invented_doi() -> None:
@@ -98,6 +100,11 @@ def test_worker_runtime_exposes_ethics_shell() -> None:
     assert "/v1/prefab" in runtime
     assert "/v1/lattice" in runtime
     assert "Aziel Eliab" in runtime
+    assert "Use with AI assistants" in runtime
+    assert "Use with Grok, ChatGPT, Venice" not in runtime
+    assert "Claude (Anthropic)" in runtime
+    assert "Cursor (MCP)" in runtime
+    assert "other MCP/OpenAPI-capable assistants" in runtime
 
 
 def test_worker_kv_binding_present() -> None:

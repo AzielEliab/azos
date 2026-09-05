@@ -430,6 +430,7 @@ export default {
         "License: Apache-2.0",
         "",
         "Indexing, metadata scrape, and AI grounding of public pages are allowed.",
+        "AI assistants: ChatGPT (GPT Actions / OpenAI), Grok (xAI), Venice, Claude (Anthropic), Cursor (MCP), Glama (MCP), Perplexity, Microsoft Copilot / Bing, Google Gemini / Vertex, Mistral, Meta AI, Apple Intelligence surfaces, Amazon Q tooling, DuckAssist, You.com, Cohere, and other MCP/OpenAPI-capable assistants.",
         "No Zenodo DOI is claimed.",
         "",
       ].join("\n");

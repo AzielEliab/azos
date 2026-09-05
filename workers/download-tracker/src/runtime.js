@@ -52,6 +52,25 @@ function aiHowTo(base) {
   const openapi = base + "/openapi.json";
   const health = base + "/v1/health";
   return {
+    clients: [
+      "ChatGPT (GPT Actions / OpenAI)",
+      "Grok (xAI)",
+      "Venice",
+      "Claude (Anthropic)",
+      "Cursor (MCP)",
+      "Glama (MCP)",
+      "Perplexity",
+      "Microsoft Copilot / Bing",
+      "Google Gemini / Vertex",
+      "Mistral",
+      "Meta AI",
+      "Apple Intelligence surfaces",
+      "Amazon Q tooling",
+      "DuckAssist",
+      "You.com",
+      "Cohere",
+      "other MCP/OpenAPI-capable assistants",
+    ],
     chatgpt_actions: [
       "Open GPT Editor → Actions → Import from URL",
       "Paste " + openapi,
@@ -69,11 +88,27 @@ function aiHowTo(base) {
       "Start with GET " + health,
       "Then POST /v1/session and POST /v1/exec",
     ],
+    claude_anthropic: [
+      "Import OpenAPI or connect via MCP",
+      "MCP catalog: https://aziel-runtime.vibelock.workers.dev/mcp",
+      "Or point an HTTP/OpenAPI tool at " + openapi,
+    ],
+    mcp: [
+      "Cursor, Glama, Claude, and other MCP clients",
+      "Catalog: https://aziel-runtime.vibelock.workers.dev/mcp",
+    ],
+    openapi_http: [
+      "Any OpenAPI-capable assistant (Perplexity, Copilot, Gemini / Vertex, Mistral, Meta AI, Apple Intelligence surfaces, Amazon Q, DuckAssist, You.com, Cohere, and others)",
+      "Import " + openapi + " or register GET " + health + " plus the listed POST /v1 routes",
+      "No API key. CORS is *",
+    ],
     mcp_catalog: "https://aziel-runtime.vibelock.workers.dev/mcp",
+    author: "Aziel Eliab",
     notes: [
       "GET /download still serves the gzip tarball and increments the counter.",
       "/v1, /openapi.json, and /ai do not increment DOWNLOADS.",
       "AZ-OS is a true remote shell gated by coded ethics. Status is read-only.",
+      "Public identity: Aziel Eliab only.",
     ],
   };
 }
@@ -160,7 +195,7 @@ Ops (do **not** increment downloads or views):
 - \`POST /v1/close\` — close a session
 - Product POSTs listed in OpenAPI (\`invite\`, \`halt\`, \`revoke\`)
 
-Grok: import OpenAPI as a custom tool. ChatGPT: GPT Actions. Venice: HTTP tools.
+Works with ChatGPT (GPT Actions / OpenAI), Grok (xAI), Venice, Claude (Anthropic), Cursor (MCP), Glama (MCP), Perplexity, Microsoft Copilot / Bing, Google Gemini / Vertex, Mistral, Meta AI, Apple Intelligence surfaces, Amazon Q tooling, DuckAssist, You.com, Cohere, and other MCP/OpenAPI-capable assistants. Import OpenAPI as a custom tool, use GPT Actions, HTTP tools, or MCP. Author: Aziel Eliab only.
 
 ## Example
 
@@ -792,7 +827,7 @@ export async function handleRuntime(request, url, env) {
   if (path === "/openapi.json" && request.method === "GET") return runtimeJson(openapiDoc());
   if (path === "/ai" && request.method === "GET") {
     return runtimeJson(scopeMeta({
-      product: PRODUCT, title: "Use with Grok, ChatGPT, Venice",
+      product: PRODUCT, title: "Use with AI assistants", author: AUTHOR,
       openapi: BASE + "/openapi.json", health: BASE + "/v1/health", ...aiHowTo(BASE),
     }));
   }

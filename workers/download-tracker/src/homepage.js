@@ -434,6 +434,7 @@ export function renderHomepage(stats) {
             <div class="field"><b>Lattice bind</b><span>POST /v1/lattice — append-only; use full AZ-OS</span></div>
           </div>
           <p class="note" style="margin-top:.8rem">OpenAPI: <a href="/openapi.json">/openapi.json</a> · Skill: <a href="/v1/skill">/v1/skill</a> · AI tools: <a href="/ai">/ai</a> · Catalog: <a href="${CATALOG}">aziel-runtime</a></p>
+          <p class="note">Works with ChatGPT (GPT Actions / OpenAI), Grok (xAI), Venice, Claude (Anthropic), Cursor (MCP), Glama (MCP), Perplexity, Microsoft Copilot / Bing, Google Gemini / Vertex, Mistral, Meta AI, Apple Intelligence surfaces, Amazon Q tooling, DuckAssist, You.com, Cohere, and other MCP/OpenAPI-capable assistants.</p>
           <label class="lab">Look up a hooked app</label>
           <select id="app-pick">${prefabHints}</select>
           <p class="note" id="app-blurb" style="margin-top:.5rem"></p>

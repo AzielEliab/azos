@@ -249,7 +249,16 @@ deny, no self-replication, no stealth, no disk wipe, invite instead of
 infection. This repository does **not** implement malware, ransomware,
 or host-disk wipes. The remote shell is ethics-gated and sandboxed.
 
-## Use with Grok, ChatGPT, Venice
+## Use with AI assistants
+
+AZ-OS is usable from any MCP/OpenAPI-capable assistant. That includes
+ChatGPT (GPT Actions / OpenAI), Grok (xAI), Venice, Claude (Anthropic),
+Cursor (MCP), Glama (MCP), Perplexity, Microsoft Copilot / Bing,
+Google Gemini / Vertex, Mistral, Meta AI, Apple Intelligence surfaces,
+Amazon Q tooling, DuckAssist, You.com, Cohere, and other
+MCP/OpenAPI-capable assistants.
+
+Public identity: **Aziel Eliab** only.
 
 Live HTTPS runtime on the download-tracker Worker (does **not** increment the download counter):
 
@@ -262,11 +271,16 @@ POST `/v1/status` (read-only), `/v1/invite`, `/v1/session`, `/v1/exec`,
 `/v1/close`, `/v1/halt`, `/v1/revoke`. Motto: Integrity precedes execution.
 Hosted halt is a token in the JSON, not killing the caller OS.
 
-**ChatGPT Actions:** GPT Editor → Actions → Import from URL → `https://azos-download-tracker.vibelock.workers.dev/openapi.json` (no auth).
+**OpenAPI / GPT Actions / HTTP tools:** import
+`https://azos-download-tracker.vibelock.workers.dev/openapi.json` (no auth).
+ChatGPT: GPT Editor → Actions → Import from URL. Grok / xAI, Venice,
+Claude, Perplexity, Copilot, Gemini / Vertex, Mistral, Meta AI,
+Apple Intelligence surfaces, Amazon Q, DuckAssist, You.com, Cohere,
+and similar: add an HTTP/OpenAPI tool pointing at that spec. Start with
+GET `https://azos-download-tracker.vibelock.workers.dev/v1/health`.
 
-**Grok / xAI tools:** add an HTTP/OpenAPI tool pointing at `https://azos-download-tracker.vibelock.workers.dev/openapi.json`.
-
-**Venice HTTP tools:** add an HTTP tool with method, URL, and JSON body from that spec. Start with GET `https://azos-download-tracker.vibelock.workers.dev/v1/health`.
+**MCP:** Cursor, Claude, Glama, and other MCP clients — catalog at
+`https://aziel-runtime.vibelock.workers.dev/mcp`.
 
 ```bash
 curl -sS -A 'Mozilla/5.0' -X POST https://azos-download-tracker.vibelock.workers.dev/v1/session \
