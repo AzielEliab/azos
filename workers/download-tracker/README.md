@@ -5,13 +5,19 @@ KV namespace `AZOS_DOWNLOADS` bound as `DOWNLOADS`.
 Does **not** 302 to GitHub on `/download`. Serves gzip via `ASSETS.fetch`,
 `Cache-Control: private, no-store`.
 
+GET `/` is the **AZ-OS — Aziel Eliab** product homepage (SEO, cite.json,
+JSON-LD, workspace for public status/invite/prefab/lattice snapshot).
 GET `/` increments a **page-view** counter (separate from downloads).
 GET `/download` increments **downloads**.
+GET `/sigil.svg` is the wordless everblooming rose-star.
 `/v1` never increments DOWNLOADS KV.
 GET `/install.sh` one-click install (does not increment; script curls `/download`).
 GET `/v1/skill` returns skill markdown (`text/markdown`). Does not increment views or downloads.
+GET `/cite.json` citation record. `doi` is `null` — no invented Zenodo DOI.
 
-Hosted `/v1` is the ethics-coded remote shell (`/v1/session`, `/v1/exec`).
-Status is read-only. `/v1` never increments DOWNLOADS.
+Hosted `/v1` status / invite / health / skill / prefab / lattice GET are
+public and session-safe. Session, exec, and lattice bind persist in
+product-Worker KV and need full AZ-OS (`azos ui`). The HTTP proxy is not
+the full OS.
 
 Host: https://azos-download-tracker.vibelock.workers.dev

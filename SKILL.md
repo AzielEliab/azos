@@ -67,4 +67,4 @@ Then open http://127.0.0.1:8800 (loopback only).
 Counted download (gzip HTTP 200, no 302): https://azos-download-tracker.vibelock.workers.dev/download?asset=azos-0.3.0.tar.gz
 GitHub: https://github.com/AzielEliab/azos
 
-Paper: DOI https://doi.org/10.5281/zenodo.21431711 · https://zenodo.org/records/21431711 · Apache-2.0. Forks welcome.
+License: Apache-2.0. Forks welcome. No Zenodo DOI is claimed.

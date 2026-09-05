@@ -11,4 +11,4 @@ id = "816b8d5da5fd470f9c4e783f3c87ca77"
 [assets]
 directory = "./public"
 binding = "ASSETS"
-run_worker_first = ["/", "/download", "/download/*", "/stats", "/event", "/go", "/count", "/install.sh", "/v1", "/v1/*", "/openapi.json", "/ai", "/ai/*", "/mcp", "/mcp/", "/robots.txt", "/robots.txt/", "/sitemap.xml", "/sitemap.xml/", "/cite.json", "/cite.json/", "/llms.txt", "/llms.txt/", "/ai.txt", "/ai.txt/"]
+run_worker_first = ["/", "/download", "/download/*", "/stats", "/event", "/go", "/count", "/install.sh", "/sigil.svg", "/sigil.svg/", "/brand/sigil.svg", "/v1", "/v1/*", "/openapi.json", "/ai", "/ai/*", "/mcp", "/mcp/", "/robots.txt", "/robots.txt/", "/sitemap.xml", "/sitemap.xml/", "/cite.json", "/cite.json/", "/llms.txt", "/llms.txt/", "/ai.txt", "/ai.txt/"]
