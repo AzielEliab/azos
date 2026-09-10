@@ -48,6 +48,7 @@ The Worker serves the gzip itself (HTTP 200, no 302 to GitHub).
 - Direct tarball: [azos-0.3.0.tar.gz](https://azos-download-tracker.vibelock.workers.dev/download?asset=azos-0.3.0.tar.gz)
 - One-click install: [https://azos-download-tracker.vibelock.workers.dev/install.sh](https://azos-download-tracker.vibelock.workers.dev/install.sh)
 - Skill: [https://azos-download-tracker.vibelock.workers.dev/v1/skill](https://azos-download-tracker.vibelock.workers.dev/v1/skill)
+- Suite mesh proxy: [https://azos-download-tracker.vibelock.workers.dev/v1/mesh](https://azos-download-tracker.vibelock.workers.dev/v1/mesh) — default OFF; QNM live / locked / isolated
 - OpenAPI: [https://azos-download-tracker.vibelock.workers.dev/openapi.json](https://azos-download-tracker.vibelock.workers.dev/openapi.json)
 - GitHub: [https://github.com/AzielEliab/azos](https://github.com/AzielEliab/azos)
 - Cite: [cite.json](https://azos-download-tracker.vibelock.workers.dev/cite.json) (Apache-2.0; no Zenodo DOI is claimed)
@@ -280,7 +281,7 @@ and similar: add an HTTP/OpenAPI tool pointing at that spec. Start with
 GET `https://azos-download-tracker.vibelock.workers.dev/v1/health`.
 
 **MCP:** Cursor, Claude, Glama, and other MCP clients — catalog at
-`https://aziel-runtime.vibelock.workers.dev/mcp`.
+`https://aziel-runtime.vibelock.workers.dev/mcp`. Suite mesh `/v1/mesh/*` PROXY via `AZIEL_RUNTIME` (default OFF; QNM-BUILD-1.0 live|locked|isolated; no Node Gate). Catalog MCP `mesh_*` + FragGate `slug=mesh`.
 
 ```bash
 curl -sS -A 'Mozilla/5.0' -X POST https://azos-download-tracker.vibelock.workers.dev/v1/session \

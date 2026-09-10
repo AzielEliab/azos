@@ -213,6 +213,13 @@ only.
 The ethics-coded remote shell is in scope. Unrestricted host execution
 is not.
 
+The Worker homepage shows a suite Live Nodes strip. `/v1/mesh/*` PROXY
+to aziel-runtime. Suite mesh default OFF. QNM rollup is
+live|locked|isolated counts only. No Node Gate. No auto-heal. Not an
+anonymity network. Anon-broadcast is not a publish path. AZ-OS
+remains an ethics-coded remote shell. Full node process is local
+`qnm-node/`.
+
 ---
 
 ## 11. Motto

@@ -40,6 +40,9 @@ Python 3.10+. Core is stdlib only (`hashlib`, `secrets`, `json`,
 9. Keep the dependency list empty in the core. Stdlib only.
 10. New behavior needs a test that fails without the change.
 11. Stay honest about scope: protocols, auth, sandbox.
+12. **Door vs local op.** `/v1/mesh/*` PROXY to aziel-runtime. Local ops are `/v1/{op}` only.
+    Suite mesh default OFF; QNM rollup live|locked|isolated; no Node Gate;
+    no auto-heal; not anonymity.
 
 ## Where to change things
 
@@ -55,4 +58,5 @@ Python 3.10+. Core is stdlib only (`hashlib`, `secrets`, `json`,
 - Prefab catalog apps: `azos/prefab.py`
 - Integrity lattice: `azos/lattice.py`
 - Hosted shell: `workers/download-tracker/src/runtime.js`
+- Suite mesh / QNM Live Nodes: `workers/download-tracker/src/mesh.js` (`/v1/mesh/*` PROXY to aziel-runtime).
 - Sigil / brand mark (no words): `azos/templates/sigil.svg`
