@@ -1,3 +1,4 @@
+import { handleMeshApi } from "./mesh.js";
 import { handleRuntime } from "./runtime.js";
 import {
   HOST,
@@ -18,6 +19,7 @@ import {
  *
  * Homepage prints a live download count next to the download link.
  * Counter is isolated to azos (this Worker + its KV), not VibeLock.
+ * /v1, /v1/mesh/* do not increment. Suite mesh PROXY via AZIEL_RUNTIME.
  *
  * Motto: Integrity precedes execution.
  *
@@ -34,8 +36,8 @@ const GITHUB_RELEASES = "https://github.com/AzielEliab/azos/releases";
 function corsHeaders() {
   return {
     "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Allow-Methods": "GET, POST, HEAD, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Accept, Authorization, X-Aziel-Runtime-Token, User-Agent",
   };
 }
 
@@ -335,6 +337,9 @@ export default {
     }
 
 
+    const mesh = await handleMeshApi(request, url, env);
+    if (mesh) return mesh;
+
     const runtime = await handleRuntime(request, url, env);
     if (runtime) return runtime;
 
@@ -407,7 +412,7 @@ export default {
       });
     }
     if ((url.pathname === "/sitemap.xml" || url.pathname === "/sitemap.xml/") && request.method === "GET") {
-      const locs = [HOST + "/", HOST + "/download", HOST + "/install.sh", HOST + "/sigil.svg", HOST + "/v1/skill", HOST + "/openapi.json", HOST + "/cite.json", HOST + "/llms.txt", GITHUB_REPO];
+      const locs = [HOST + "/", HOST + "/download", HOST + "/install.sh", HOST + "/sigil.svg", HOST + "/v1/skill", HOST + "/v1/mesh", HOST + "/openapi.json", HOST + "/cite.json", HOST + "/llms.txt", GITHUB_REPO];
       const xml = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
         + locs.map((u) => "  <url><loc>" + u + "</loc></url>").join("\n")
         + "\n</urlset>\n";
@@ -426,6 +431,7 @@ export default {
         "Download: " + HOST + "/download",
         "OpenAPI: " + HOST + "/openapi.json",
         "Cite: " + HOST + "/cite.json",
+        "Suite mesh: " + HOST + "/v1/mesh (PROXY; default OFF; QNM-BUILD-1.0)",
         "Title: AZ-OS — Aziel Eliab",
         "License: Apache-2.0",
         "",

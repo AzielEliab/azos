@@ -6,7 +6,9 @@
  * Hosted sessions live in KV (session vfs). Not a kernel, not SSH,
  * not unrestricted host bash. Halt is a session token, not killing
  * the caller OS.
+ * /v1/mesh/* PROXY to aziel-runtime via AZIEL_RUNTIME (handled in index.js before this catch-all).
  */
+import { meshOpenApiPaths, meshPointer } from "./mesh.js";
 function runtimeCors() {
   return {
     "Access-Control-Allow-Origin": "*",
@@ -108,6 +110,7 @@ function aiHowTo(base) {
       "GET /download still serves the gzip tarball and increments the counter.",
       "/v1, /openapi.json, and /ai do not increment DOWNLOADS.",
       "AZ-OS is a true remote shell gated by coded ethics. Status is read-only.",
+      "Suite mesh /v1/mesh/* PROXY via AZIEL_RUNTIME. Default OFF. QNM-BUILD-1.0 live|locked|isolated. No Node Gate.",
       "Public identity: Aziel Eliab only.",
     ],
   };
@@ -156,7 +159,7 @@ const SAFE_ACTIONS = ["list_modules", "echo", "status", "purge_session", "shell"
 
 const SKILL = `---
 name: AZ-OS
-description: Use when calling the AZ-OS ethics-coded remote shell (hosted /v1 or local package). Sessions and commands are principle-bound. Author Aziel Eliab.
+description: Use when calling the AZ-OS ethics-coded remote shell (hosted /v1 or local package). Dual surface: Worker /v1 + catalog MCP. This Worker /v1/mesh/* PROXY to aziel-runtime via AZIEL_RUNTIME. Suite mesh default OFF. QNM-BUILD-1.0 live|locked|isolated. No Node Gate. No auto-heal. Not anonymity. Sessions and commands are principle-bound. Author Aziel Eliab.
 ---
 
 # AZ-OS
@@ -184,24 +187,29 @@ Always send \`User-Agent: Mozilla/5.0\`. Cloudflare Workers may 403 an empty age
 - Catalog OpenAPI: https://aziel-runtime.vibelock.workers.dev/openapi.json
 - MCP: \`POST https://aziel-runtime.vibelock.workers.dev/mcp\`
 - Live skill (this markdown): \`GET https://azos-download-tracker.vibelock.workers.dev/v1/skill\`
+- Suite mesh: \`GET https://azos-download-tracker.vibelock.workers.dev/v1/mesh\` (PROXY; default OFF)
 
 Ops (do **not** increment downloads or views):
 
 - \`GET /v1/health\` — liveness + scope
 - \`GET /v1/skill\` — this file
+- \`GET /v1/mesh\` — PROXY suite mesh status. Default OFF. QNM live|locked|isolated. Never enables.
+- \`GET /v1/mesh/nodes\` — PROXY Live Nodes roster (5-minute presence).
+- \`POST /v1/mesh/{enable,disable,join,heartbeat,leave,broadcast}\` — PROXY. Bearer required to enable. No auto-heal. Anon-broadcast is not a publish path.
 - \`POST /v1/status\` — read-only status / principles (no exec)
 - \`POST /v1/session\` — open an ethics-gated shell session
 - \`POST /v1/exec\` — run one principle-bound command in that session
 - \`POST /v1/close\` — close a session
 - Product POSTs listed in OpenAPI (\`invite\`, \`halt\`, \`revoke\`)
 
-Works with ChatGPT (GPT Actions / OpenAI), Grok (xAI), Venice, Claude (Anthropic), Cursor (MCP), Glama (MCP), Perplexity, Microsoft Copilot / Bing, Google Gemini / Vertex, Mistral, Meta AI, Apple Intelligence surfaces, Amazon Q tooling, DuckAssist, You.com, Cohere, and other MCP/OpenAPI-capable assistants. Import OpenAPI as a custom tool, use GPT Actions, HTTP tools, or MCP. Author: Aziel Eliab only.
+Works with ChatGPT (GPT Actions / OpenAI), Grok (xAI), Venice, Claude (Anthropic), Cursor (MCP), Glama (MCP), Perplexity, Microsoft Copilot / Bing, Google Gemini / Vertex, Mistral, Meta AI, Apple Intelligence surfaces, Amazon Q tooling, DuckAssist, You.com, Cohere, and other MCP/OpenAPI-capable assistants. Import OpenAPI as a custom tool, use GPT Actions, HTTP tools, or MCP. Catalog MCP \`mesh_*\` + FragGate \`slug=mesh\`. Suite mesh default OFF. QNM-BUILD-1.0 live|locked|isolated. No Node Gate. No auto-heal. Not anonymity. Author: Aziel Eliab only.
 
 ## Example
 
 \`\`\`bash
 curl -s -A 'Mozilla/5.0' https://azos-download-tracker.vibelock.workers.dev/v1/health
 curl -s -A 'Mozilla/5.0' https://azos-download-tracker.vibelock.workers.dev/v1/skill
+curl -s -A 'Mozilla/5.0' https://azos-download-tracker.vibelock.workers.dev/v1/mesh
 curl -s -A 'Mozilla/5.0' -X POST https://azos-download-tracker.vibelock.workers.dev/v1/session \\
   -H 'content-type: application/json' \\
   -d '{"actor":"operator","definition":"Open an ethics-gated shell session.","evidence":"Operator requested a principle-bound remote shell.","impact":"Hosted KV vfs only. No host subprocess."}'
@@ -610,7 +618,8 @@ function openapiDoc() {
         "Every session and command is principle-bound. " +
         "HTTPS JSON, ARC tokens after five gates, hosted KV vfs. " +
         "Not a kernel, not SSH, not unrestricted host bash. " +
-        "Hosted halt stops the overlay session, not the caller OS.",
+        "Hosted halt stops the overlay session, not the caller OS. " +
+        "Suite mesh /v1/mesh/* PROXY to aziel-runtime (AZIEL_RUNTIME). Default OFF. QNM-BUILD-1.0 live|locked|isolated. No Node Gate. No auto-heal. Not anonymity. Aziel Eliab only.",
     },
     servers: [{ url: BASE }],
     paths: {
@@ -744,12 +753,14 @@ function openapiDoc() {
           responses: { "200": { description: "Revoke overlay receipt" } },
         },
       },
+      ...meshOpenApiPaths(),
     },
   };
 }
 
 export async function handleRuntime(request, url, env) {
   const path = url.pathname;
+  if (path === "/v1/mesh" || path.startsWith("/v1/mesh/")) return null;
   if (path === "/v1/health" && request.method === "GET") {
     return runtimeJson(scopeMeta({ ok: true, product: PRODUCT, version: VERSION }));
   }
@@ -828,14 +839,14 @@ export async function handleRuntime(request, url, env) {
   if (path === "/ai" && request.method === "GET") {
     return runtimeJson(scopeMeta({
       product: PRODUCT, title: "Use with AI assistants", author: AUTHOR,
-      openapi: BASE + "/openapi.json", health: BASE + "/v1/health", ...aiHowTo(BASE),
+      openapi: BASE + "/openapi.json", health: BASE + "/v1/health", mesh: meshPointer(), ...aiHowTo(BASE),
     }));
   }
   if (path === "/v1" && request.method === "GET") {
     return runtimeJson(scopeMeta({
       product: PRODUCT,
       endpoints: [
-        "GET /v1/health", "GET /v1/skill",
+        "GET /v1/health", "GET /v1/skill", "GET /v1/mesh",
         "POST /v1/status", "POST /v1/invite",
         "POST /v1/session", "POST /v1/exec", "POST /v1/close",
         "GET /v1/prefab", "GET /v1/lattice", "POST /v1/lattice",

@@ -62,6 +62,8 @@ def test_worker_homepage_is_product_ui() -> None:
     assert "THE EVER BLOOMING FLOWER" not in hp.upper()
     assert "Claude (Anthropic)" in hp
     assert "other MCP/OpenAPI-capable assistants" in hp
+    assert 'id="meshStrip"' in hp
+    assert "Live Nodes" in hp
 
 
 def test_worker_cite_has_no_invented_doi() -> None:
@@ -105,6 +107,8 @@ def test_worker_runtime_exposes_ethics_shell() -> None:
     assert "Claude (Anthropic)" in runtime
     assert "Cursor (MCP)" in runtime
     assert "other MCP/OpenAPI-capable assistants" in runtime
+    assert "/v1/mesh" in runtime
+    assert "meshPointer" in runtime
 
 
 def test_worker_kv_binding_present() -> None:

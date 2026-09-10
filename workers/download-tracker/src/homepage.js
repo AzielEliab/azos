@@ -291,6 +291,14 @@ export function renderHomepage(stats) {
     footer { margin: 1.4rem 0 0; color: var(--muted); font-size: .86rem; }
     footer ul { padding-left: 1.1rem; }
     .busy { color: var(--gold); font-size: .85rem; }
+    #meshStrip { border: 1px solid var(--gold); border-radius: 12px; padding: .85rem 1rem; background: var(--panel2); margin: 0 0 1.1rem; display: flex; flex-wrap: wrap; align-items: center; gap: .7rem 1rem; font-size: .88rem; color: var(--muted); }
+    #meshStrip .live { color: var(--ink); }
+    #meshStrip .live b { color: var(--gold); font-size: 1.35rem; margin-right: .35rem; }
+    #meshStrip .rollup b { color: var(--gold2); }
+    #meshStrip button { font: 700 .78rem/1 ui-monospace, Menlo, Consolas, monospace; height: 2rem; padding: 0 .75rem; border-radius: 8px; background: #10100c; color: var(--ink); border: 1px solid var(--gold); cursor: pointer; }
+    #meshStrip button:hover { background: #2a230e; color: var(--gold2); }
+    #meshStrip input { width: 10rem; padding: .4rem .55rem; border: 1px solid var(--gold); border-radius: 8px; background: #0a0906; color: var(--ink); font: inherit; }
+    #meshProducts { flex-basis: 100%; margin: 0; }
   </style>
 </head>
 <body>
@@ -315,6 +323,21 @@ export function renderHomepage(stats) {
       <p class="banner">THIS IS: prefab AZ-OS — ethics-coded remote shell with catalog software hooked in. Windows-style desktop locally; the sigil / brand mark (rose-star, no words) replaces a vendor logo. TemporalLock × StaticClock integrity lattice. Author Aziel Eliab only.</p>
       <p class="banner">THIS IS NOT: a kernel, bootloader, hypervisor, replacement OS, VPN, worm, malware, unrestricted host bash, or SSH. Halt stops overlay authority. It does not kill the caller OS.</p>
       <p class="banner limit">THIS WORKER is the public homepage + counted download + read-only hosted ops (status, invite, health, skill, prefab, lattice snapshot). Session, exec, and lattice bind persist in product-Worker KV and need full AZ-OS (<code>azos ui</code> / <code>azos shell</code>). The HTTP proxy is not the full OS.</p>
+    </div>
+
+    <div id="meshStrip" aria-label="Suite Live Nodes">
+      <div class="live"><b id="meshLiveCount">0</b> Live Nodes</div>
+      <div id="meshLine">Suite mesh: off (default). QNM-BUILD-1.0. Not an anonymity network.</div>
+      <div class="rollup">live <b id="qnmLive">0</b> · locked <b id="qnmLocked">0</b> · isolated <b id="qnmIsolated">0</b></div>
+      <div>No Node Gate · No auto-heal · Aziel Eliab only</div>
+      <div>
+        <input id="meshBearer" type="text" maxlength="80" placeholder="bearer (required to enable)" aria-label="mesh bearer">
+        <button id="meshEnable" type="button" title="Enable suite mesh. Declared bearer required. Default off.">Enable</button>
+        <button id="meshDisable" type="button" title="Disable suite mesh (always allowed)">Disable</button>
+        <button id="meshJoin" type="button" title="Join as azos. Refused while mesh is OFF. No auto-join.">Join</button>
+        <button id="meshLeave" type="button" title="Leave this node. No auto-heal.">Leave</button>
+      </div>
+      <p id="meshProducts">Catalog MCP mesh_* · FragGate slug=mesh · /v1/mesh/* PROXY · not AnonBroadcast · not AZMail ring · not a Node Gate</p>
     </div>
 
     <div class="grid">
@@ -433,7 +456,7 @@ export function renderHomepage(stats) {
             <div class="field"><b>Hosted exec</b><span>POST /v1/exec — principle-bound KV vfs, not host bash</span></div>
             <div class="field"><b>Lattice bind</b><span>POST /v1/lattice — append-only; use full AZ-OS</span></div>
           </div>
-          <p class="note" style="margin-top:.8rem">OpenAPI: <a href="/openapi.json">/openapi.json</a> · Skill: <a href="/v1/skill">/v1/skill</a> · AI tools: <a href="/ai">/ai</a> · Catalog: <a href="${CATALOG}">aziel-runtime</a></p>
+          <p class="note" style="margin-top:.8rem">OpenAPI: <a href="/openapi.json">/openapi.json</a> · Skill: <a href="/v1/skill">/v1/skill</a> · Mesh: <a href="/v1/mesh">/v1/mesh</a> · AI tools: <a href="/ai">/ai</a> · Catalog: <a href="${CATALOG}">aziel-runtime</a></p>
           <p class="note">Works with ChatGPT (GPT Actions / OpenAI), Grok (xAI), Venice, Claude (Anthropic), Cursor (MCP), Glama (MCP), Perplexity, Microsoft Copilot / Bing, Google Gemini / Vertex, Mistral, Meta AI, Apple Intelligence surfaces, Amazon Q tooling, DuckAssist, You.com, Cohere, and other MCP/OpenAPI-capable assistants.</p>
           <label class="lab">Look up a hooked app</label>
           <select id="app-pick">${prefabHints}</select>
@@ -444,7 +467,7 @@ export function renderHomepage(stats) {
           <p class="kid">How to cite</p>
           <pre class="invite">${escapeHtml(cite.cite)}</pre>
           <p class="note">No Zenodo DOI is claimed on this page. License Apache-2.0. Identity: Aziel Eliab only. Forks welcome.</p>
-          <p class="note"><a href="/cite.json">cite.json</a> · <a href="/llms.txt">llms.txt</a> · <a href="/robots.txt">robots.txt</a> · <a href="/sitemap.xml">sitemap.xml</a> · <a href="/stats">JSON stats</a></p>
+          <p class="note"><a href="/cite.json">cite.json</a> · <a href="/llms.txt">llms.txt</a> · <a href="/robots.txt">robots.txt</a> · <a href="/sitemap.xml">sitemap.xml</a> · <a href="/v1/mesh">/v1/mesh</a> · <a href="/stats">JSON stats</a></p>
         </section>
       </main>
     </div>
@@ -459,6 +482,7 @@ export function renderHomepage(stats) {
       <ul>
         <li>Counted download: <a href="/download?asset=${DEFAULT_ASSET}">/download</a> (gzip, HTTP 200, no 302)</li>
         <li>One-click install: <a href="/install.sh">/install.sh</a></li>
+        <li>Suite Live Nodes (QNM-BUILD-1.0, default OFF, no Node Gate): <a href="/v1/mesh">/v1/mesh</a></li>
         <li>AzielTether survival mesh (prefer-central × peer sync; boards stay mesh-free): <a href="https://github.com/AzielEliab/azieltether">GitHub</a> · <a href="https://azieltether-download-tracker.vibelock.workers.dev/">Worker</a></li>
       </ul>
     </footer>
@@ -652,6 +676,107 @@ export function renderHomepage(stats) {
       loadInvite();
       loadPrefab();
       loadLattice();
+
+      (function () {
+        function $(id) { return document.getElementById(id); }
+        function meshNum() {
+          for (var i = 0; i < arguments.length; i++) {
+            var raw = arguments[i];
+            if (raw == null || raw === "") continue;
+            var n = typeof raw === "number" ? raw : Number(String(raw).replace(/,/g, ""));
+            if (Number.isFinite(n) && n >= 0) return Math.floor(n);
+          }
+          return 0;
+        }
+        function unwrapMesh(j) {
+          if (!j || typeof j !== "object") return {};
+          if (j.result && typeof j.result === "object") return Object.assign({}, j, j.result);
+          if (j.mesh && typeof j.mesh === "object") return Object.assign({}, j, j.mesh);
+          return j;
+        }
+        function paintMesh(raw) {
+          var j = unwrapMesh(raw);
+          var on = j.enabled === true || j.enabled === 1 || String(j.status || "").toLowerCase() === "on";
+          var r = (j.rollup && typeof j.rollup === "object") ? j.rollup : {};
+          var live = on ? meshNum(r.live, j.live_nodes, j.live) : 0;
+          var locked = on ? meshNum(r.locked, j.locked_nodes, j.locked) : 0;
+          var isolated = on ? meshNum(r.isolated, j.isolated_nodes, j.isolated) : 0;
+          $("meshLiveCount").textContent = String(live);
+          $("qnmLive").textContent = String(live);
+          $("qnmLocked").textContent = String(locked);
+          $("qnmIsolated").textContent = String(isolated);
+          var line = $("meshLine");
+          if (on) line.textContent = "Suite mesh: on · live " + live + " · locked " + locked + " · isolated " + isolated + ". Not an anonymity network.";
+          else if (j.status === "unavailable" || (j.ok === false && j.error)) line.textContent = "Suite mesh: off (unavailable). QNM-BUILD-1.0. Not an anonymity network.";
+          else line.textContent = "Suite mesh: off (default). QNM-BUILD-1.0. Not an anonymity network.";
+          var products = j.products_present || j.products || [];
+          var names = Array.isArray(products) ? products.map(function (p) { return typeof p === "string" ? p : (p && (p.product || p.slug)) || ""; }).filter(Boolean) : [];
+          var nodes = Array.isArray(j.nodes) ? j.nodes : [];
+          var extra = names.length ? " · products " + names.join(", ") : (nodes.length ? " · " + nodes.length + " node labels" : "");
+          $("meshProducts").textContent = "Catalog MCP mesh_* · FragGate slug=mesh · /v1/mesh/* PROXY · not AnonBroadcast · not AZMail ring · not a Node Gate" + extra;
+        }
+        async function meshGet(path) {
+          var r = await fetch(path, { headers: { "user-agent": "Mozilla/5.0", accept: "application/json" } });
+          return r.json();
+        }
+        async function meshPost(path, payload) {
+          var r = await fetch(path, { method: "POST", headers: { "content-type": "application/json", "user-agent": "Mozilla/5.0" }, body: JSON.stringify(payload || {}) });
+          return r.json();
+        }
+        async function refreshMesh() {
+          try {
+            var status = await meshGet("/v1/mesh");
+            var merged = status;
+            var inner = unwrapMesh(status);
+            var on = inner.enabled === true;
+            if (on) {
+              try {
+                var nodes = await meshGet("/v1/mesh/nodes");
+                merged = Object.assign({}, inner, unwrapMesh(nodes));
+              } catch (e) { /* status is enough */ }
+            }
+            paintMesh(merged);
+            var nodeId = sessionStorage.getItem("azos_mesh_node");
+            if (on && nodeId) {
+              try { await meshPost("/v1/mesh/heartbeat", { node_id: nodeId }); } catch (e) { /* no auto-heal */ }
+            }
+          } catch (e) {
+            paintMesh({ ok: false, enabled: false, status: "unavailable", error: "mesh_unavailable" });
+          }
+        }
+        $("meshEnable").onclick = async function () {
+          var bearer = ($("meshBearer").value || "").trim();
+          paintMesh(await meshPost("/v1/mesh/enable", bearer ? { bearer: bearer } : {}));
+          refreshMesh();
+        };
+        $("meshDisable").onclick = async function () {
+          sessionStorage.removeItem("azos_mesh_node");
+          paintMesh(await meshPost("/v1/mesh/disable", {}));
+          refreshMesh();
+        };
+        $("meshJoin").onclick = async function () {
+          var j = await meshPost("/v1/mesh/join", { product: "azos", label: "AZ-OS Worker" });
+          var inner = unwrapMesh(j);
+          var id = inner.node_id || inner.id || (inner.session && inner.session.node_id);
+          if (id) sessionStorage.setItem("azos_mesh_node", String(id));
+          paintMesh(j);
+          refreshMesh();
+        };
+        $("meshLeave").onclick = async function () {
+          var id = sessionStorage.getItem("azos_mesh_node");
+          if (id) await meshPost("/v1/mesh/leave", { node_id: id });
+          sessionStorage.removeItem("azos_mesh_node");
+          refreshMesh();
+        };
+        window.addEventListener("pagehide", function () {
+          var id = sessionStorage.getItem("azos_mesh_node");
+          if (!id || typeof navigator.sendBeacon !== "function") return;
+          try { navigator.sendBeacon("/v1/mesh/leave", new Blob([JSON.stringify({ node_id: id })], { type: "application/json" })); } catch (e) { /* leave expires in 5 minutes */ }
+        });
+        refreshMesh();
+        setInterval(refreshMesh, 30000);
+        document.addEventListener("visibilitychange", function () { if (!document.hidden) refreshMesh(); });
+      })();
     })();
   </script>
 </body>
