@@ -48,7 +48,13 @@ def test_worker_homepage_is_product_ui() -> None:
     assert "not a kernel" in hp.lower()
     assert "Apache-2.0" in hp
     assert "Forks welcome" in hp
-    assert "sigil.svg" in hp
+    assert "sigil.png" in hp
+    assert 'class="brandrow"' in hp
+    assert 'class="brandmark"' in hp
+    assert 'src="/sigil.png"' in hp
+    assert 'alt=""' in hp
+    assert "everblooming sigil" not in hp.lower()
+    assert "everbloom" not in hp.lower()
     assert "One-click install" in hp
     assert "10.5281" not in hp
     assert "doi.org" not in hp.lower()
@@ -83,12 +89,24 @@ def test_worker_serves_sigil() -> None:
     js = JS.read_text(encoding="utf-8")
     hp = HP.read_text(encoding="utf-8")
     toml = TOML.read_text(encoding="utf-8")
+    png = ROOT / "workers" / "download-tracker" / "public" / "sigil.png"
+    data = png.read_bytes()
+    assert data[:8] == b"\x89PNG\r\n\x1a\n"
+    assert 60_000 <= len(data) <= 90_000
+    assert 'class="brandrow"' in hp
+    assert '<div class="brandrow"><img class="brandmark" src="/sigil.png" width="40" height="40" alt="" decoding="async"></div>' in hp
+    assert "everbloom" not in hp.lower()
+    assert "everblooming sigil" not in js.lower()
+    assert 'X-Aziel-Sigil": "Everblooming"' in js
+    assert "/sigil.png" in js
+    assert "function serveSigilPng" in js
     assert "/sigil.svg" in js
     assert "function sigilSvg" in hp
     assert "<svg" in hp
     sigil_fn = hp.split("export function sigilSvg")[1].split("function breakdownList")[0]
     assert "<svg" in sigil_fn
     assert "<text" not in sigil_fn.lower()
+    assert '"/sigil.png"' in toml
     assert '"/sigil.svg"' in toml
 
 

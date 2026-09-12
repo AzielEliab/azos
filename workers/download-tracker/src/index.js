@@ -280,6 +280,26 @@ echo "Ethics-coded remote shell. Author: Aziel Eliab."
 `;
 }
 
+async function serveSigilPng(request, env, { head = false } = {}) {
+  const headers = {
+    "Content-Type": "image/png",
+    "Cache-Control": "public, max-age=86400",
+    "X-Aziel-Sigil": "Everblooming",
+    ...corsHeaders(),
+  };
+  if (!env.ASSETS) {
+    return json({ error: "assets binding missing" }, 500);
+  }
+  const assetRes = await env.ASSETS.fetch(new Request(new URL("/sigil.png", request.url), { method: "GET" }));
+  if (!assetRes.ok) {
+    return json({ error: "sigil unavailable" }, 404);
+  }
+  if (head) {
+    return new Response(null, { status: 200, headers });
+  }
+  return new Response(assetRes.body, { status: 200, headers });
+}
+
 async function serveAsset(request, env, asset, { head = false } = {}) {
   if (!env.ASSETS) {
     return json({ error: "assets binding missing" }, 500);
@@ -312,6 +332,10 @@ export default {
 
     if (request.method === "OPTIONS") {
       return new Response(null, { status: 204, headers: corsHeaders() });
+    }
+
+    if ((url.pathname === "/sigil.png" || url.pathname === "/sigil.png/") && (request.method === "GET" || request.method === "HEAD")) {
+      return serveSigilPng(request, env, { head: request.method === "HEAD" });
     }
 
     if ((url.pathname === "/sigil.svg" || url.pathname === "/sigil.svg/" || url.pathname === "/brand/sigil.svg") && request.method === "GET") {
@@ -412,7 +436,7 @@ export default {
       });
     }
     if ((url.pathname === "/sitemap.xml" || url.pathname === "/sitemap.xml/") && request.method === "GET") {
-      const locs = [HOST + "/", HOST + "/download", HOST + "/install.sh", HOST + "/sigil.svg", HOST + "/v1/skill", HOST + "/v1/mesh", HOST + "/openapi.json", HOST + "/cite.json", HOST + "/llms.txt", GITHUB_REPO];
+      const locs = [HOST + "/", HOST + "/download", HOST + "/install.sh", HOST + "/sigil.png", HOST + "/sigil.svg", HOST + "/v1/skill", HOST + "/v1/mesh", HOST + "/openapi.json", HOST + "/cite.json", HOST + "/llms.txt", GITHUB_REPO];
       const xml = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
         + locs.map((u) => "  <url><loc>" + u + "</loc></url>").join("\n")
         + "\n</urlset>\n";

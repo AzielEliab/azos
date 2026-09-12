@@ -9,7 +9,7 @@ GET `/` is the **AZ-OS — Aziel Eliab** product homepage (SEO, cite.json,
 JSON-LD, workspace for public status/invite/prefab/lattice snapshot).
 GET `/` increments a **page-view** counter (separate from downloads).
 GET `/download` increments **downloads**.
-GET `/sigil.svg` is the wordless everblooming rose-star.
+GET `/sigil.png` is the wordless rose-star brand mark (empty alt; no words on the mark). `X-Aziel-Sigil: Everblooming` stays on the image response for verify contracts.
 `/v1` never increments DOWNLOADS KV.
 GET `/install.sh` one-click install (does not increment; script curls `/download`).
 GET `/v1/skill` returns skill markdown (`text/markdown`). Does not increment views or downloads.

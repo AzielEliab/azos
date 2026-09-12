@@ -103,14 +103,14 @@ export function jsonLd() {
     installUrl: HOST + "/install.sh",
     license: "https://www.apache.org/licenses/LICENSE-2.0",
     url: HOST + "/",
-    image: HOST + "/sigil.svg",
+    image: HOST + "/sigil.png",
     isAccessibleForFree: true,
     offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
     description: ONE_LINE,
   };
 }
 
-/** Wordless rose-star sigil. Outer foliage breathes — everblooming, no brand text. */
+/** Wordless rose-star brand mark (no text). Official PNG is public/sigil.png. */
 export function sigilSvg() {
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="">
@@ -194,12 +194,12 @@ export function renderHomepage(stats) {
   <meta name="author" content="${AUTHOR}">
   <meta name="robots" content="index,follow">
   <link rel="canonical" href="${HOST}/">
-  <link rel="icon" type="image/svg+xml" href="/sigil.svg">
+  <link rel="icon" type="image/png" href="/sigil.png">
   <meta property="og:title" content="${TITLE}">
   <meta property="og:description" content="${escapeHtml(ONE_LINE)}">
   <meta property="og:url" content="${HOST}/">
   <meta property="og:type" content="website">
-  <meta property="og:image" content="${HOST}/sigil.svg">
+  <meta property="og:image" content="${HOST}/sigil.png">
   <meta name="twitter:card" content="summary">
   <meta name="twitter:title" content="${TITLE}">
   <meta name="twitter:description" content="${escapeHtml(ONE_LINE)}">
@@ -233,12 +233,9 @@ export function renderHomepage(stats) {
     code, pre { font-family: ui-monospace, Consolas, monospace; }
     .wrap { max-width: 72rem; margin: 0 auto; padding: 1.25rem 1.15rem 3.5rem; }
     header.top { display: flex; align-items: center; gap: 1rem; margin: 0 0 1rem; }
-    .sigil-bloom { width: 72px; height: 72px; flex: 0 0 auto; filter: drop-shadow(0 0 10px #e4b84a55);
-      animation: bloom 4.8s ease-in-out infinite; }
-    @keyframes bloom {
-      0%, 100% { transform: scale(1); filter: drop-shadow(0 0 6px #e4b84a44); }
-      50% { transform: scale(1.06); filter: drop-shadow(0 0 18px #f3d57a88); }
-    }
+    .brandrow { display: flex; align-items: center; justify-content: flex-start; flex: 0 0 auto; }
+    .brandmark { width: 40px; height: 40px; border-radius: 10px; object-fit: cover; flex: 0 0 auto;
+      box-shadow: 0 0 0 1px #d4af3733; filter: drop-shadow(0 0 10px #e4b84a55); }
     header.top h1 { font-size: clamp(1.45rem, 3vw, 2rem); margin: 0; letter-spacing: .01em; color: var(--gold2); }
     .motto { color: var(--muted); margin: .2rem 0 0; }
     .meta-row { display: flex; flex-wrap: wrap; gap: .45rem .8rem; color: var(--muted); font-size: .86rem; margin-top: .35rem; }
@@ -304,7 +301,7 @@ export function renderHomepage(stats) {
 <body>
   <div class="wrap">
     <header class="top">
-      <img class="sigil-bloom" src="/sigil.svg" width="72" height="72" alt="">
+      <div class="brandrow"><img class="brandmark" src="/sigil.png" width="40" height="40" alt="" decoding="async"></div>
       <div>
         <h1>AZ-OS — Aziel Eliab</h1>
         <p class="motto">${MOTTO} Author ${AUTHOR}.</p>
