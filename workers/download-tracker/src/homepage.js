@@ -16,7 +16,7 @@ export const INSTALL_LINE =
   "curl -fsSL https://azos-download-tracker.vibelock.workers.dev/install.sh | bash";
 
 export const ONE_LINE =
-  "Prefab ethics-coded remote shell and AZ Interface by Aziel Eliab; not a kernel, VPN, or remote takeover.";
+  "Prefab ethics-coded remote shell and AZ Interface by Aziel Eliab.";
 
 const PRINCIPLES = [
   "Integrity precedes execution.",
@@ -189,6 +189,7 @@ export function renderHomepage(stats) {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark light">
   <title>${TITLE}</title>
   <meta name="description" content="${escapeHtml(ONE_LINE)}">
   <meta name="author" content="${AUTHOR}">
@@ -208,119 +209,180 @@ export function renderHomepage(stats) {
   <style>
     :root {
       color-scheme: dark;
-      --bg: #070705;
-      --panel: #10100c;
-      --panel2: #16140e;
-      --ink: #f4ecd0;
-      --muted: #a89868;
-      --line: #3a3018;
+      --bg: #0b0b0b;
+      --panel: #141414;
+      --panel2: #1c1c1c;
+      --ink: #f6f1e4;
+      --muted: #cbbd9a;
+      --line: #3a3428;
       --gold: #e4b84a;
-      --gold2: #f3d57a;
-      --pass: #7dcf9a;
-      --fail: #e07a7a;
-      --shadow: 0 18px 48px #000a;
+      --link: #f3d57a;
+      --cta: #f4efe4;
+      --on-cta: #14110a;
+      --pass: #8fd9aa;
+      --pass-bg: #8fd9aa;
+      --pass-ink: #0e1014;
+      --fail: #f0a0a0;
+      --focus: #ffffff;
+      --field: #0e0e0c;
+      --shadow: 0 12px 32px #00000066;
+    }
+    @media (prefers-color-scheme: light) {
+      :root {
+        color-scheme: light;
+        --bg: #fbf7ef;
+        --panel: #ffffff;
+        --panel2: #f3eee4;
+        --ink: #1c160e;
+        --muted: #5c4e32;
+        --line: #d9cdb4;
+        --gold: #6e5010;
+        --link: #6e5010;
+        --cta: #1c160e;
+        --on-cta: #fffaf0;
+        --pass: #0f6b32;
+        --pass-bg: #0f6b32;
+        --pass-ink: #ffffff;
+        --fail: #9b1c1c;
+        --focus: #1c160e;
+        --field: #ffffff;
+        --shadow: 0 10px 28px #1c160e14;
+      }
     }
     * { box-sizing: border-box; }
     html, body { margin: 0; min-height: 100%; background: var(--bg); color: var(--ink);
-      font: 16px/1.45 "Segoe UI", ui-sans-serif, system-ui, sans-serif; }
-    body {
-      background:
-        radial-gradient(900px 520px at 12% -10%, #3a2a10 0%, transparent 55%),
-        radial-gradient(800px 480px at 110% 10%, #2a220c 0%, transparent 50%),
-        var(--bg);
-    }
-    a { color: var(--gold2); }
+      font: 16px/1.5 system-ui, "Segoe UI", sans-serif; }
+    body { overflow-wrap: break-word; }
+    a { color: var(--link); }
+    a.skip { position: absolute; left: 1rem; top: 0; transform: translateY(-120%);
+      background: var(--cta); color: var(--on-cta); padding: .45rem .75rem; border-radius: 8px;
+      text-decoration: none; z-index: 5; }
+    a.skip:focus { transform: translateY(.6rem); }
+    :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
     code, pre { font-family: ui-monospace, Consolas, monospace; }
-    .wrap { max-width: 72rem; margin: 0 auto; padding: 1.25rem 1.15rem 3.5rem; }
-    header.top { display: flex; align-items: center; gap: 1rem; margin: 0 0 1rem; }
+    .wrap { max-width: 58rem; margin: 0 auto; padding: 1.15rem 1rem 2.6rem; }
+    .hero-id { display: flex; align-items: center; gap: .85rem; margin: 0 0 .85rem; }
     .brandrow { display: flex; align-items: center; justify-content: flex-start; flex: 0 0 auto; }
     .brandmark { width: 40px; height: 40px; border-radius: 10px; object-fit: cover; flex: 0 0 auto;
-      box-shadow: 0 0 0 1px #d4af3733; filter: drop-shadow(0 0 10px #e4b84a55); }
-    header.top h1 { font-size: clamp(1.45rem, 3vw, 2rem); margin: 0; letter-spacing: .01em; color: var(--gold2); }
-    .motto { color: var(--muted); margin: .2rem 0 0; }
-    .meta-row { display: flex; flex-wrap: wrap; gap: .45rem .8rem; color: var(--muted); font-size: .86rem; margin-top: .35rem; }
-    .banners { display: grid; gap: .65rem; margin: 0 0 1.1rem; }
-    .banner { border: 1px solid #5c4a1a; background: #1a1508; color: #f0d78c; padding: .75rem .9rem; border-radius: 8px; font-size: .92rem; }
-    .banner.limit { border-color: #4a4030; background: #12100c; color: #d8c89a; }
-    .grid { display: grid; grid-template-columns: minmax(17rem, 22rem) 1fr; gap: 1rem; align-items: start; }
-    @media (max-width: 860px) { .grid { grid-template-columns: 1fr; } header.top { align-items: flex-start; } }
-    .card { border: 1px solid var(--line); border-radius: 12px; padding: 1.1rem 1.15rem; background: var(--panel); box-shadow: var(--shadow); }
-    .card h2 { margin: 0 0 .7rem; font-size: 1.05rem; color: var(--gold); letter-spacing: .04em; text-transform: uppercase; }
-    .nums { display: grid; grid-template-columns: 1fr 1fr; gap: .7rem; margin: 0 0 1rem; }
-    .count { font-size: 2rem; font-variant-numeric: tabular-nums; font-weight: 750; margin: 0; color: var(--gold2); }
-    .count span { display: block; font-size: .82rem; font-weight: 500; color: var(--muted); letter-spacing: .06em; text-transform: uppercase; }
-    .btns { display: grid; grid-template-columns: 1fr 1fr; gap: .65rem; margin: 0 0 .75rem; }
-    @media (max-width: 520px) { .btns { grid-template-columns: 1fr; } }
-    a.btn, button.btn { display: block; width: 100%; box-sizing: border-box; text-align: center; font: inherit; font-size: 1.05rem; font-weight: 750; padding: .85rem 1rem; border-radius: 10px; border: 0; cursor: pointer; text-decoration: none; }
-    a.btn.primary { background: var(--ink); color: #14110a; }
-    button.btn.install { background: var(--gold); color: #14110a; }
-    button.btn.install.copied { background: var(--pass); color: #0e1014; }
-    a.btn.ghost, button.btn.ghost { background: transparent; color: var(--gold2); border: 1px solid var(--line); }
-    pre.cmd { background: #070705; padding: .7rem .8rem; overflow: auto; border-radius: 8px; font-size: .78rem; border: 1px solid var(--line); color: #e8d9a0; }
-    .kid { font-size: .95rem; margin: 0 0 .75rem; color: #ddd3b0; }
-    .iso { font-size: .8rem; color: #8a7a4e; margin: .7rem 0 0; }
+      box-shadow: 0 0 0 1px var(--line); }
+    .hero h1 { font-size: clamp(1.6rem, 5vw, 2rem); font-weight: 650; letter-spacing: .01em; margin: 0; line-height: 1.15; }
+    .motto { color: var(--gold); font-style: italic; margin: .2rem 0 0; }
+    .lede { color: var(--muted); margin: 0 0 1rem; max-width: 46rem; }
+    .meta-row { display: flex; flex-wrap: wrap; gap: .35rem .8rem; color: var(--muted); font-size: .86rem; margin: 0; }
+    .asset-note { color: var(--muted); font-size: .92rem; margin: 0 0 1rem; max-width: 46rem; }
+    .features { display: grid; grid-template-columns: 1fr; gap: .55rem .9rem; margin: 0 0 1rem; padding: 0; list-style: none; max-width: 46rem; }
+    .features li { margin: 0; padding-left: .75rem; border-left: 2px solid var(--line); }
+    .grid { display: grid; grid-template-columns: 1fr; gap: 1rem; align-items: start; }
+    .card { border: 1px solid var(--line); border-radius: 12px; padding: 1rem; background: var(--panel);
+      box-shadow: var(--shadow); min-width: 0; }
+    .card h2, .card h3 { margin: 0 0 .7rem; font-size: 1.05rem; color: var(--ink); letter-spacing: .01em; font-weight: 650; }
+    .card h3 { font-size: .95rem; margin: 1rem 0 .4rem; }
+    .nums { display: grid; grid-template-columns: 1fr 1fr; gap: .7rem; margin: 0 0 .75rem; max-width: 22rem; }
+    .count { font-size: 1.75rem; font-variant-numeric: tabular-nums; font-weight: 700; margin: 0; color: var(--ink); }
+    .count span { display: block; font-size: .75rem; font-weight: 600; color: var(--muted); letter-spacing: .06em; text-transform: uppercase; }
+    a.btn.block.primary { display: block; width: 100%; max-width: none; margin: 0 0 .85rem; padding: 1.05rem 1.2rem;
+      border: 1px solid transparent; border-radius: 9px; background: var(--cta); color: var(--on-cta);
+      text-align: center; text-decoration: none; font: 700 1.25rem/1.1 ui-monospace, Menlo, Consolas, monospace;
+      letter-spacing: .03em; cursor: pointer; }
+    a.btn.block.primary:hover { filter: brightness(1.06); }
+    button.btn.install { display: block; width: 100%; box-sizing: border-box; text-align: center; font: 700 1rem/1.1 ui-monospace, Menlo, Consolas, monospace;
+      letter-spacing: .02em; padding: .8rem 1rem; margin: 0 0 .75rem; border-radius: 9px; border: 1px solid var(--line); cursor: pointer;
+      background: transparent; color: var(--ink); }
+    button.btn.install.copied { background: var(--pass-bg); color: var(--pass-ink); border-color: transparent; }
+    pre.cmd, pre.invite { background: var(--field); color: var(--ink); padding: .7rem .8rem; overflow: auto; border-radius: 8px;
+      font-size: .8rem; border: 1px solid var(--line); max-width: 100%; white-space: pre-wrap; overflow-wrap: anywhere; }
+    .kid { font-size: .95rem; margin: 0 0 .75rem; color: var(--ink); }
+    .iso { font-size: .82rem; color: var(--muted); margin: .7rem 0 0; overflow-wrap: anywhere; }
     .tabs { display: flex; flex-wrap: wrap; gap: .35rem; margin: 0 0 .85rem; }
-    .tabs button { border: 1px solid var(--line); background: var(--panel2); color: var(--muted); border-radius: 999px; padding: .35rem .75rem; cursor: pointer; font: inherit; font-size: .85rem; }
-    .tabs button[aria-selected="true"] { background: #2a230e; color: var(--gold2); border-color: var(--gold); }
+    .tabs button { border: 1px solid var(--line); background: transparent; color: var(--ink); border-radius: 999px;
+      padding: .4rem .75rem; cursor: pointer; font: inherit; font-size: .85rem; }
+    .tabs button[aria-selected="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
     .panel { display: none; }
     .panel.on { display: block; }
-    .fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); gap: .55rem; }
-    .field { border: 1px solid var(--line); border-radius: 8px; padding: .55rem .65rem; background: #0c0b08; }
-    .field b { display: block; font-size: .72rem; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); }
+    .fields { display: grid; grid-template-columns: 1fr; gap: .55rem; }
+    .field { border: 1px solid var(--line); border-radius: 8px; padding: .55rem .65rem; background: var(--field); min-width: 0; }
+    .field b { display: block; font-size: .72rem; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); font-weight: 650; }
     .chips { display: flex; flex-wrap: wrap; gap: .35rem; }
-    .chip { border: 1px solid var(--line); border-radius: 999px; padding: .15rem .55rem; font-size: .78rem; color: var(--gold2); }
-    .apps { display: grid; grid-template-columns: repeat(auto-fill, minmax(13.5rem, 1fr)); gap: .5rem; }
-    .app { border: 1px solid var(--line); border-radius: 8px; padding: .55rem .65rem; background: #0c0b08; min-height: 5.2rem; }
-    .app strong { display: block; color: var(--gold2); font-size: .9rem; }
+    .chip { border: 1px solid var(--line); border-radius: 999px; padding: .15rem .55rem; font-size: .78rem; color: var(--ink); }
+    .apps { display: grid; grid-template-columns: 1fr; gap: .5rem; }
+    .app { border: 1px solid var(--line); border-radius: 8px; padding: .55rem .65rem; background: var(--field); min-height: 0; }
+    .app strong { display: block; font-size: .9rem; }
     .app span { display: block; color: var(--muted); font-size: .78rem; margin-top: .2rem; }
     .gates { display: grid; gap: .35rem; }
-    .gate { display: grid; grid-template-columns: 7.2rem 3.4rem 1fr; gap: .4rem; font-size: .85rem; align-items: start; }
+    .gate { display: grid; grid-template-columns: 1fr; gap: .15rem; font-size: .85rem; align-items: start;
+      padding: .35rem 0; border-bottom: 1px solid var(--line); }
     .pass { color: var(--pass); font-weight: 700; }
     .fail { color: var(--fail); font-weight: 700; }
     label.lab { display: block; font-size: .78rem; color: var(--muted); margin: .45rem 0 .2rem; }
-    input[type=text], textarea, select { width: 100%; background: #0a0906; color: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: .45rem .55rem; font: inherit; }
+    input[type=text], textarea, select { width: 100%; max-width: 100%; background: var(--field); color: var(--ink);
+      border: 1px solid var(--line); border-radius: 8px; padding: .5rem .6rem; font: inherit; }
     textarea { min-height: 3.1rem; resize: vertical; }
+    ::placeholder { color: var(--muted); opacity: 1; }
     .row { display: flex; gap: .5rem; flex-wrap: wrap; margin: .65rem 0; }
-    button.act { background: #2a230e; color: var(--gold2); border: 1px solid var(--gold); border-radius: 6px; padding: .4rem .75rem; font-weight: 650; cursor: pointer; }
-    button.act:disabled { opacity: .4; cursor: not-allowed; }
-    .invite { white-space: pre-wrap; font-size: .82rem; background: #0a0906; border: 1px solid var(--line); padding: .7rem; border-radius: 8px; max-height: 22rem; overflow: auto; }
-    .note { color: var(--muted); font-size: .88rem; }
-    footer { margin: 1.4rem 0 0; color: var(--muted); font-size: .86rem; }
-    footer ul { padding-left: 1.1rem; }
+    button.act { background: transparent; color: var(--ink); border: 1px solid var(--line); border-radius: 8px;
+      padding: .45rem .75rem; font-weight: 650; cursor: pointer; font: inherit; }
+    button.act:disabled { opacity: .55; cursor: not-allowed; }
+    .note { color: var(--muted); font-size: .9rem; margin: .7rem 0 0; }
+    footer.quiet { margin: 1.25rem 0 0; color: var(--muted); font-size: .9rem; }
+    footer.quiet p { margin: .35rem 0; }
     .busy { color: var(--gold); font-size: .85rem; }
-    #meshStrip { border: 1px solid var(--gold); border-radius: 12px; padding: .85rem 1rem; background: var(--panel2); margin: 0 0 1.1rem; display: flex; flex-wrap: wrap; align-items: center; gap: .7rem 1rem; font-size: .88rem; color: var(--muted); }
+    #meshStrip { border: 1px solid var(--line); border-radius: 12px; padding: .75rem .9rem; background: transparent;
+      margin: 1.15rem 0; display: flex; flex-wrap: wrap; align-items: center; gap: .55rem .8rem; font-size: .82rem; color: var(--muted); }
     #meshStrip .live { color: var(--ink); }
-    #meshStrip .live b { color: var(--gold); font-size: 1.35rem; margin-right: .35rem; }
-    #meshStrip .rollup b { color: var(--gold2); }
-    #meshStrip button { font: 700 .78rem/1 ui-monospace, Menlo, Consolas, monospace; height: 2rem; padding: 0 .75rem; border-radius: 8px; background: #10100c; color: var(--ink); border: 1px solid var(--gold); cursor: pointer; }
-    #meshStrip button:hover { background: #2a230e; color: var(--gold2); }
-    #meshStrip input { width: 10rem; padding: .4rem .55rem; border: 1px solid var(--gold); border-radius: 8px; background: #0a0906; color: var(--ink); font: inherit; }
-    #meshProducts { flex-basis: 100%; margin: 0; }
+    #meshStrip .live b { color: var(--ink); font-size: 1.25rem; margin-right: .35rem; }
+    #meshStrip .rollup b { color: var(--ink); }
+    #meshStrip button { font: 650 .78rem/1 ui-monospace, Menlo, Consolas, monospace; min-height: 2rem; padding: 0 .7rem;
+      border-radius: 8px; background: transparent; color: var(--ink); border: 1px solid var(--line); cursor: pointer; }
+    #meshStrip button:hover { background: var(--panel2); }
+    #meshStrip input { width: min(100%, 14rem); max-width: 100%; padding: .4rem .55rem; border: 1px solid var(--line);
+      border-radius: 8px; background: var(--field); color: var(--ink); font: inherit; }
+    #meshProducts { flex-basis: 100%; margin: 0; overflow-wrap: anywhere; }
+    @media (min-width: 640px) {
+      .fields { grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); }
+      .apps { grid-template-columns: repeat(auto-fill, minmax(13.5rem, 1fr)); }
+      .gate { grid-template-columns: 7.2rem 3.4rem minmax(0, 1fr); gap: .4rem; border-bottom: 0; padding: 0; }
+    }
+    @media (min-width: 720px) {
+      .features { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      a.btn.block.primary { max-width: 40rem; }
+      .wrap { padding: 1.4rem 1.2rem 2.8rem; }
+    }
+    @media (min-width: 860px) {
+      .grid { grid-template-columns: minmax(16rem, 22rem) minmax(0, 1fr); }
+    }
   </style>
 </head>
 <body>
+  <a class="skip" href="#workspace">Skip to workspace</a>
   <div class="wrap">
-    <header class="top">
-      <div class="brandrow"><img class="brandmark" src="/sigil.png" width="40" height="40" alt="" decoding="async"></div>
-      <div>
-        <h1>AZ-OS — Aziel Eliab</h1>
-        <p class="motto">${MOTTO} Author ${AUTHOR}.</p>
-        <div class="meta-row">
-          <span>v${VERSION}</span>
-          <span>Apache-2.0</span>
-          <span>Forks welcome</span>
-          <a href="${GITHUB_REPO}">GitHub</a>
-          <a href="${GITHUB_LATEST}">releases</a>
-          <a href="/cite.json">cite.json</a>
+    <header class="hero">
+      <div class="hero-id">
+        <div class="brandrow"><img class="brandmark" src="/sigil.png" width="40" height="40" alt="" decoding="async"></div>
+        <div>
+          <h1>AZ-OS — Aziel Eliab</h1>
+          <p class="motto">${MOTTO}</p>
         </div>
       </div>
+      <p class="lede">${escapeHtml(ONE_LINE)} Apache-2.0. Forks welcome.</p>
+      <a class="btn block primary" id="downloadBtn" href="/download?asset=${DEFAULT_ASSET}" aria-describedby="downloadNote">Download</a>
+      <div class="nums">
+        <p class="count">${v}<span>Views</span></p>
+        <p class="count">${n}<span>Live downloads</span></p>
+      </div>
+      <p class="asset-note" id="downloadNote">${DEFAULT_ASSET} from this Worker (HTTP 200). The live download count includes every branch and fork.</p>
+      <ul class="features">
+        <li>Five gates check each session, and each command after that.</li>
+        <li>The package includes the local Interface. Run <code>azos ui</code> on this computer.</li>
+        <li>The lattice snapshot is public. Binding a timeslate stays on full AZ-OS.</li>
+      </ul>
+      <p class="meta-row">
+        <span>v${VERSION}</span>
+        <span>Apache-2.0</span>
+        <a href="${GITHUB_REPO}">GitHub</a>
+        <a href="${GITHUB_LATEST}">releases</a>
+        <a href="/cite.json">cite.json</a>
+      </p>
     </header>
-
-    <div class="banners">
-      <p class="banner">THIS IS: prefab AZ-OS — ethics-coded remote shell with catalog software hooked in. Windows-style desktop locally; the sigil / brand mark (rose-star, no words) replaces a vendor logo. TemporalLock × StaticClock integrity lattice. Author Aziel Eliab only.</p>
-      <p class="banner">THIS IS NOT: a kernel, bootloader, hypervisor, replacement OS, VPN, worm, malware, unrestricted host bash, or SSH. Halt stops overlay authority. It does not kill the caller OS.</p>
-      <p class="banner limit">THIS WORKER is the public homepage + counted download + read-only hosted ops (status, invite, health, skill, prefab, lattice snapshot). Session, exec, and lattice bind persist in product-Worker KV and need full AZ-OS (<code>azos ui</code> / <code>azos shell</code>). The HTTP proxy is not the full OS.</p>
-    </div>
 
     <div id="meshStrip" aria-label="Suite Live Nodes">
       <div class="live"><b id="meshLiveCount">0</b> Live Nodes</div>
@@ -340,21 +402,9 @@ export function renderHomepage(stats) {
     <div class="grid">
       <aside class="card" id="install">
         <h2>Install</h2>
-        <div class="nums">
-          <p class="count">${v}<span>Views</span></p>
-          <p class="count">${n}<span>Live downloads</span></p>
-        </div>
-        <p class="kid"><strong>Two big buttons.</strong> Download saves the gzip (the Downloads number goes up). One-click install copies a Terminal command. After it finishes, type <code>azos ui</code>.</p>
-        <div class="btns">
-          <a class="btn primary dl" href="/download?asset=${DEFAULT_ASSET}">Download</a>
-          <button type="button" class="btn install" id="install-btn">One-click install</button>
-        </div>
+        <p class="kid">One-click install copies a Terminal command. After it finishes, run <code>azos ui</code> or <code>azos shell</code>. The Interface listens at http://127.0.0.1:8800 on this computer only.</p>
+        <button type="button" class="btn install" id="install-btn">One-click install</button>
         <pre class="cmd" id="install-cmd">${INSTALL_LINE}</pre>
-        <p class="kid">Then run: <code>azos ui</code> or <code>azos shell</code>. Interface: http://127.0.0.1:8800 (this computer only).</p>
-        <div class="btns">
-          <a class="btn ghost" href="${GITHUB_REPO}">GitHub</a>
-          <a class="btn ghost" href="${GITHUB_LATEST}">Releases</a>
-        </div>
         <p class="iso">The download count ticks on the Download click. The Worker serves the gzip (HTTP 200). No 302 to GitHub. Forks using this same link are counted automatically. ${DEFAULT_ASSET} — ${n} counted. Isolated counter: Worker <code>azos-download-tracker</code>, project <code>azos</code>, KV <code>AZOS_DOWNLOADS</code>. Not mixed with any other product. Not VibeLock. /v1 does not increment downloads.</p>
         <p class="iso">GitHub: stars ${gh.stars || 0} · forks ${gh.forks || 0} · watchers ${gh.watchers || 0} · release assets ${gh.release_download_count || 0}</p>
       </aside>
@@ -445,7 +495,7 @@ export function renderHomepage(stats) {
         </section>
 
         <section class="panel" id="tab-full" role="tabpanel">
-          <p class="kid">Full AZ-OS is the local Interface and ethics-coded shell. This Worker homepage does not pretend the public proxy is that OS.</p>
+          <p class="kid">Full AZ-OS is the local Interface and ethics-coded shell. Session, exec, and lattice bind stay on the installed package. The HTTP proxy is not the full OS.</p>
           <div class="fields">
             <div class="field"><b>Local Interface</b><span><code>azos ui</code> → http://127.0.0.1:8800</span></div>
             <div class="field"><b>Local shell</b><span><code>azos shell --actor operator</code></span></div>
@@ -474,14 +524,9 @@ export function renderHomepage(stats) {
       <ul>${breakdownList(stats)}</ul>
     </section>
 
-    <footer>
-      <p>AZ-OS — Aziel Eliab. ${MOTTO} Apache-2.0. Forks welcome and always allowed.</p>
-      <ul>
-        <li>Counted download: <a href="/download?asset=${DEFAULT_ASSET}">/download</a> (gzip, HTTP 200, no 302)</li>
-        <li>One-click install: <a href="/install.sh">/install.sh</a></li>
-        <li>Suite Live Nodes (QNM-BUILD-1.0 + QNS-CD-1.0 hub cite, default OFF, no Node Gate, no public qnsd proxy): <a href="/v1/mesh">/v1/mesh</a></li>
-        <li>AzielTether survival mesh (prefer-central × peer sync; boards stay mesh-free): <a href="https://github.com/AzielEliab/azieltether">GitHub</a> · <a href="https://azieltether-download-tracker.vibelock.workers.dev/">Worker</a></li>
-      </ul>
+    <footer class="quiet">
+      <p>Apache-2.0 · Aziel Eliab · AZ-OS v${VERSION}. ${MOTTO} Forks welcome.</p>
+      <p><a href="${GITHUB_REPO}">GitHub</a> · <a href="/install.sh">install.sh</a> · <a href="/cite.json">cite.json</a> · <a href="/v1/mesh">Live Nodes</a> · <a href="https://github.com/AzielEliab/azieltether">AzielTether</a></p>
     </footer>
   </div>
   <script>
