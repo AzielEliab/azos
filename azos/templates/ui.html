@@ -6,511 +6,685 @@
   <title>AZ-OS</title>
   <style>
     :root {
-      --desk-a: #1b3a5c;
-      --desk-b: #0c1a2c;
-      --task: rgba(28,28,28,.88);
-      --win: #202020;
-      --win2: #2b2b2b;
-      --ink: #f3f3f3;
-      --muted: #b4b4b4;
-      --line: #3d3d3d;
-      --accent: #60cdff;
-      --gold: #e4b84a;
-      --pass: #6fdd8b;
-      --fail: #ff6b6b;
-      --close: #e81123;
+      color-scheme: light dark;
+      --bg: #f4f1ea;
+      --surface: #fffdf8;
+      --ink: #1c1914;
+      --muted: #4e493f;
+      --line: #e0d8ca;
+      --gold: #c9a227;
+      --pass: #1b7f3a;
+      --fail: #9d1c1c;
+      --danger: #8f1d1d;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #12110e;
+        --surface: #1c1b17;
+        --ink: #f4f0e6;
+        --muted: #c8c0b2;
+        --line: #3a362e;
+        --gold: #c9a227;
+        --pass: #8fd19e;
+        --fail: #ffb4b4;
+        --danger: #e07a7a;
+      }
     }
     * { box-sizing: border-box; }
-    html, body { margin: 0; height: 100%; overflow: hidden; color: var(--ink);
-      font-family: "Segoe UI", ui-sans-serif, system-ui, sans-serif; }
+    html, body { margin: 0; }
     body {
-      background:
-        radial-gradient(1200px 700px at 70% 20%, #2a5a7a 0%, transparent 55%),
-        radial-gradient(900px 600px at 15% 80%, #3a2a14 0%, transparent 50%),
-        linear-gradient(165deg, var(--desk-a), var(--desk-b));
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-size: 16px;
+      line-height: 1.5;
     }
-    #desktop { position: absolute; inset: 0 0 48px 0; padding: 12px 8px; display: flex; flex-direction: column; flex-wrap: wrap; align-content: flex-start; gap: 6px 10px; }
-    .icon { width: 84px; text-align: center; padding: 6px 4px; border-radius: 6px; cursor: default; user-select: none; }
-    .icon:hover, .icon:focus { background: rgba(255,255,255,.12); outline: 0; }
-    .icon .tile { width: 48px; height: 48px; margin: 0 auto 4px; border-radius: 8px; display: grid; place-items: center;
-      background: linear-gradient(180deg, #3a3a3a, #1f1f1f); border: 1px solid #555; color: var(--gold); font-weight: 700; }
-    .icon img { width: 48px; height: 48px; }
-    .icon .lab { font-size: 11px; text-shadow: 0 1px 2px #000; line-height: 1.2; }
-    #taskbar { position: absolute; left: 0; right: 0; bottom: 0; height: 48px; background: var(--task);
-      border-top: 1px solid #444; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 0 10px; }
-    #start-btn { width: 40px; height: 40px; border: 0; background: transparent; border-radius: 6px; padding: 4px; cursor: pointer; }
-    #start-btn:hover { background: rgba(255,255,255,.1); }
-    #start-btn img { width: 32px; height: 32px; display: block; }
-    .tb-search { width: 220px; height: 32px; border-radius: 16px; border: 1px solid #555; background: #2d2d2d; color: var(--ink); padding: 0 12px; font: inherit; }
-    .tb-app { width: 40px; height: 40px; border: 0; background: transparent; color: var(--ink); border-radius: 6px; cursor: pointer; }
-    .tb-app:hover { background: rgba(255,255,255,.1); }
-    #tray { position: absolute; right: 12px; bottom: 0; height: 48px; display: flex; align-items: center; gap: 10px; font-size: 12px; color: #ddd; }
-    #start { display: none; position: absolute; left: 50%; bottom: 56px; transform: translateX(-50%); width: min(720px, 94vw);
-      background: #242424; border: 1px solid #4a4a4a; border-radius: 12px; padding: 16px 18px 14px; box-shadow: 0 16px 48px #0008; }
-    #start.show { display: block; }
-    #start h2 { margin: 0 0 10px; font-size: 13px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
-    .pinned { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; }
-    .pin { background: #2f2f2f; border: 1px solid #444; border-radius: 8px; padding: 10px 6px; text-align: center; cursor: pointer; color: var(--ink); font-size: 11px; }
-    .pin:hover { background: #3a3a3a; }
-    .win { position: absolute; min-width: 420px; min-height: 280px; width: 640px; height: 460px; background: var(--win2);
-      border: 1px solid #555; border-radius: 8px; box-shadow: 0 12px 40px #0009; display: flex; flex-direction: column; overflow: hidden; }
-    .win.max { inset: 0 0 48px 0; width: auto; height: auto; border-radius: 0; }
-    .win.hid { display: none; }
-    .title { height: 32px; background: var(--win); display: flex; align-items: center; padding: 0 4px 0 10px; cursor: move; user-select: none; }
-    .title b { flex: 1; font-size: 12px; font-weight: 600; }
-    .chrome { display: flex; }
-    .chrome button { width: 46px; height: 32px; border: 0; background: transparent; color: var(--ink); cursor: pointer; }
-    .chrome button:hover { background: #3a3a3a; }
-    .chrome .x:hover { background: var(--close); }
-    .body { flex: 1; overflow: auto; padding: 12px 14px; font-size: 13px; }
-    .body p { color: var(--muted); }
-    input[type=text], textarea, select { width: 100%; background: #1a1a1a; color: var(--ink); border: 1px solid #555; border-radius: 4px; padding: .45rem .55rem; font: inherit; }
-    textarea { min-height: 3.4rem; }
-    button.act { background: #0e639c; color: #fff; border: 0; border-radius: 4px; padding: .4rem .75rem; font-weight: 600; cursor: pointer; }
-    button.act:disabled { opacity: .4; cursor: not-allowed; }
-    button.danger { background: var(--close); color: #fff; border: 0; border-radius: 4px; padding: .4rem .75rem; cursor: pointer; }
-    .row { display: flex; gap: .5rem; flex-wrap: wrap; margin: .55rem 0; }
-    .term { font-family: ui-monospace, Consolas, monospace; font-size: 12px; background: #0c0c0c; border: 1px solid #333; min-height: 160px; max-height: 220px; overflow: auto; padding: 8px; white-space: pre-wrap; }
-    .prompt-row { display: flex; gap: .4rem; align-items: center; margin-top: .5rem; }
-    .prompt-row span { color: var(--gold); font-family: ui-monospace, Consolas, monospace; font-weight: 700; }
-    .gates { display: grid; gap: .3rem; }
-    .gate { display: grid; grid-template-columns: 7rem 3rem 1fr; gap: .4rem; font-size: 12px; }
-    .pass { color: var(--pass); font-weight: 700; }
-    .fail { color: var(--fail); font-weight: 700; }
-    .invite { border: 1px solid var(--gold); padding: 8px; background: #2a230e; white-space: pre-wrap; font-size: 12px; }
-    .kicker { color: var(--gold); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; }
-    #msg { min-height: 1.1rem; color: var(--muted); }
+    :focus-visible {
+      outline: 2px solid var(--gold);
+      outline-offset: 2px;
+    }
+    button, input, textarea, select, summary { font: inherit; color: inherit; }
+    a { color: inherit; }
+    .top {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      padding: 12px 16px;
+      background: var(--surface);
+      border-bottom: 2px solid var(--gold);
+    }
+    .top img { width: 36px; height: 36px; flex: 0 0 auto; }
+    .brand { font-weight: 650; }
+    .brand small { display: block; font-weight: 450; color: var(--muted); font-size: 13px; }
+    .status-chip { margin-left: auto; color: var(--muted); font-size: 14px; }
+    nav { display: flex; gap: 8px; flex-wrap: wrap; padding: 12px 16px 0; max-width: 42rem; margin: 0 auto; }
+    nav button {
+      background: transparent;
+      border: 1px solid transparent;
+      border-radius: 999px;
+      padding: 6px 12px;
+      cursor: pointer;
+    }
+    nav button[aria-current="page"] { border-color: var(--line); background: var(--surface); }
+    main { max-width: 42rem; margin: 0 auto; padding: 20px 16px 48px; }
+    h1 { font-size: 1.6rem; font-weight: 650; margin: 0 0 8px; line-height: 1.25; }
+    h2 { font-size: 1.05rem; margin: 1.4rem 0 .4rem; }
+    .lede { color: var(--muted); margin: 0 0 20px; }
+    .primary {
+      background: #1c1914;
+      color: #f4f0e6;
+      border: 0;
+      border-radius: 8px;
+      padding: 10px 16px;
+      font-weight: 650;
+      cursor: pointer;
+    }
+    @media (prefers-color-scheme: dark) {
+      .primary { background: #f4f0e6; color: #1c1914; }
+    }
+    .primary:disabled, .ghost:disabled, .danger:disabled { opacity: .45; cursor: not-allowed; }
+    .ghost, .danger {
+      background: transparent;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px 16px;
+      cursor: pointer;
+    }
+    .danger { color: var(--danger); border-color: var(--danger); }
+    .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .term {
+      font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+      font-size: 14px;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      min-height: 8rem;
+      max-height: 16rem;
+      overflow: auto;
+      padding: 12px;
+      white-space: pre-wrap;
+      word-break: break-word;
+      margin-top: 16px;
+    }
+    .prompt-row { display: flex; gap: 8px; align-items: center; margin-top: 12px; }
+    .prompt-row span { font-family: ui-monospace, Consolas, monospace; font-weight: 700; }
+    .prompt-row input { flex: 1; min-width: 0; }
+    input[type=text], textarea, select {
+      width: 100%;
+      max-width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 8px 10px;
+    }
+    textarea { min-height: 4.5rem; }
+    label { display: block; margin: 12px 0 4px; font-size: 14px; }
+    .check { display: flex; gap: 8px; align-items: flex-start; margin-top: 12px; }
+    .check input { margin-top: 4px; }
+    details { margin-top: 28px; border-top: 1px solid var(--line); padding-top: 8px; }
+    details details { border-top: 0; margin-top: 12px; padding-top: 0; }
+    summary { cursor: pointer; font-weight: 650; padding: 6px 0; }
+    .page { display: none; }
+    .page.show { display: block; }
+    .kv { display: grid; grid-template-columns: minmax(8rem, 11rem) 1fr; gap: 6px 12px; margin: 0; }
+    .kv dt { color: var(--muted); }
+    .kv dd { margin: 0; overflow-wrap: anywhere; }
+    .note { color: var(--muted); font-size: 14px; }
+    #msg { min-height: 1.4rem; margin: 12px 0 0; }
+    .fail { color: var(--fail); }
+    .pass { color: var(--pass); }
+    .invite, .log {
+      white-space: pre-wrap;
+      word-break: break-word;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      font-size: 13px;
+    }
+    .app { padding: 8px 0; border-bottom: 1px solid var(--line); }
+    .app b { display: block; }
+    .hidden { display: none; }
+    @media (max-width: 420px) {
+      .prompt-row { flex-wrap: wrap; }
+      .prompt-row input, .prompt-row button { flex: 1 1 100%; }
+      .kv { grid-template-columns: 1fr; }
+      .status-chip { margin-left: 0; width: 100%; }
+    }
   </style>
 </head>
 <body>
-  <div id="desktop" aria-label="Desktop"></div>
-  <div id="wins"></div>
-  <div id="start">
-    <h2>Pinned — prefab AZ-OS</h2>
-    <div class="pinned" id="pinned"></div>
-    <p class="kicker" style="margin-top:12px">Integrity precedes execution. Lumen watches. Overlay remote shell.</p>
-  </div>
-  <div id="taskbar">
-    <button type="button" id="start-btn" title="Start"><img src="/sigil.svg" alt=""></button>
-    <input class="tb-search" id="tb-search" placeholder="Search" spellcheck="false">
-    <button type="button" class="tb-app" data-open="shell">{_}</button>
-    <button type="button" class="tb-app" data-open="ethics">⚖</button>
-    <button type="button" class="tb-app" data-open="lattice">⚙</button>
-  </div>
-  <div id="tray">
-    <span id="dot-lumen">Lumen …</span>
-    <span id="lat-tip">lattice 0</span>
-    <span id="clock"></span>
-  </div>
-
-  <template id="tpl-ethics">
-    <form id="request-form" autocomplete="off">
-      <p>AZ Interface — request execution. Five gates. Default deny. Invite, not a silent block.</p>
-      <label>Action</label>
-      <select id="action">
-        <option value="shell" selected>shell</option>
-        <option value="echo">echo</option>
-        <option value="list_modules">list_modules</option>
-        <option value="status">status</option>
-        <option value="purge_session">purge_session</option>
-      </select>
-      <label>Definition</label><textarea id="definition" placeholder="Open an ethics-gated shell session."></textarea>
-      <label>Evidence</label><textarea id="evidence" placeholder="Action is on the closed SAFE_ACTIONS list."></textarea>
-      <label>Impact</label><textarea id="impact" placeholder="Session vfs only. No host disk."></textarea>
-      <label>Responsibility</label><input id="actor" type="text" placeholder="operator">
-      <label><input type="checkbox" id="extend_module"> I am extending / loading a new module</label>
-      <div id="extend-fields" style="display:none">
-        <label><input type="checkbox" id="comprehension"> Comprehension</label>
-        <textarea id="intent"></textarea>
+  <header class="top">
+    <img src="/sigil.svg" alt="">
+    <div class="brand">AZ-OS<small>Aziel Eliab</small></div>
+    <div class="status-chip" id="status-chip">Checking…</div>
+  </header>
+  <nav aria-label="Sections">
+    <button type="button" id="nav-shell" aria-current="page">Shell</button>
+    <button type="button" id="nav-status">Status</button>
+    <button type="button" id="nav-about">About</button>
+  </nav>
+  <main>
+    <section id="page-shell" class="page show">
+      <h1>Shell</h1>
+      <p class="lede">AZ-OS runs registered commands in a session folder on this machine, after an ethics check.</p>
+      <div class="row" id="open-row">
+        <button type="button" class="primary" id="btn-open">Open shell</button>
+        <button type="button" class="ghost" id="btn-help">Help</button>
       </div>
-      <div class="row">
-        <button type="submit" class="act" id="request-btn">Request execution</button>
-        <label>Import JSON <input type="file" id="import-json" accept="application/json,.json"></label>
-        <button type="button" class="act" id="export-json">Export JSON</button>
+      <p id="msg"></p>
+      <div class="term hidden" id="term"></div>
+      <div class="prompt-row hidden" id="prompt-row">
+        <span>azos$</span>
+        <label class="hidden" for="shell-line">Command</label>
+        <input id="shell-line" type="text" placeholder="help" maxlength="4096" disabled autocomplete="off" spellcheck="false">
+        <button type="button" class="primary" id="btn-run" disabled>Run</button>
       </div>
-    </form>
-    <div class="kicker">Five-gate result</div>
-    <div class="gates" id="gates"><p>Submit a request.</p></div>
-    <p class="token" id="token-box"></p>
-  </template>
+      <p class="note" id="ethics-line"></p>
 
-  <template id="tpl-shell">
-    <p>Ethics-coded remote shell. Sandbox vfs. No host subprocess.</p>
-    <div class="row">
-      <button type="button" class="act" id="btn-session" disabled>Open shell session</button>
-      <button type="button" class="act" id="btn-close" disabled>Close session</button>
-      <button type="button" class="act" id="btn-list" disabled>list_modules</button>
-      <button type="button" class="act" id="btn-echo" disabled>echo</button>
-      <button type="button" class="act" id="btn-status" disabled>status</button>
-    </div>
-    <label>echo message (in-process; never a host shell)</label>
-    <input id="echo-msg" type="text" placeholder="ok" maxlength="200">
-    <div class="term" id="term">Request execution, then open a session. Integrity precedes execution.</div>
-    <div class="prompt-row">
-      <span>azos$</span>
-      <input id="shell-line" type="text" placeholder="help" maxlength="4096" disabled autocomplete="off" spellcheck="false">
-      <button type="button" class="act" id="btn-run" disabled>Run</button>
-    </div>
-    <p class="ethics-line" id="ethics-line">Gates idle.</p>
-    <p id="msg"></p>
-    <div class="row">
-      <button type="button" class="act" id="btn-halt">Halt</button>
-      <button type="button" class="act" id="btn-revoke" disabled>Revoke token</button>
-    </div>
-  </template>
+      <details id="advanced">
+        <summary>Advanced</summary>
+        <label for="actor">Name on the session</label>
+        <input id="actor" type="text" placeholder="operator" autocomplete="off">
+        <p class="note">Blank uses the name operator. A name is not a privilege.</p>
 
-  <template id="tpl-settings">
-    <p>Purge deletes the <code>.azos/</code> session only. Never <code>$HOME</code>. Type CONFIRM.</p>
-    <input id="confirm" type="text" placeholder="CONFIRM" spellcheck="false">
-    <div class="row"><button type="button" class="danger" id="btn-purge">Purge .azos</button></div>
-    <h3>Invite</h3>
-    <pre class="invite" id="invite-text">Loading invite…</pre>
-    <h3>Execution log</h3>
-    <div class="term" id="log">—</div>
-  </template>
+        <h2>Custom request</h2>
+        <p class="note">Open shell already sends a complete request. Edit these only when you want different wording.</p>
+        <label for="action">Action</label>
+        <select id="action">
+          <option value="shell" selected>shell</option>
+          <option value="echo">echo</option>
+          <option value="list_modules">list_modules</option>
+          <option value="status">status</option>
+          <option value="purge_session">purge_session</option>
+        </select>
+        <label for="definition">Definition</label>
+        <textarea id="definition" placeholder="Open an ethics-gated AZ-OS shell session in the session vfs."></textarea>
+        <label for="evidence">Evidence</label>
+        <textarea id="evidence" placeholder="Operator requested a principle-bound shell via AZ-OS itself."></textarea>
+        <label for="impact">Impact</label>
+        <textarea id="impact" placeholder="Sandbox workspace under .azos only. No host subprocess. No SSH."></textarea>
+        <label class="check"><input type="checkbox" id="extend_module"> I am extending or loading a new module</label>
+        <div id="extend-fields" class="hidden">
+          <label class="check"><input type="checkbox" id="comprehension"> I understand what this module will do</label>
+          <label for="intent">Restate the intent</label>
+          <textarea id="intent"></textarea>
+        </div>
+        <div class="row" style="margin-top:12px">
+          <button type="button" class="ghost" id="btn-request">Check this request</button>
+          <label>Import JSON <input type="file" id="import-json" accept="application/json,.json"></label>
+          <button type="button" class="ghost" id="export-json">Export JSON</button>
+        </div>
+        <div id="gates" class="note"></div>
+        <p id="token-box" class="note"></p>
 
+        <h2>Builtins</h2>
+        <label for="echo-msg">Echo message</label>
+        <input id="echo-msg" type="text" placeholder="ok" maxlength="200">
+        <div class="row" style="margin-top:8px">
+          <button type="button" class="ghost" id="btn-list" disabled>list_modules</button>
+          <button type="button" class="ghost" id="btn-echo" disabled>echo</button>
+          <button type="button" class="ghost" id="btn-status" disabled>status</button>
+        </div>
+
+        <h2>Session</h2>
+        <div class="row">
+          <button type="button" class="ghost" id="btn-close" disabled>Close session</button>
+          <button type="button" class="ghost" id="btn-halt">Halt</button>
+          <button type="button" class="ghost" id="btn-revoke" disabled>Revoke token</button>
+        </div>
+        <p class="note">Halt stops new commands. The watch (Lumen) stays on.</p>
+
+        <h2>Purge</h2>
+        <p class="note">Deletes the <code>.azos</code> folder in this directory only. Type CONFIRM.</p>
+        <label for="confirm">Confirmation</label>
+        <input id="confirm" type="text" placeholder="CONFIRM" spellcheck="false" autocomplete="off">
+        <div class="row" style="margin-top:8px">
+          <button type="button" class="danger" id="btn-purge">Purge .azos</button>
+        </div>
+
+        <h2>Invite</h2>
+        <pre class="invite" id="invite-text">Loading invite…</pre>
+
+        <h2>Integrity lattice</h2>
+        <p id="lattice-human" class="note">Loading…</p>
+        <details>
+          <summary>Lattice record</summary>
+          <pre class="log" id="lattice-record"></pre>
+        </details>
+
+        <h2>Execution log</h2>
+        <pre class="log" id="log">—</pre>
+
+        <details>
+          <summary>Catalog hooks</summary>
+          <label for="catalog-filter">Filter</label>
+          <input id="catalog-filter" type="text" placeholder="Name">
+          <div id="catalog"></div>
+        </details>
+      </details>
+    </section>
+
+    <section id="page-status" class="page">
+      <h1>Status</h1>
+      <p class="lede">Plain reading of this install. The machine record is <code>azos status --json</code>.</p>
+      <dl class="kv" id="status-list"></dl>
+      <div class="row" style="margin-top:16px">
+        <button type="button" class="ghost" id="btn-refresh">Refresh</button>
+      </div>
+    </section>
+
+    <section id="page-about" class="page">
+      <h1>About</h1>
+      <p>AZ Interface is the local control surface for this ethics-coded remote shell. Commands stay in a session folder under <code>.azos</code> in the directory where you started <code>azos ui</code>.</p>
+      <p>Author: Aziel Eliab.</p>
+      <h2>What a session does</h2>
+      <ul>
+        <li>A token is issued only after five checks pass: definition, evidence, impact, integrity, and responsibility.</li>
+        <li>Each command is checked again. The session folder is the workspace.</li>
+        <li>Halt stops new commands. The watch (Lumen) stays on and can still revoke a token or purge <code>.azos</code>.</li>
+        <li>Purge deletes that <code>.azos</code> folder only, after you type CONFIRM.</li>
+      </ul>
+      <p>Integrity precedes execution.</p>
+      <p class="note">This page listens on 127.0.0.1. A program can send <code>Accept: application/json</code> on GET / for the status record. People get this page.</p>
+      <p class="note">In a terminal: <code>azos doctor</code> checks the install. <code>azos --help</code> lists commands.</p>
+    </section>
+  </main>
   <script>
 (function () {
   const $ = (id) => document.getElementById(id);
   let token = null;
   let sessionId = null;
-  let z = 10;
-  const wins = {};
+  let lastRequest = null;
+  let apps = [];
 
-  function clock() {
-    const d = new Date();
-    $("clock").textContent = d.toLocaleTimeString([], {hour: "numeric", minute: "2-digit"});
-  }
-  clock();
-  setInterval(clock, 15000);
+  const DEFAULTS = {
+    action: "shell",
+    definition: "Open an ethics-gated AZ-OS shell session in the session vfs.",
+    evidence: "Operator requested a principle-bound shell via AZ-OS itself.",
+    impact: "Sandbox workspace under .azos only. No host subprocess. No SSH."
+  };
 
-  $("start-btn").addEventListener("click", function () {
-    $("start").classList.toggle("show");
-  });
-  document.addEventListener("click", function (ev) {
-    if (!$("start").contains(ev.target) && ev.target !== $("start-btn") && !ev.target.closest("#start-btn")) {
-      $("start").classList.remove("show");
-    }
-  });
-
-  function openWin(id, title, htmlOrNode) {
-    if (wins[id]) {
-      wins[id].style.display = "flex";
-      wins[id].classList.remove("hid");
-      focusWin(wins[id]);
-      return wins[id];
-    }
-    const el = document.createElement("div");
-    el.className = "win";
-    el.style.left = (80 + Object.keys(wins).length * 24) + "px";
-    el.style.top = (48 + Object.keys(wins).length * 20) + "px";
-    el.innerHTML = '<div class="title"><b></b><div class="chrome"><button type="button" data-min>—</button><button type="button" data-max>□</button><button type="button" class="x" data-x>×</button></div></div><div class="body"></div>';
-    el.querySelector("b").textContent = title;
-    const body = el.querySelector(".body");
-    if (typeof htmlOrNode === "string") body.innerHTML = htmlOrNode;
-    else if (htmlOrNode) body.appendChild(htmlOrNode);
-    el.querySelector("[data-x]").onclick = () => { el.remove(); delete wins[id]; };
-    el.querySelector("[data-min]").onclick = () => el.classList.add("hid");
-    el.querySelector("[data-max]").onclick = () => el.classList.toggle("max");
-    drag(el, el.querySelector(".title"));
-    el.addEventListener("mousedown", () => focusWin(el));
-    $("wins").appendChild(el);
-    wins[id] = el;
-    focusWin(el);
-    return el;
-  }
-  function focusWin(el) { el.style.zIndex = String(++z); }
-  function drag(el, handle) {
-    let ox = 0, oy = 0, on = false;
-    handle.addEventListener("mousedown", function (e) {
-      if (e.target.closest("button")) return;
-      on = true; ox = e.clientX - el.offsetLeft; oy = e.clientY - el.offsetTop;
-    });
-    window.addEventListener("mousemove", function (e) {
-      if (!on || el.classList.contains("max")) return;
-      el.style.left = (e.clientX - ox) + "px";
-      el.style.top = Math.max(0, e.clientY - oy) + "px";
-    });
-    window.addEventListener("mouseup", function () { on = false; });
+  function esc(value) {
+    return String(value == null ? "" : value).replace(/[&<>"']/g, (ch) => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+    }[ch]));
   }
 
-  function appWindow(app) {
-    const extra = app.slug === "godlock"
-      ? '<p>Client hook: <a href="https://godlock.uk" style="color:#60cdff">godlock.uk</a> (public HTTPS). Not a VPN.</p>'
-      : "";
-    const html = '<p class="kicker">Installed · hooked into AZ-OS</p>' +
-      "<h3>" + app.name + "</h3>" +
-      "<p>" + app.one_line + "</p>" + extra +
-      "<p>Worker: <code>" + app.worker + "</code></p>" +
-      '<div class="row">' +
-      '<button type="button" class="act" data-href="' + app.skill + '">Skill</button>' +
-      '<button type="button" class="act" data-href="' + app.health + '">Health</button>' +
-      '<button type="button" class="act" data-href="' + app.catalog + '">Catalog</button>' +
-      "</div><p>Prefab ships the hook. Opening a URL is voluntary.</p>";
-    const w = openWin("app-" + app.slug, app.name, html);
-    w.querySelectorAll("[data-href]").forEach(function (b) {
-      b.onclick = function () { window.open(b.getAttribute("data-href"), "_blank", "noopener"); };
+  function showPage(name) {
+    ["shell", "status", "about"].forEach((id) => {
+      const page = $("page-" + id);
+      const nav = $("nav-" + id);
+      const on = id === name;
+      page.classList.toggle("show", on);
+      if (on) nav.setAttribute("aria-current", "page");
+      else nav.removeAttribute("aria-current");
     });
   }
-
-  function openNamed(name) {
-    if (name === "shell") {
-      if (wins.shell) { focusWin(wins.shell); wins.shell.classList.remove("hid"); return; }
-      const node = $("tpl-shell").content.cloneNode(true);
-      openWin("shell", "AZ-OS Shell", node);
-      wireShell();
-      refresh();
-      return;
-    }
-    if (name === "ethics") {
-      if (wins.ethics) { focusWin(wins.ethics); wins.ethics.classList.remove("hid"); return; }
-      const node = $("tpl-ethics").content.cloneNode(true);
-      openWin("ethics", "AZ Interface", node);
-      wireEthics();
-      return;
-    }
-    if (name === "lattice") {
-      fetch("/api/lattice").then((r) => r.json()).then(function (d) {
-        openWin("lattice", "Integrity lattice",
-          "<p class='kicker'>TemporalLock × StaticClock</p>" +
-          "<p>Immutable timeslate lattice hash-chained against StaticClock gear-clicks. No rollbacks.</p>" +
-          "<pre class='term'>" + JSON.stringify(d, null, 2) + "</pre>");
-      });
-      return;
-    }
-    if (name === "settings") {
-      if (wins.settings) { focusWin(wins.settings); return; }
-      const node = $("tpl-settings").content.cloneNode(true);
-      openWin("settings", "Settings", node);
-      wireSettings();
-    }
-  }
-
-  document.querySelectorAll("[data-open]").forEach((b) => {
-    b.addEventListener("click", () => openNamed(b.getAttribute("data-open")));
-  });
-
-  async function boot() {
-    const pref = await (await fetch("/api/prefab")).json();
-    const desk = $("desktop");
-    const pin = $("pinned");
-    (pref.apps || []).forEach(function (app, i) {
-      const ic = document.createElement("button");
-      ic.className = "icon";
-      ic.type = "button";
-      const tile = app.slug === "azos"
-        ? '<img src="/sigil.svg" alt="">'
-        : '<div class="tile">' + app.name.slice(0, 1) + "</div>";
-      ic.innerHTML = tile + '<div class="lab">' + app.name + "</div>";
-      ic.onclick = function () {
-        if (app.slug === "azos") openNamed("shell");
-        else if (app.slug === "temporallock" || app.slug === "staticclock") openNamed("lattice");
-        else appWindow(app);
-      };
-      desk.appendChild(ic);
-      if (i < 12) {
-        const p = document.createElement("button");
-        p.className = "pin";
-        p.type = "button";
-        p.textContent = app.name;
-        p.onclick = function () { ic.click(); $("start").classList.remove("show"); };
-        pin.appendChild(p);
-      }
-    });
-    const set = document.createElement("button");
-    set.className = "icon";
-    set.type = "button";
-    set.innerHTML = '<div class="tile">⚙</div><div class="lab">Settings</div>';
-    set.onclick = () => openNamed("settings");
-    desk.appendChild(set);
-    const eth = document.createElement("button");
-    eth.className = "icon";
-    eth.type = "button";
-    eth.innerHTML = '<div class="tile">⚖</div><div class="lab">AZ Interface</div>';
-    eth.onclick = () => openNamed("ethics");
-    desk.appendChild(eth);
-    await refresh();
-    openNamed("ethics");
-  }
+  $("nav-shell").onclick = () => showPage("shell");
+  $("nav-status").onclick = () => showPage("status");
+  $("nav-about").onclick = () => showPage("about");
 
   function setMsg(text, ok) {
     const el = $("msg");
-    if (!el) return;
     el.textContent = text || "";
-    el.style.color = ok === false ? "var(--fail)" : "var(--muted)";
+    el.className = ok === false ? "fail" : "";
   }
-  function enableActions(on) {
-    ["btn-list", "btn-echo", "btn-status", "btn-revoke", "btn-session"].forEach((id) => {
-      const n = $(id); if (n) n.disabled = !on;
+
+  function actorName() {
+    return ($("actor").value || "").trim() || "operator";
+  }
+
+  function requestBody() {
+    const extend = $("extend_module").checked;
+    return {
+      action: $("action").value || DEFAULTS.action,
+      definition: ($("definition").value || "").trim() || DEFAULTS.definition,
+      evidence: ($("evidence").value || "").trim() || DEFAULTS.evidence,
+      impact: ($("impact").value || "").trim() || DEFAULTS.impact,
+      actor: actorName(),
+      extend_module: extend,
+      comprehension: $("comprehension").checked,
+      intent: $("intent").value || ""
+    };
+  }
+
+  function showSession(on) {
+    $("term").classList.toggle("hidden", !on && !$("term").textContent);
+    $("prompt-row").classList.toggle("hidden", !on);
+    $("open-row").classList.toggle("hidden", on);
+    $("shell-line").disabled = !on;
+    $("btn-run").disabled = !on;
+    $("btn-close").disabled = !on;
+  }
+
+  function enableToken(on) {
+    ["btn-list", "btn-echo", "btn-status", "btn-revoke"].forEach((id) => {
+      $(id).disabled = !on;
     });
-    const live = on && Boolean(sessionId);
-    ["btn-run", "btn-close", "shell-line"].forEach((id) => {
-      const n = $(id); if (n) n.disabled = !live;
-    });
   }
-  function renderGates(gates, passed, issued) {
-    const box = $("gates");
-    if (!box) return;
-    const names = ["definition", "evidence", "impact", "integrity", "responsibility"];
-    box.innerHTML = "";
-    names.forEach((name) => {
-      const g = (gates && gates[name]) || { pass: false, reason: "not evaluated" };
-      const row = document.createElement("div");
-      row.className = "gate";
-      row.innerHTML = '<span>' + name + '</span><span class="' + (g.pass ? "pass" : "fail") + '">' +
-        (g.pass ? "PASS" : "FAIL") + "</span><span>" + (g.reason || "") + "</span>";
-      box.appendChild(row);
-    });
-    const tb = $("token-box");
-    if (tb) tb.textContent = passed && issued ? ("Token issued (present once): " + issued) : (gates ? "Blocked. No token. See invite." : "");
-  }
-  function renderEthics(gates) {
-    const el = $("ethics-line");
-    if (!el) return;
-    const names = ["definition", "evidence", "impact", "integrity", "responsibility"];
-    el.textContent = "Ethics: " + names.map((n) => {
-      const g = (gates && gates[n]) || { pass: false };
-      return n.slice(0, 3) + " " + (g.pass ? "PASS" : "FAIL");
-    }).join(" · ");
-  }
-  function termAppend(text, cls) {
+
+  function termAppend(text) {
     const el = $("term");
-    if (!el) return;
+    el.classList.remove("hidden");
     const line = document.createElement("div");
-    if (cls) line.className = cls;
     line.textContent = text;
-    if (el.textContent.indexOf("Request execution") === 0 && el.childNodes.length <= 1) el.textContent = "";
     el.appendChild(line);
     el.scrollTop = el.scrollHeight;
   }
 
+  function renderGates(gates, passed, issued) {
+    const box = $("gates");
+    const names = ["definition", "evidence", "impact", "integrity", "responsibility"];
+    if (!gates) {
+      box.textContent = "";
+      $("token-box").textContent = "";
+      return;
+    }
+    box.innerHTML = names.map((name) => {
+      const gate = gates[name] || { pass: false, reason: "not evaluated" };
+      const mark = gate.pass ? "passed" : "stopped";
+      return "<div>" + esc(name) + ": " + mark + " — " + esc(gate.reason || "") + "</div>";
+    }).join("");
+    $("token-box").textContent = passed && issued
+      ? "Token issued. It is shown once."
+      : "No token yet. The invite is below.";
+  }
+
+  function renderEthics(gates) {
+    const el = $("ethics-line");
+    if (!gates) { el.textContent = ""; return; }
+    const names = ["definition", "evidence", "impact", "integrity", "responsibility"];
+    const failed = names.filter((name) => !(gates[name] && gates[name].pass));
+    if (!failed.length) {
+      el.textContent = "Ethics check passed.";
+      return;
+    }
+    el.textContent = "Ethics check stopped at " + failed.map((name) => {
+      const reason = (gates[name] && gates[name].reason) || "failed";
+      return name + " (" + reason + ")";
+    }).join("; ") + ".";
+  }
+
+  function chip(st) {
+    if (st.halted && st.lumen === "running") return "Halted — watch still on";
+    if (st.halted) return "Halted";
+    if (sessionId) return "Session open";
+    if (st.lumen === "running") return "Ready";
+    return "Watch is off";
+  }
+
+  function fillStatus(st) {
+    const shell = st.shell || {};
+    const tokens = st.tokens || {};
+    const lattice = st.lattice || {};
+    const rows = [
+      ["Shell", st.halted ? "Halted. New commands are refused." : "Ready."],
+      ["Watch (Lumen)", st.lumen === "running" ? "On" : "Off"],
+      ["Session folder", st.session || ""],
+      ["Log entries", String(st.log_length != null ? st.log_length : 0)],
+      ["Active tokens", String(tokens.active != null ? tokens.active : 0)],
+      ["Open sessions", String(shell.active != null ? shell.active : 0)],
+      ["Lattice", lattice.verified
+        ? ((lattice.gear_ticks || 0) === 0 ? "Check passed. No entries yet." : "Check passed")
+        : "Check did not pass"],
+      ["Version", st.version || ""]
+    ];
+    $("status-list").innerHTML = rows.map((row) =>
+      "<dt>" + esc(row[0]) + "</dt><dd>" + esc(row[1]) + "</dd>"
+    ).join("");
+    $("status-chip").textContent = chip(st);
+  }
+
   async function refresh() {
     const st = await (await fetch("/api/status")).json();
-    const lum = $("dot-lumen");
-    if (lum) lum.textContent = "Lumen " + (st.lumen || "…");
-    const lat = $("lat-tip");
-    if (lat && st.lattice) lat.textContent = "lattice " + (st.lattice.gear_ticks || 0);
-    enableActions(Boolean(token) && !st.halted);
-    const logEl = $("log");
-    if (logEl) {
-      const log = await (await fetch("/api/log")).json();
-      const lines = (log.entries || []).map((e) => (e.hash || "").slice(0, 12) + "  " + e.action);
-      logEl.textContent = lines.length ? lines.join("\n") : "empty (append-only once executions exist)";
+    fillStatus(st);
+    enableToken(Boolean(token) && !st.halted);
+    if (st.halted) showSession(false);
+    const log = await (await fetch("/api/log")).json();
+    const lines = (log.entries || []).map((entry) =>
+      (entry.hash || "").slice(0, 12) + "  " + (entry.action || "")
+    );
+    $("log").textContent = lines.length ? lines.join("\n") : "Empty until a command runs.";
+    const lattice = await (await fetch("/api/lattice")).json();
+    const ticks = lattice.gear_ticks != null ? lattice.gear_ticks : 0;
+    const slates = lattice.timeslates != null ? lattice.timeslates : 0;
+    const empty = ticks === 0 && slates === 0;
+    const head = lattice.verified
+      ? (empty ? "Lattice check passed. No entries yet." : "Lattice check passed.")
+      : "Lattice check did not pass.";
+    $("lattice-human").textContent = head + " Gear ticks: " + ticks + ". Timeslates: " + slates + ".";
+    $("lattice-record").textContent = JSON.stringify(lattice, null, 2);
+    return st;
+  }
+
+  function renderCatalog() {
+    const q = ($("catalog-filter").value || "").toLowerCase();
+    const list = apps.filter((app) => !q || (app.name || "").toLowerCase().indexOf(q) >= 0 || (app.slug || "").indexOf(q) >= 0);
+    $("catalog").innerHTML = list.map((app) =>
+      '<div class="app"><b>' + esc(app.name) + '</b><span class="note">' + esc(app.one_line || "") + '</span></div>'
+    ).join("") || '<p class="note">No matching hooks.</p>';
+  }
+
+  async function boot() {
+    try {
+      const pref = await (await fetch("/api/prefab")).json();
+      apps = pref.apps || [];
+      renderCatalog();
+      const invite = await (await fetch("/api/invite")).json();
+      $("invite-text").textContent = invite.invite || "";
+      await refresh();
+    } catch (err) {
+      setMsg("The page could not read local status. Next: reload.", false);
     }
   }
 
-  let lastRequest = null;
-  function wireEthics() {
-    $("extend_module").addEventListener("change", function () {
-      $("extend-fields").style.display = $("extend_module").checked ? "block" : "none";
+  async function issue(body) {
+    lastRequest = body;
+    const res = await fetch("/api/request", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body)
     });
-    $("request-form").addEventListener("submit", async function (ev) {
-      ev.preventDefault();
-      lastRequest = {
-        action: $("action").value, definition: $("definition").value, evidence: $("evidence").value,
-        impact: $("impact").value, actor: $("actor").value, extend_module: $("extend_module").checked,
-        comprehension: $("comprehension").checked, intent: $("intent").value
-      };
-      const res = await fetch("/api/request", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(lastRequest) });
-      const data = await res.json();
-      token = data.token || null;
-      renderGates(data.gates, data.passed, data.token);
-      if (data.invite && $("invite-text")) $("invite-text").textContent = data.invite;
-      setMsg(data.passed ? "Token issued. Actions enabled." : "Blocked — invite shown, not a silent error.", data.passed);
-      await refresh();
-    });
-    $("export-json").addEventListener("click", function () {
-      const payload = lastRequest || {};
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" }));
-      a.download = "azos-request.json";
-      a.click();
-    });
-    const importEl = $("import-json");
-    if (importEl) importEl.addEventListener("change", function () {
-      const f = importEl.files && importEl.files[0];
-      if (!f) return;
-      const reader = new FileReader();
-      reader.onload = function () {
-        let obj; try { obj = JSON.parse(String(reader.result || "{}")); } catch (e) { return; }
-        const r = obj.request || obj;
-        ["action", "definition", "evidence", "impact", "actor", "intent"].forEach((k) => { if (r[k] && $(k)) $(k).value = r[k]; });
-        lastRequest = r;
-      };
-      reader.readAsText(f);
-    });
+    const data = await res.json();
+    token = data.token || null;
+    renderGates(data.gates, data.passed, data.token);
+    if (data.invite) $("invite-text").textContent = data.invite;
+    await refresh();
+    return data;
   }
 
-  function wireShell() {
-    async function run(name) {
-      if (!token) { setMsg("No live token. Request execution first — or see the invite.", false); return; }
-      const payload = { name: name, token: token };
-      if (name === "echo") payload.message = ($("echo-msg") && $("echo-msg").value) || "ok";
-      const res = await fetch("/api/exec", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-      const data = await res.json();
-      if (!data.ok) { setMsg(data.error || "unauthorized", false); }
-      else setMsg(JSON.stringify(data.result), true);
-      await refresh();
+  async function openShell() {
+    setMsg("Checking the request…");
+    const body = requestBody();
+    body.action = "shell";
+    const data = await issue(body);
+    if (!data.passed || !data.token) {
+      const halted = data.gates && data.gates.integrity && String(data.gates.integrity.reason || "").indexOf("halted") >= 0;
+      setMsg(halted
+        ? "This install is halted. Next: type CONFIRM under Advanced and purge, or start azos ui in a new directory."
+        : "The ethics check did not pass. Next: read the reasons under Advanced, or the invite there.", false);
+      return;
     }
-    $("btn-list").onclick = () => run("list_modules");
-    $("btn-echo").onclick = () => run("echo");
-    $("btn-status").onclick = () => run("status");
-    $("btn-session").onclick = async function () {
-      const res = await fetch("/api/session", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token: token, actor: ($("actor") && $("actor").value) || "operator" }) });
-      const data = await res.json();
-      if (!data.session) { setMsg(data.error || "session refused", false); return; }
-      sessionId = data.session;
-      termAppend("session " + sessionId + "  cwd " + (data.cwd || "/"));
-      setMsg("Shell session open. Commands are principle-bound.", true);
-      await refresh();
-    };
-    async function runShell() {
-      const line = $("shell-line").value;
-      if (!line.trim() || !sessionId) return;
-      termAppend("azos$ " + line);
-      $("shell-line").value = "";
-      const res = await fetch("/api/shell", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token: token, session: sessionId, command: line }) });
-      const data = await res.json();
-      renderEthics(data.gates);
-      if (data.stdout) termAppend(data.stdout.replace(/\n$/, ""));
-      if (!data.ok) termAppend(data.error || "denied");
-      if (data.closed) sessionId = null;
-      await refresh();
+    const res = await fetch("/api/session", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token: token, actor: actorName() })
+    });
+    const opened = await res.json();
+    if (!opened.session) {
+      setMsg((opened.error || "The session was refused.") + " Next: choose Open shell again.", false);
+      return;
     }
-    $("btn-run").onclick = runShell;
-    $("shell-line").addEventListener("keydown", function (ev) { if (ev.key === "Enter") { ev.preventDefault(); runShell(); } });
-    $("btn-close").onclick = async function () {
-      await fetch("/api/close", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token: token, session: sessionId }) });
-      sessionId = null; termAppend("session closed."); await refresh();
-    };
-    $("btn-halt").onclick = async function () {
-      await fetch("/api/halt", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
-      sessionId = null; enableActions(false); setMsg("Halted. Lumen still running."); await refresh();
-    };
-    $("btn-revoke").onclick = async function () {
-      if (!token) return;
-      await fetch("/api/revoke", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token: token }) });
-      token = null; sessionId = null; enableActions(false); await refresh();
-    };
+    sessionId = opened.session;
+    $("term").textContent = "";
+    termAppend("Session open. Working directory " + (opened.cwd || "/") + ".");
+    showSession(true);
+    setMsg("Session open. Type a command, then Run.");
+    $("shell-line").focus();
+    await refresh();
   }
 
-  function wireSettings() {
-    fetch("/api/invite").then((r) => r.json()).then((d) => { $("invite-text").textContent = d.invite || ""; });
-    $("btn-purge").onclick = async function () {
-      const res = await fetch("/api/purge", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ confirm: $("confirm").value }) });
-      const data = await res.json();
-      if (!res.ok || data.ok === false) { setMsg(data.error || "purge refused", false); return; }
-      token = null; sessionId = null; $("confirm").value = ""; setMsg("Session .azos purged. Lumen still running."); await refresh();
-    };
-  }
+  $("btn-open").onclick = () => { openShell().catch(() => setMsg("The request did not finish. Next: reload this page.", false)); };
+  $("btn-request").onclick = () => {
+    setMsg("Checking the request…");
+    issue(requestBody()).then((data) => {
+      setMsg(data.passed ? "Token issued. Choose Open shell to start a session." : "The ethics check did not pass. Reasons are listed here.", data.passed);
+    }).catch(() => setMsg("The request did not finish. Next: reload this page.", false));
+  };
+  $("extend_module").onchange = () => {
+    $("extend-fields").classList.toggle("hidden", !$("extend_module").checked);
+  };
+  $("btn-help").onclick = async () => {
+    if (!sessionId) {
+      $("term").classList.remove("hidden");
+      $("term").textContent = "Choose Open shell, then type a command such as help, ls, or pwd.\nIn a terminal: azos doctor";
+      return;
+    }
+    $("shell-line").value = "help";
+    await runShell();
+  };
 
-  $("tb-search").addEventListener("keydown", function (ev) {
-    if (ev.key !== "Enter") return;
-    const q = $("tb-search").value.toLowerCase();
-    if (q.indexOf("shell") >= 0) openNamed("shell");
-    else if (q.indexOf("lattice") >= 0) openNamed("lattice");
-    else if (q.indexOf("setting") >= 0) openNamed("settings");
-    else openNamed("ethics");
+  async function runBuiltin(name) {
+    if (!token) {
+      setMsg("Open a shell first. That issues a token.", false);
+      return;
+    }
+    const payload = { name: name, token: token };
+    if (name === "echo") payload.message = $("echo-msg").value || "ok";
+    const res = await fetch("/api/exec", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (!data.ok) setMsg(data.error || "Refused.", false);
+    else if (name === "echo" && data.result && data.result.echo != null) setMsg(String(data.result.echo), true);
+    else if (name === "list_modules" && data.result && data.result.modules) setMsg("Builtins: " + data.result.modules.join(", "), true);
+    else setMsg("Done. Status is updated.", true);
+    await refresh();
+  }
+  $("btn-list").onclick = () => runBuiltin("list_modules");
+  $("btn-echo").onclick = () => runBuiltin("echo");
+  $("btn-status").onclick = () => runBuiltin("status");
+
+  async function runShell() {
+    const line = $("shell-line").value;
+    if (!line.trim() || !sessionId) return;
+    termAppend("azos$ " + line);
+    $("shell-line").value = "";
+    const res = await fetch("/api/shell", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token: token, session: sessionId, command: line })
+    });
+    const data = await res.json();
+    renderEthics(data.gates);
+    if (data.stdout) termAppend(String(data.stdout).replace(/\n$/, ""));
+    if (!data.ok) {
+      termAppend(data.error || "Refused.");
+      setMsg("That command was refused. Next: type help.", false);
+    }
+    if (data.closed || data.halted) {
+      sessionId = null;
+      showSession(false);
+      if (data.halted) setMsg("Halted. The watch is still on. New commands are refused.");
+    }
+    await refresh();
+  }
+  $("btn-run").onclick = () => { runShell().catch(() => setMsg("The command did not finish. Next: reload this page.", false)); };
+  $("shell-line").addEventListener("keydown", (ev) => {
+    if (ev.key === "Enter") { ev.preventDefault(); runShell(); }
+  });
+
+  $("btn-close").onclick = async () => {
+    await fetch("/api/close", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token: token, session: sessionId })
+    });
+    sessionId = null;
+    showSession(false);
+    termAppend("Session closed.");
+    setMsg("Session closed. Choose Open shell to start another.");
+    await refresh();
+  };
+  $("btn-halt").onclick = async () => {
+    await fetch("/api/halt", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+    sessionId = null;
+    showSession(false);
+    enableToken(false);
+    setMsg("Halted. The watch is still on. New commands are refused.");
+    await refresh();
+  };
+  $("btn-revoke").onclick = async () => {
+    if (!token) return;
+    await fetch("/api/revoke", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token: token })
+    });
+    token = null;
+    sessionId = null;
+    showSession(false);
+    enableToken(false);
+    setMsg("Token revoked. Choose Open shell to request another.");
+    await refresh();
+  };
+  $("btn-purge").onclick = async () => {
+    const typed = $("confirm").value;
+    if (typed !== "CONFIRM") {
+      setMsg("Type CONFIRM to delete the .azos folder in this directory.", false);
+      return;
+    }
+    const res = await fetch("/api/purge", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ confirm: typed })
+    });
+    const data = await res.json();
+    if (!res.ok || data.ok === false) {
+      setMsg((data.error || "Purge refused.") + " Next: type CONFIRM.", false);
+      return;
+    }
+    token = null;
+    sessionId = null;
+    $("confirm").value = "";
+    showSession(false);
+    setMsg("Deleted the .azos folder in this directory. The watch is still on.");
+    await refresh();
+  };
+  $("btn-refresh").onclick = () => { refresh().catch(() => setMsg("Could not refresh. Next: reload this page.", false)); };
+  $("catalog-filter").addEventListener("input", renderCatalog);
+
+  $("export-json").onclick = () => {
+    const payload = lastRequest || requestBody();
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" }));
+    a.download = "azos-request.json";
+    a.click();
+  };
+  $("import-json").addEventListener("change", () => {
+    const file = $("import-json").files && $("import-json").files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      let obj;
+      try { obj = JSON.parse(String(reader.result || "{}")); }
+      catch (err) { setMsg("That file is not JSON.", false); return; }
+      const rec = obj.request || obj;
+      ["action", "definition", "evidence", "impact", "actor", "intent"].forEach((key) => {
+        if (rec[key] && $(key)) $(key).value = rec[key];
+      });
+      if (typeof rec.extend_module === "boolean") $("extend_module").checked = rec.extend_module;
+      if (typeof rec.comprehension === "boolean") $("comprehension").checked = rec.comprehension;
+      $("extend-fields").classList.toggle("hidden", !$("extend_module").checked);
+      lastRequest = rec;
+      setMsg("Imported the request fields. Choose Check this request or Open shell.");
+    };
+    reader.readAsText(file);
   });
 
   boot();

@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "azos"
 version = "0.3.0"
-description = "AZ-OS: ethics-coded remote shell. Integrity precedes execution. Not a kernel, not malware, not unrestricted host bash."
+description = "AZ-OS: ethics-gated shell. Commands run in a session folder on this machine. Integrity precedes execution."
 readme = "README.md"
 license = {file = "LICENSE"}
 authors = [{name = "Aziel Eliab"}]

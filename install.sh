@@ -27,6 +27,7 @@ python -m pip install -e .
 
 echo
 echo "Installed AZ-OS."
-echo "Run:  azos ui    or    azos shell"
-echo "Then open http://127.0.0.1:8800  (loopback only)"
-echo "Ethics-coded remote shell. Author: Aziel Eliab."
+echo "1. Run: azos ui"
+echo "2. Open http://127.0.0.1:8800/"
+echo "3. Choose Open shell"
+echo "Author: Aziel Eliab."
