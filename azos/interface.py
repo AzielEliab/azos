@@ -28,6 +28,16 @@ def _html_bytes() -> bytes:
     return (WEB / "ui.html").read_bytes()
 
 
+def _wants_json(handler: BaseHTTPRequestHandler) -> bool:
+    """Machine clients ask for JSON. Browsers that also accept HTML get the page."""
+    accept = (handler.headers.get("Accept") or "").lower()
+    if "application/json" not in accept:
+        return False
+    if "text/html" in accept:
+        return False
+    return True
+
+
 def make_handler(runtime: Runtime):
     class Handler(BaseHTTPRequestHandler):
         server_version = "AZ-Interface/0.3.0"
@@ -59,6 +69,9 @@ def make_handler(runtime: Runtime):
         def do_GET(self) -> None:  # noqa: N802
             path = urlparse(self.path).path
             if path in {"/", "/index.html"}:
+                if _wants_json(self):
+                    self._json(200, runtime.status())
+                    return
                 self._send(200, _html_bytes(), "text/html; charset=utf-8")
                 return
             if path in {"/sigil.svg", "/brand/sigil.svg"}:
@@ -237,10 +250,8 @@ def serve(
 ) -> None:
     httpd = make_server(host, port, runtime)
     bound_host, bound_port = httpd.server_address[:2]
-    print(
-        f"AZ Interface http://{bound_host}:{bound_port}  "
-        "(prefab Windows-style shell; sigil / brand mark; loopback only)"
-    )
+    shown = f"[{bound_host}]" if ":" in str(bound_host) else bound_host
+    print(f"Open http://{shown}:{bound_port}/")
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:

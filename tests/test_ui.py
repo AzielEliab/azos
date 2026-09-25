@@ -28,7 +28,10 @@ def test_html_is_self_contained() -> None:
     assert "overlay" in html.lower() or "remote shell" in html.lower()
     assert "azos$" in html
     assert "/api/shell" in html
-    assert "taskbar" in html
+    assert "Open shell" in html
+    assert "Advanced" in html
+    assert "prefers-color-scheme" in html
+    assert ":focus-visible" in html
     assert "/sigil.svg" in html
     assert "THE EVER BLOOMING FLOWER" not in html.upper()
     assert "windows logo" not in html.lower()
@@ -73,6 +76,32 @@ def test_ui_get_root_contains_azos_and_interface(tmp_path: Path) -> None:
 def test_ui_refuses_non_loopback() -> None:
     with pytest.raises(ValueError):
         make_server(host="0.0.0.0", port=0)
+
+
+def test_ui_json_accept_returns_status(tmp_path: Path) -> None:
+    rt = Runtime(root=tmp_path)
+    handler = make_handler(rt)
+    httpd = ThreadingHTTPServer(("127.0.0.1", 0), handler)
+    thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+    thread.start()
+    try:
+        conn = HTTPConnection("127.0.0.1", httpd.server_address[1], timeout=5)
+        conn.request("GET", "/", headers={"Accept": "application/json"})
+        resp = conn.getresponse()
+        payload = json.loads(resp.read().decode("utf-8"))
+        assert resp.status == 200
+        assert payload["overlay"] == "AZ-OS"
+        assert payload["lumen"] == "running"
+        conn.request("GET", "/", headers={"Accept": "text/html,application/json"})
+        page = conn.getresponse()
+        body = page.read().decode("utf-8")
+        assert page.status == 200
+        assert body.lstrip().startswith("<!doctype html>")
+        conn.close()
+    finally:
+        httpd.shutdown()
+        httpd.server_close()
+        rt.lumen.stop()
 
 
 def test_ui_request_token_then_exec_and_invite_on_fail(tmp_path: Path) -> None:

@@ -1,287 +1,120 @@
-# AZ-OS + AZ Interface
+# AZ-OS
 
-A **prefab ethics-coded remote shell**: all Aziel catalog software hooked in,
-Windows-style desktop (sigil / brand mark, no words), TemporalLock ×
-StaticClock integrity lattice.
+AZ-OS runs registered commands in a session folder on this machine, after an ethics check.
 
-**AzielTether** is the downloadable survival mesh for AZ-OS and sibling Aziel software (prefer-central × peer sync; public boards stay mesh-free): https://github.com/AzielEliab/azieltether · https://azieltether-download-tracker.vibelock.workers.dev/
-
-**Author:** Aziel Eliab
-**Date:** July–September 2026
+**Author:** Aziel Eliab  
 **License:** [Apache-2.0](LICENSE)
 
-> Integrity precedes execution.
+## Start
 
-**Counted download:** [https://azos-download-tracker.vibelock.workers.dev/](https://azos-download-tracker.vibelock.workers.dev/)
-
-**Forks are welcome and always allowed.**
-
-## Quick start
+1. Install (Python 3.10+):
 
 ```bash
-python -m venv .venv && source .venv/bin/activate && pip install -e ".[dev]"
-azos ui
-# or
-azos shell --actor operator
+python -m venv .venv
+source .venv/bin/activate
+pip install -e .
 ```
 
+2. Start the local app:
+
+```bash
+azos ui
+```
+
+3. Open http://127.0.0.1:8800/ and choose **Open shell**.
+
+`azos doctor` checks this install. `azos --help` lists commands. Add `--json` when a program needs the machine record (`azos status --json`).
 
 ## One-click install
 
 ```bash
 curl -fsSL https://azos-download-tracker.vibelock.workers.dev/install.sh | bash
-```
-
-The script curls the **counted** tarball from this project's Worker
-(`/download`, User-Agent `Mozilla/5.0`), extracts, makes a venv, and
-`pip install -e .`. Then run `azos ui` or `azos shell`.
-
-Or tap **Download** / **One-click install** on the Worker homepage:
-https://azos-download-tracker.vibelock.workers.dev/
-
-## Counted download (Cloudflare Worker)
-
-**This is the counted download.** GitHub releases exist as a mirror.
-The Worker serves the gzip itself (HTTP 200, no 302 to GitHub).
-
-- Homepage: [https://azos-download-tracker.vibelock.workers.dev/](https://azos-download-tracker.vibelock.workers.dev/)
-- Direct tarball: [azos-0.3.0.tar.gz](https://azos-download-tracker.vibelock.workers.dev/download?asset=azos-0.3.0.tar.gz)
-- One-click install: [https://azos-download-tracker.vibelock.workers.dev/install.sh](https://azos-download-tracker.vibelock.workers.dev/install.sh)
-- Skill: [https://azos-download-tracker.vibelock.workers.dev/v1/skill](https://azos-download-tracker.vibelock.workers.dev/v1/skill)
-- Suite mesh proxy: [https://azos-download-tracker.vibelock.workers.dev/v1/mesh](https://azos-download-tracker.vibelock.workers.dev/v1/mesh) — default OFF; QNM live / locked / isolated; QNS-CD-1.0 photon QNS1 hub cite (local qnsd in [qnm-node](https://github.com/AzielEliab/qnm-node); runtime cites in [aziel-runtime](https://github.com/AzielEliab/aziel-runtime); no public qnsd proxy)
-- OpenAPI: [https://azos-download-tracker.vibelock.workers.dev/openapi.json](https://azos-download-tracker.vibelock.workers.dev/openapi.json)
-- GitHub: [https://github.com/AzielEliab/azos](https://github.com/AzielEliab/azos)
-- Cite: [cite.json](https://azos-download-tracker.vibelock.workers.dev/cite.json) (Apache-2.0; no Zenodo DOI is claimed)
-
-Isolated counter: Worker `azos-download-tracker`, KV `AZOS_DOWNLOADS`. `/v1` does not increment downloads.
-
-Open http://127.0.0.1:8800 — **AZ Interface is the control surface.** Loopback only. No CDN, no telemetry.
-
-Counted download: [https://azos-download-tracker.vibelock.workers.dev/](https://azos-download-tracker.vibelock.workers.dev/)
-
-
-
-See the combined papers: [docs/whitepaper.md](docs/whitepaper.md).
-How to contribute: [CONTRIBUTING.md](CONTRIBUTING.md).
-
----
-
-## What this is
-
-AZ-OS is a **prefab true remote shell**. Every catalog product (FoldLock,
-TemporalLock, StaticClock, ShadowLock, VeilLock, VibeLock, SpectralLock,
-MirageGrid, AZAI/JEEVES, GodLock client hooks, and the rest) ships as an
-**installed desktop app**. The Interface is a Windows-identical shell
-whose Start glyph is the Aziel Eliab seal (gold rose + five-point
-star + circle + foliage swirls — **no words**).
-
-Every session and command is bound to the five coded ethics principles.
-**AZ Interface** (`azos ui`) is the local control surface on
-`127.0.0.1:8800`. Hosted `/v1/session` + `/v1/exec` is the same shell
-over HTTPS JSON. TemporalLock timeslates are hash-chained against
-StaticClock gear-clicks. No rollbacks.
-
-### Honest scope
-
-| Layer | What it is |
-|-------|------------|
-| **Protocols** | HTTPS JSON (Worker), HTTP loopback `127.0.0.1:8800`, CLI stdin (`azos shell`) |
-| **Auth** | ARC 32-byte token issued only after the five ethics gates PASS. Hashed at rest. A `root`/`user` string is a name, not a privilege. |
-| **Sandbox** | Session vfs: local `.azos/workspace/<id>/`, hosted KV vfs. Closed verb list. No host subprocess, no `eval`, no SSH, no raw TCP. |
-| **Halt** | Stops overlay / session authority. Lumen keeps custody. Does not kill the caller OS. |
-
-It is **not**:
-
-- a kernel, bootloader, or hypervisor
-- a replacement OS
-- malware, a worm, or ransomware
-- unrestricted host bash or SSH
-- a silent block on unauthorized environments
-
-Unauthorized environments receive an **invite** to run AZ-OS themselves.
-Propagation is invitation, not infection. `azos invite` prints the
-principles and a download URL. It does not copy itself onto other machines.
-
----
-
-## Principles (enforced in code)
-
-1. **Integrity precedes execution.** No module, session, or command runs without a token from ARC.
-2. **Time-bound actions are final.** Authorized executions append to an immutable sha256 chain. No rewrite.
-3. **Understanding precedes modification.** Extending or loading a new module requires an explicit comprehension checkbox and a short restatement of intent in the UI.
-4. **The system protects itself architecturally.** Unsigned or unauthorized `run()` raises `AuthorizationError`. Default is deny.
-5. **Propagation is not infection.** Invite only. No self-replication.
-
-The five gates (definition, evidence, impact, integrity, responsibility)
-are the executable form of those principles. Opening a session requires
-all five. Every subsequent command is re-gated. A live session is
-evidence, not a bypass.
-
----
-
-## Runtime
-
-| Module | Role |
-|--------|------|
-| `azos.prefab` | Catalog products as installed desktop apps. |
-| `azos.lattice` | TemporalLock timeslates × StaticClock gear-clicks. No rollbacks. |
-| `azos.ethics` | Coded principles, scope, registered shell verbs. |
-| `azos.arc` | Issue / revoke execution tokens (32 random bytes, hashed at rest). A root/user string does not auto-grant. |
-| `azos.lumen` | In-process watch loop. After halt, still revokes tokens and purges `.azos/` only. |
-| `azos.gate` | Five-gate check for proposals **and** commands. FAIL → no token / no command. |
-| `azos.shell` | Ethics-coded remote shell: session + sandboxed vfs + principle-bound verbs. |
-| `azos.exec` | Registered safe builtins: `list_modules`, `echo`, `status`, `purge_session`, `shell`. |
-| `azos.log` | Append-only hash chain of executions. |
-| `azos.interface` | AZ Interface — the product. |
-| `azos.cli` | Command line. |
-
-Session state lives in `.azos/` (tokens hashed, log, halt flag, workspace).
-Purge deletes that directory only — never `$HOME`, never OS files.
-
----
-
-## Install
-
-Python 3.10+. Stdlib only in the core.
-
-```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -e ".[dev]"
-```
-
----
-
-## CLI
-
-```bash
-azos version
-azos ui                 # 127.0.0.1:8800  THE product
-azos status
-azos invite             # principles + download URL (writes no files)
-azos session --actor NAME
-azos shell              # ethics-coded REPL (gates + ARC, then azos$)
-azos shell -c 'ls'
-azos exec NAME          # only if a token is active
-azos halt
-azos purge --confirm    # deletes .azos session only
-```
-
-Safe builtins for `azos exec`: `list_modules`, `echo`, `status`,
-`purge_session`, `shell`.
-
-Registered shell verbs: `help`, `pwd`, `ls`, `cat`, `write`, `echo`,
-`mkdir`, `rm`, `cd`, `status`, `principles`, `invite`, `modules`,
-`history`, `whoami`, `session`, `halt`, `exit`, `id`, `uname`.
-Denied verbs (`bash`, `ssh`, `curl`, …) fail the integrity gate.
-
----
-
-## AZ Interface
-
-```bash
 azos ui
 ```
 
-Binds **127.0.0.1:8800**. Self-contained CSS. No CDN.
+The script downloads the counted tarball (User-Agent `Mozilla/5.0`), extracts it, and installs. Then open http://127.0.0.1:8800/ and choose **Open shell**.
 
-- Home explains the ethics-coded remote shell (protocols, auth, sandbox).
-- Request-execution form → five-gate result → token issued or blocked.
-- Open a shell session; type commands. Each line is re-gated.
-- Action buttons enable only with a live token.
-- Halt. Lumen status stays **running** after halt.
-- Purge requires typed `CONFIRM`.
-- Invite card (not a silent error).
+## Commands
 
----
+Start here:
 
+| Command | What it does |
+|---|---|
+| `azos` | Welcome and the next commands |
+| `azos ui` | Local app at http://127.0.0.1:8800/ (this machine only) |
+| `azos shell` | Session prompt. `azos shell -c 'ls'` runs one command |
+| `azos status` | Ready or halted, watch, session folder |
+| `azos doctor` | Local self-check |
 
-## iPhone & Android
+Advanced (same command names as before):
 
-Flutter sources: [`mobile/`](mobile/). Application id `com.azieeliab.azos`. Offline. No analytics. Dark matte / gold.
+| Command | What it does |
+|---|---|
+| `azos session --actor NAME` | Open a session and print its id |
+| `azos exec NAME` | One registered builtin, with a live token |
+| `azos halt` | Stop new commands. The watch stays on |
+| `azos purge --confirm` | Delete the `.azos` folder in this directory |
+| `azos invite` | Adoption text and download URL. Writes no files |
+| `azos import FILE` | Read JSON into `.azos-state.json` |
+| `azos export FILE` | Write `.azos-state.json` |
+| `azos version` | Package version |
 
-Control surface: invite, halt, revoke labels. Integrity precedes execution.
+`--json` on `status`, `doctor`, `session`, `exec`, `halt`, `purge`, `import`, and `export` prints the machine record. `azos --json` prints status.
 
-```bash
-cd mobile
-flutter create --org com.azieeliab --project-name azos .
-flutter pub get
-flutter run
-```
+Builtins for `azos exec`: `list_modules`, `echo`, `status`, `purge_session`, `shell`.
 
-The `android/` and `ios/` folders in this tree are skeleton READMEs until you run `flutter create .` (this machine has no Flutter SDK on PATH). Then open `android/` in Android Studio or `ios/Runner.xcworkspace` in Xcode. Not a store listing.
+Shell commands: `help`, `pwd`, `ls`, `cat`, `write`, `echo`, `mkdir`, `rm`, `cd`, `status`, `principles`, `invite`, `modules`, `history`, `whoami`, `session`, `halt`, `exit`, `id`, `uname`.
 
-## Tests
+## Local app
 
-```bash
-python -m pytest -q
-```
+`azos ui` prints `Open http://127.0.0.1:8800/` and serves AZ Interface on that address.
 
----
+The first screen has one primary action, **Open shell**. Help sits beside it. Halt, purge, the ethics form, catalog hooks, the lattice, and the log are under **Advanced**. Light and dark follow the system. Keyboard focus uses a gold ring. The layout fits a narrow phone width.
 
-## Download tracker
+A program can send `Accept: application/json` on `GET /` for the status record. Other `/api/` routes are unchanged.
 
-A live-count Cloudflare Worker lives at `workers/download-tracker/`.
-The homepage is the **AZ-OS — Aziel Eliab** product UI (download, install,
-and a workspace for public status / invite / prefab / lattice snapshot).
-Isolated counter for **azos** only. Hosted session / exec / lattice bind
-need full AZ-OS. `/v1` does not increment downloads.
+## Notes
 
-Public URL:
+Integrity precedes execution.
 
-`https://azos-download-tracker.vibelock.workers.dev/`
+This package is a prefab of catalog hooks, including TemporalLock timeslates chained to StaticClock. The local program is the ethics-gated remote shell. There is no kernel in this repository, and there is no malware routine.
 
----
+| Layer | What it does |
+|---|---|
+| Protocols | HTTPS JSON on the Worker, HTTP on `127.0.0.1:8800`, and CLI stdin (`azos shell`) |
+| Auth | A token is issued only after five checks pass: definition, evidence, impact, integrity, responsibility. The token is hashed at rest. A name is not a privilege. |
+| Sandbox | Session folder: local `.azos/workspace/<id>/`. Closed command list. |
+| Halt | Stops new commands. The watch (Lumen) stays on and can still revoke a token or purge `.azos`. |
+| Purge | Deletes the `.azos` folder in this directory only. |
 
-## Layout
+Principles, as enforced in code:
 
-```
-azos/               library (ethics, arc, gate, shell, exec, log, lumen, interface, cli)
-tests/              pytest
-docs/whitepaper.md  combined papers
-mobile/             Flutter iPhone + Android (`flutter create .`)
-workers/download-tracker/   Cloudflare Worker + counted tarball
-```
+1. Integrity precedes execution.
+2. Time-bound actions are final.
+3. Understanding precedes modification.
+4. The system protects itself architecturally.
+5. Propagation is not infection.
 
-## Malware comparison (constraints, not code)
+`azos invite` prints those principles and a download URL. It does not copy this program onto another machine.
 
-AZ-OS is compared to malware **structurally** in the whitepaper: default
-deny, no self-replication, no stealth, no disk wipe, invite instead of
-infection. This repository does **not** implement malware, ransomware,
-or host-disk wipes. The remote shell is ethics-gated and sandboxed.
+Session state lives in `.azos/` (hashed tokens, log, halt flag, workspace).
 
-## Use with AI assistants
+Counted download: https://azos-download-tracker.vibelock.workers.dev/
 
-AZ-OS is usable from any MCP/OpenAPI-capable assistant. That includes
-ChatGPT (GPT Actions / OpenAI), Grok (xAI), Venice, Claude (Anthropic),
-Cursor (MCP), Glama (MCP), Perplexity, Microsoft Copilot / Bing,
-Google Gemini / Vertex, Mistral, Meta AI, Apple Intelligence surfaces,
-Amazon Q tooling, DuckAssist, You.com, Cohere, and other
-MCP/OpenAPI-capable assistants.
+- Tarball: https://azos-download-tracker.vibelock.workers.dev/download?asset=azos-0.3.0.tar.gz
+- Install script: https://azos-download-tracker.vibelock.workers.dev/install.sh
+- OpenAPI: https://azos-download-tracker.vibelock.workers.dev/openapi.json
+- GitHub: https://github.com/AzielEliab/azos
 
-Public identity: **Aziel Eliab** only.
+No Zenodo DOI is claimed. `/v1` on the Worker does not increment downloads.
 
-Live HTTPS runtime on the download-tracker Worker (does **not** increment the download counter):
+Suite mesh: https://azos-download-tracker.vibelock.workers.dev/v1/mesh — read-only proxy, default off. QNS-CD-1.0 is a cite. GET does not enable it.
 
-- OpenAPI 3.1: https://azos-download-tracker.vibelock.workers.dev/openapi.json
-- Health: https://azos-download-tracker.vibelock.workers.dev/v1/health
-- How to wire tools: https://azos-download-tracker.vibelock.workers.dev/ai
-- MCP catalog: https://aziel-runtime.vibelock.workers.dev/mcp
+Papers: [docs/whitepaper.md](docs/whitepaper.md). Contributing: [CONTRIBUTING.md](CONTRIBUTING.md).
 
-POST `/v1/status` (read-only), `/v1/invite`, `/v1/session`, `/v1/exec`,
-`/v1/close`, `/v1/halt`, `/v1/revoke`. Motto: Integrity precedes execution.
-Hosted halt is a token in the JSON, not killing the caller OS.
+### Programs
 
-**OpenAPI / GPT Actions / HTTP tools:** import
-`https://azos-download-tracker.vibelock.workers.dev/openapi.json` (no auth).
-ChatGPT: GPT Editor → Actions → Import from URL. Grok / xAI, Venice,
-Claude, Perplexity, Copilot, Gemini / Vertex, Mistral, Meta AI,
-Apple Intelligence surfaces, Amazon Q, DuckAssist, You.com, Cohere,
-and similar: add an HTTP/OpenAPI tool pointing at that spec. Start with
-GET `https://azos-download-tracker.vibelock.workers.dev/v1/health`.
-
-**MCP:** Cursor, Claude, Glama, and other MCP clients — catalog at
-`https://aziel-runtime.vibelock.workers.dev/mcp`. Suite mesh `/v1/mesh/*` PROXY via `AZIEL_RUNTIME` (default OFF; QNM-BUILD-1.0 live|locked|isolated; QNS-CD-1.0 photon QNS1 hub cite / Worker mesh cross-map; no Node Gate; no public qnsd proxy). Catalog MCP `mesh_*` + FragGate `slug=mesh`. Local qnsd is coded in [qnm-node](https://github.com/AzielEliab/qnm-node). Runtime cites + catalog field live in [aziel-runtime](https://github.com/AzielEliab/aziel-runtime). AZInterface holds pair custody. Not a Softwares-tab product.
+Import `https://azos-download-tracker.vibelock.workers.dev/openapi.json`. Health: `GET /v1/health`. Local status for a program: `azos status --json`.
 
 ```bash
 curl -sS -A 'Mozilla/5.0' -X POST https://azos-download-tracker.vibelock.workers.dev/v1/session \
@@ -289,4 +122,23 @@ curl -sS -A 'Mozilla/5.0' -X POST https://azos-download-tracker.vibelock.workers
   -d '{"actor":"operator","definition":"Open an ethics-gated shell session.","evidence":"Operator requested a principle-bound remote shell.","impact":"Hosted KV vfs only. No host subprocess."}'
 ```
 
-GET `/download` still serves the gzip tarball and is counted.
+### Phone sources
+
+Flutter sources are in [`mobile/`](mobile/). Application id `com.azieeliab.azos`. The `android/` and `ios/` folders are skeleton notes until `flutter create .` is run.
+
+### Tests
+
+```bash
+pip install -e ".[dev]"
+python -m pytest -q
+```
+
+### Layout
+
+```
+azos/               library and local app
+tests/              pytest
+docs/whitepaper.md  papers
+mobile/             Flutter sources
+workers/download-tracker/   counted download Worker
+```
