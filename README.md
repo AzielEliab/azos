@@ -58,8 +58,19 @@ Advanced (same command names as before):
 | `azos import FILE` | Read JSON into `.azos-state.json` |
 | `azos export FILE` | Write `.azos-state.json` |
 | `azos version` | Package version |
+| `azos node` | Local AZnet hash client. Sidenet is AZnet |
 
-`--json` on `status`, `doctor`, `session`, `exec`, `halt`, `purge`, `import`, and `export` prints the machine record. `azos --json` prints status.
+`azos node` keeps hash refs in `.azos/node/`. The text you pass to `stamp` is hashed and not stored. **AZ Browser** is the browser surface for AZnet. It is a separate product. This package does not include it. The AZ-OS layers stay `base`, `stacked`, and `standalone`.
+
+| Layer | Need |
+|---|---|
+| `base` | Host OS stays the host OS. AZ-OS stays an overlay. Local garden. |
+| `stacked` | Same local garden. FragGate HTTPS stays the online door. |
+| `standalone` | Same local garden. No shell session. Softwares desk unchanged. |
+
+These names are overlay modes. The command does not install or replace an operating system. `azos node probe` is the only node command that uses the network: it sends `GET /v1/health` and does not call a FragGate op. Online calls still go through `https://aziel-runtime.vibelock.workers.dev/v1/fraggate/call`. The Softwares desk is unchanged.
+
+`--json` on `status`, `doctor`, `session`, `exec`, `halt`, `purge`, `import`, `export`, and `node` prints the machine record. `azos --json` prints status.
 
 Builtins for `azos exec`: `list_modules`, `echo`, `status`, `purge_session`, `shell`.
 
@@ -71,7 +82,7 @@ Shell commands: `help`, `pwd`, `ls`, `cat`, `write`, `echo`, `mkdir`, `rm`, `cd`
 
 The first screen has one primary action, **Open shell**. Help sits beside it. Halt, purge, the ethics form, catalog hooks, the lattice, and the log are under **Advanced**. Light and dark follow the system. Keyboard focus uses a gold ring. The layout fits a narrow phone width.
 
-A program can send `Accept: application/json` on `GET /` for the status record. Other `/api/` routes are unchanged.
+A program can send `Accept: application/json` on `GET /` for the status record. `GET /api/node` reports the local AZnet client. The Softwares desk on the page is unchanged.
 
 ## Notes
 
@@ -81,7 +92,7 @@ This package is a prefab of catalog hooks, including TemporalLock timeslates cha
 
 | Layer | What it does |
 |---|---|
-| Protocols | HTTPS JSON on the Worker, HTTP on `127.0.0.1:8800`, and CLI stdin (`azos shell`) |
+| Protocols | HTTPS JSON on the Worker, HTTP on `127.0.0.1:8800`, and CLI stdin (`azos shell`). `azos node probe` may GET FragGate health. Other node commands stay on disk. |
 | Auth | A token is issued only after five checks pass: definition, evidence, impact, integrity, responsibility. The token is hashed at rest. A name is not a privilege. |
 | Sandbox | Session folder: local `.azos/workspace/<id>/`. Closed command list. |
 | Halt | Stops new commands. The watch (Lumen) stays on and can still revoke a token or purge `.azos`. |
@@ -136,7 +147,7 @@ python -m pytest -q
 ### Layout
 
 ```
-azos/               library and local app
+azos/               library and local app (azos/node.py is the AZnet client)
 tests/              pytest
 docs/whitepaper.md  papers
 mobile/             Flutter sources

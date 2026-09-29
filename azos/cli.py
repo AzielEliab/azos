@@ -17,6 +17,7 @@ from azos.errors import AuthorizationError, AzosError
 from azos.gate import shell_proposal
 from azos.interface import DEFAULT_HOST, DEFAULT_PORT, serve
 from azos.invite import emit_invite, invite_text
+from azos.node import LAYERS, OfflineNode, node_proposal
 from azos.runtime import Runtime
 
 WELCOME = """\
@@ -55,10 +56,11 @@ Advanced:
   invite    Print the adoption text and download URL
   import    Read a JSON file into .azos-state.json
   export    Write .azos-state.json to a file
+  node      Local AZnet hash client (sidenet). Three layers by need.
   version   Print the package version
 
 Add --json to status, doctor, session, exec, halt, purge, import,
-or export for the machine-readable record. azos --json prints status.
+export, or node for the machine-readable record. azos --json prints status.
 
 Examples:
   azos
@@ -168,6 +170,38 @@ def _build_parser() -> AzosParser:
 
     p_exp = add("export", "Write .azos-state.json to a file.")
     p_exp.add_argument("path")
+
+    p_node = add("node", "Local AZnet hash client. Layers: base, stacked, standalone.")
+    p_node.add_argument(
+        "op",
+        nargs="?",
+        default="status",
+        choices=("status", "stamp", "verify", "garden", "memorial", "memorial-list", "probe"),
+        help="status, stamp, verify, garden, memorial, memorial-list, or probe.",
+    )
+    p_node.add_argument(
+        "--layer",
+        default=None,
+        choices=LAYERS,
+        help="base, stacked, or standalone.",
+    )
+    p_node.add_argument("--text", default=None, help="Text to hash. The text is not stored.")
+    p_node.add_argument("--ref", default=None, help="Existing 64-character hex ref.")
+    p_node.add_argument("--label", default="", help="Short label stored beside the hash.")
+    p_node.add_argument("--summary", default="", help="Memorial summary.")
+    p_node.add_argument("--evidence", default="", help="Memorial evidence.")
+    p_node.add_argument("--token", default=None, help="Issued token for stamp or memorial.")
+    p_node.add_argument("--actor", default="operator", help="Name for the ethics check.")
+    p_node.add_argument(
+        "--pair-token",
+        default=None,
+        help="Reported as present or absent. Never stored.",
+    )
+    p_node.add_argument(
+        "--pair-flag",
+        default=None,
+        help="Reported as present or absent. Never stored.",
+    )
 
     return parser
 
@@ -291,6 +325,114 @@ def _human_import(rec: dict) -> str:
 
 def _human_export(rec: dict) -> str:
     return f"Wrote {rec.get('exported')}\n"
+
+
+def _human_node(rec: dict) -> str:
+    op = rec.get("op") or "status"
+    layer = rec.get("layer") or "base"
+    lines = [
+        f"Local AZnet client ({layer})",
+        "Sidenet: AZnet",
+        "Browser surface: AZ Browser",
+        f"Need: {rec.get('need', '')}",
+    ]
+    if op == "status":
+        lines.append(f"Garden refs: {rec.get('garden_count', 0)}")
+        lines.append(f"Memorial lines: {rec.get('memorial_count', 0)}")
+        lines.append(f"L0 FragGate HTTPS: {rec.get('l0')} (this command did not call it)")
+        lines.append("Softwares desk: frozen")
+        lines.append("")
+        lines.append("Next: azos node stamp --text hello    or    azos node --help")
+    elif op == "stamp" and rec.get("ok"):
+        lines.append(f"Ref: {rec.get('ref')}")
+        lines.append("The text was not stored. Hosted AZNet was not called.")
+    elif op == "verify":
+        lines.append(f"In local garden: {rec.get('in_garden')}")
+        lines.append(f"Ref: {rec.get('ref')}")
+    elif op == "garden":
+        lines.append(f"Refs: {rec.get('count', 0)}")
+    elif op == "memorial" and rec.get("ok"):
+        lines.append(f"Hash: {rec.get('hash')}")
+        lines.append("The line is append-only.")
+    elif op == "memorial_list" or op == "memorial-list":
+        lines.append(f"Lines: {rec.get('count', 0)}")
+    elif op == "probe":
+        if rec.get("reachable"):
+            lines.append(f"L0 health answered HTTP {rec.get('http_status')}.")
+        else:
+            lines.append("L0 health did not answer.")
+        lines.append("This client did not call a FragGate op.")
+        lines.append(f"Online door: {rec.get('door')}")
+    if rec.get("ok") is False:
+        lines.append(str(rec.get("note") or rec.get("code") or "refused"))
+    return "\n".join(lines) + "\n"
+
+
+def _node_command(rt: Runtime, args: argparse.Namespace, *, as_json: bool) -> int:
+    node = OfflineNode(root=Path.cwd(), layer=args.layer)
+    op = args.op or "status"
+    try:
+        if op == "status":
+            rec = node.status(
+                pair_token=args.pair_token,
+                pair_flag=args.pair_flag,
+                remember=bool(args.layer),
+            )
+        elif op == "stamp":
+            token = _node_token(rt, token=args.token, actor=args.actor, action="node_stamp")
+            fields = {}
+            rec = node.stamp(text=args.text, ref=args.ref, label=args.label, fields=fields)
+            if rec.get("ok"):
+                rt.log.append(
+                    action="node_stamp",
+                    token_hash=rt.arc.token_hash(token),
+                    payload={"ref": rec.get("ref"), "layer": rec.get("layer")},
+                )
+        elif op == "verify":
+            rec = node.verify(ref=args.ref, text=args.text)
+        elif op == "garden":
+            rec = node.garden()
+        elif op == "memorial":
+            token = _node_token(rt, token=args.token, actor=args.actor, action="node_memorial")
+            rec = node.memorial(summary=args.summary, evidence=args.evidence)
+            if rec.get("ok"):
+                rt.log.append(
+                    action="node_memorial",
+                    token_hash=rt.arc.token_hash(token),
+                    payload={"hash": rec.get("hash"), "layer": rec.get("layer")},
+                )
+        elif op == "memorial-list":
+            rec = node.memorial_list()
+        elif op == "probe":
+            rec = node.probe()
+        else:
+            sys.stderr.write(
+                f'Unknown node command "{op}". Try: azos node status\n'
+            )
+            return 2
+    except AuthorizationError as exc:
+        _write_auth_error(exc)
+        return 1
+    except AzosError as exc:
+        _write_error(exc)
+        return 1
+    _emit(rec, as_json=as_json, human=_human_node(rec))
+    return 0 if rec.get("ok", True) else 1
+
+
+def _node_token(rt: Runtime, *, token: str | None, actor: str, action: str) -> str:
+    if rt.halted:
+        from azos.errors import HaltedError
+
+        raise HaltedError()
+    if token:
+        if not rt.arc.verify(token):
+            raise AuthorizationError("unauthorized: token missing or revoked")
+        return token
+    issued = rt.request_node(node_proposal(action, actor))
+    if not issued.passed or not issued.token:
+        raise AuthorizationError("unauthorized: ethics gates refused the node write")
+    return issued.token
 
 
 def _write_auth_error(exc: BaseException) -> None:
@@ -519,6 +661,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         from azos.doctor import run_doctor
 
         return run_doctor(as_json=as_json)
+
+    if args.cmd == "node":
+        return _node_command(rt, args, as_json=as_json)
 
     if args.cmd == "import":
         from azos.jsonio import import_json

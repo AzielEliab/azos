@@ -44,6 +44,13 @@ Python 3.10+. Core is stdlib only (`hashlib`, `secrets`, `json`,
     Suite mesh default OFF; QNM rollup live|locked|isolated; QNS-CD-1.0
     hub cite (photon QNS1; local qnsd in qnm-node; no public proxy);
     no Node Gate; no auto-heal; not anonymity.
+13. **Offline node is a local AZnet client.** `azos node` stores hash refs
+    under `.azos/node/`. It does not host payloads, open a tunnel, enable
+    the suite mesh, or replace FragGate. `probe` is GET health only.
+    Do not add a Softwares desk card for it. **AZ Browser** is the browser
+    surface for AZnet and stays a separate product. Layers `base`, `stacked`,
+    and `standalone` stay additive overlay modes. Do not add a fourth layer
+    for the browser, and do not install a second operating system.
 
 ## Where to change things
 
@@ -60,4 +67,5 @@ Python 3.10+. Core is stdlib only (`hashlib`, `secrets`, `json`,
 - Integrity lattice: `azos/lattice.py`
 - Hosted shell: `workers/download-tracker/src/runtime.js`
 - Suite mesh / QNM Live Nodes: `workers/download-tracker/src/mesh.js` (`/v1/mesh/*` PROXY to aziel-runtime; QNS-CD-1.0 hub cite, not a qnsd proxy).
+- Offline AZnet node client: `azos/node.py` (`azos node`). Local hash refs. Softwares desk stays frozen.
 - Sigil / brand mark (no words): `azos/templates/sigil.svg`

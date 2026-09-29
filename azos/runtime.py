@@ -88,7 +88,29 @@ class Runtime:
                 },
                 invite=invite_text(),
             )
-        result = authorize(proposal, SAFE_ACTIONS)
+        return self._issue(proposal, SAFE_ACTIONS)
+
+    def request_node(self, proposal: Proposal) -> RequestResult:
+        """Five gates for a local AZnet hash write. Does not call FragGate."""
+        from azos.node import NODE_ACTIONS
+
+        return self._issue(proposal, NODE_ACTIONS)
+
+    def _issue(self, proposal: Proposal, allowed: frozenset[str]) -> RequestResult:
+        if self._halted:
+            return RequestResult(
+                passed=False,
+                token=None,
+                gates={
+                    "definition": {"pass": False, "reason": "overlay is halted"},
+                    "evidence": {"pass": False, "reason": "overlay is halted"},
+                    "impact": {"pass": False, "reason": "overlay is halted"},
+                    "integrity": {"pass": False, "reason": "overlay is halted"},
+                    "responsibility": {"pass": False, "reason": "overlay is halted"},
+                },
+                invite=invite_text(),
+            )
+        result = authorize(proposal, allowed)
         gates = {
             name: {"pass": check.passed, "reason": check.reason}
             for name, check in result.gates.items()
@@ -158,6 +180,7 @@ class Runtime:
             "log_length": len(self.log),
             "builtins": sorted(SAFE_ACTIONS),
             "shell": self.shell.snapshot(),
+            "offline_node": _offline_node_summary(self.root),
             **scope,
             "prefab": prefab_snapshot(),
             "lattice": self.lattice.snapshot(),
@@ -201,3 +224,27 @@ def _version() -> str:
     from azos import __version__
 
     return __version__
+
+
+def _offline_node_summary(root: Path) -> dict[str, Any]:
+    """Read-only AZnet client summary. Does not create the node folder."""
+    from azos.node import OfflineNode
+
+    record = OfflineNode(root=root).status()
+    return {
+        "client": record["client"],
+        "sidenet": record["sidenet"],
+        "sidenet_is_aznet": True,
+        "browser_surface": record["browser_surface"],
+        "browser_role": record["browser_role"],
+        "browser_in_this_package": False,
+        "layers_additive": True,
+        "layer": record["layer"],
+        "layers": record["layers"],
+        "l0_executed": False,
+        "l0_replaced": False,
+        "softwares_desk": "frozen",
+        "payload_host": False,
+        "garden_count": record["garden_count"],
+        "hosted_engine": False,
+    }
