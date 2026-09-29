@@ -226,6 +226,26 @@ remains an ethics-coded remote shell. Full node process is local
 
 ---
 
-## 11. Motto
+## 11. Offline node client for AZnet
+
+AZnet is the sidenet: hash continuity, not a payload host. The local
+client is `azos node`. It writes hash refs under `.azos/node/` and
+leaves the Softwares desk unchanged.
+
+Three overlay modes, chosen by need:
+
+| Mode | Need |
+|------|------|
+| base | The host OS stays the host OS. AZ-OS stays an overlay. |
+| stacked | The same local garden. FragGate HTTPS stays the online door. |
+| standalone | The same local garden, with no shell session. |
+
+`azos node probe` may `GET` FragGate health. That request does not call
+a FragGate op. Online execution stays on
+`https://aziel-runtime.vibelock.workers.dev/v1/fraggate/call`. A failed
+probe leaves the local garden as it was. A broken local chain is
+reported and not rewritten.
+
+## 12. Motto
 
 Integrity precedes execution.

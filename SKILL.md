@@ -69,6 +69,24 @@ azos doctor
 
 Then open http://127.0.0.1:8800 (loopback only).
 
+## Offline node client (local package)
+
+AZnet is the sidenet. `azos node` is a local hash client for that sidenet. It is not the hosted AZNet engine and it does not add a Softwares desk card.
+
+| Layer | Need |
+|---|---|
+| `base` | Host OS stays the host OS. Local garden under `.azos/node/`. |
+| `stacked` | Same garden. L0 FragGate HTTPS remains the online door. |
+| `standalone` | Same garden. No shell session. Desk unchanged. |
+
+```bash
+azos node status
+azos node stamp --text hello --layer standalone
+azos node probe
+```
+
+`stamp` stores a sha256 ref and does not store the text. `probe` is `GET /v1/health` only. It does not call a FragGate op. When the machine is online, FragGate HTTPS at `https://aziel-runtime.vibelock.workers.dev/v1/fraggate/call` is still the door.
+
 Counted download (gzip HTTP 200, no 302): https://azos-download-tracker.vibelock.workers.dev/download?asset=azos-0.3.0.tar.gz
 GitHub: https://github.com/AzielEliab/azos
 

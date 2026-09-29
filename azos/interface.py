@@ -80,6 +80,11 @@ def make_handler(runtime: Runtime):
             if path == "/api/status":
                 self._json(200, runtime.status())
                 return
+            if path == "/api/node":
+                from azos.node import OfflineNode
+
+                self._json(200, OfflineNode(root=runtime.root).status())
+                return
             if path == "/api/prefab":
                 from azos.prefab import prefab_snapshot
 

@@ -98,12 +98,34 @@ def _check_json_roundtrip() -> Check:
         return _ok("json import/export", "roundtrip")
 
 
+def _check_offline_node() -> Check:
+    try:
+        from azos.node import LAYERS, L0_DOOR, OfflineNode
+        from azos.prefab import slugs
+    except Exception as exc:  # noqa: BLE001
+        return _fail("offline-node", str(exc))
+    if tuple(LAYERS) != ("base", "stacked", "standalone"):
+        return _fail("offline-node", "layers")
+    with tempfile.TemporaryDirectory() as tmp:
+        record = OfflineNode(root=tmp).status()
+    if record.get("sidenet") != "aznet" or record.get("sidenet_is_aznet") is not True:
+        return _fail("offline-node", "sidenet")
+    if record.get("l0_executed") is not False or record.get("l0_replaced") is not False:
+        return _fail("offline-node", "l0")
+    if record.get("payload_host") is not False or record.get("softwares_desk") != "frozen":
+        return _fail("offline-node", "desk")
+    if "azos-node" in slugs() or L0_DOOR.endswith("/v1/fraggate/call") is False:
+        return _fail("offline-node", "prefab")
+    return _ok("offline-node", "aznet client")
+
+
 CHECKS: tuple[Callable[[], Check], ...] = (
     _check_version,
     _check_identity,
     _check_ethics_shell,
     _check_prefab_lattice,
     _check_json_roundtrip,
+    _check_offline_node,
 )
 
 

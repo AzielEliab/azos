@@ -59,6 +59,16 @@ def test_ui_get_root_contains_azos_and_interface(tmp_path: Path) -> None:
         assert status.status == 200
         assert payload["lumen"] == "running"
         assert payload["overlay"] == "AZ-OS"
+        assert payload["offline_node"]["sidenet"] == "aznet"
+        assert payload["offline_node"]["softwares_desk"] == "frozen"
+        conn.request("GET", "/api/node")
+        node_resp = conn.getresponse()
+        node = json.loads(node_resp.read().decode("utf-8"))
+        assert node_resp.status == 200
+        assert node["sidenet"] == "aznet"
+        assert node["l0_executed"] is False
+        assert node["payload_host"] is False
+        assert node["layers"] == ["base", "stacked", "standalone"]
         conn.request("GET", "/sigil.svg")
         sig = conn.getresponse()
         svg = sig.read().decode("utf-8")
