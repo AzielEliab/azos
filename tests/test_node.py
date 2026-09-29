@@ -30,6 +30,15 @@ def test_layers_and_honesty(tmp_path: Path) -> None:
     ):
         assert record["sidenet"] == "aznet"
         assert record["sidenet_is_aznet"] is True
+        assert record["browser_surface"] == "AZ Browser"
+        assert record["browser_slug"] == "azbrowser"
+        assert record["browser_role"] == "browser surface for AZnet"
+        assert record["browser_for"] == "aznet"
+        assert record["browser_in_this_package"] is False
+        assert record["browser_is_layer"] is False
+        assert record["layers_additive"] is True
+        assert record["products_merged"] is False
+        assert record["layers"] == ["base", "stacked", "standalone"]
         assert record["layer"] == layer
         assert record["l0"] == l0
         assert record["l0_executed"] is False
@@ -150,6 +159,9 @@ def test_probe_does_not_call_an_op(tmp_path: Path) -> None:
 def test_pair_fields_are_not_a_hosted_pair(tmp_path: Path) -> None:
     secret = "pair-token-value"
     rec = OfflineNode(root=tmp_path).status(pair_token=secret, pair_flag="azbrowser")
+    assert rec["pair"]["peer_name"] == "AZ Browser"
+    assert rec["pair"]["peer_role"] == "browser surface for AZnet"
+    assert rec["pair"]["peer"] == "azbrowser"
     assert rec["pair"]["token_present"] is True
     assert rec["pair"]["local_fields_present"] is True
     assert rec["pair"]["hosted_paired"] is False
@@ -185,6 +197,9 @@ def test_status_includes_offline_node(tmp_path: Path) -> None:
     status = rt.status()
     node = status["offline_node"]
     assert node["sidenet"] == "aznet"
+    assert node["browser_surface"] == "AZ Browser"
+    assert node["layers_additive"] is True
+    assert node["layers"] == ["base", "stacked", "standalone"]
     assert node["l0_executed"] is False
     assert node["softwares_desk"] == "frozen"
     assert node["payload_host"] is False

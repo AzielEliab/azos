@@ -1,9 +1,11 @@
 """Offline node client for AZnet.
 
 AZnet is the sidenet (AZN-WP-0.1): hash refs, a local memorial, and
-integrity refuse. This module is the AZ-OS client for that sidenet.
-It keeps hash refs under ``.azos/node/``. It does not host payloads,
-open a tunnel, join the suite mesh, or replace FragGate.
+integrity refuse. AZ Browser is the browser surface for AZnet. This
+module is the AZ-OS client for that sidenet. It keeps hash refs under
+``.azos/node/``. It does not host payloads, open a tunnel, join the
+suite mesh, or replace FragGate. AZ Browser is a separate product.
+This package does not include it. The three AZ-OS layers stay as they are.
 
 Three layers, chosen by need. Each name is an overlay mode. This
 process does not install or replace an operating system.
@@ -35,6 +37,9 @@ AUTHOR = "Aziel Eliab"
 SPEC = "AZOS-NODE-1.0"
 SIDENET = "aznet"
 SIDENET_SPEC = "AZN-WP-0.1"
+BROWSER_SURFACE = "AZ Browser"
+BROWSER_SLUG = "azbrowser"
+BROWSER_ROLE = "browser surface for AZnet"
 CLIENT = "offline-node"
 PRODUCT = "azos"
 
@@ -164,15 +169,18 @@ def payload_host_key(fields: dict[str, Any] | None) -> str | None:
 def pair_view(*, pair_token: str | None = None, pair_flag: str | None = None) -> dict[str, Any]:
     """Report pair fields without storing them.
 
-    A local token string is not a hosted AZBrowser pair. Hosted garden
+    A local token string is not a hosted AZ Browser pair. Hosted garden
     ops still require pairing token and flag on the FragGate door.
+    The flag value is the slug ``azbrowser``. The display name is AZ Browser.
     """
     token = "" if pair_token is None else str(pair_token).strip()
     flag = "" if pair_flag is None else str(pair_flag).strip().lower()
     token_present = len(token) >= 8
-    flag_ok = flag == "azbrowser"
+    flag_ok = flag == BROWSER_SLUG
     return {
-        "peer": "azbrowser",
+        "peer": BROWSER_SLUG,
+        "peer_name": BROWSER_SURFACE,
+        "peer_role": BROWSER_ROLE,
         "token_present": token_present,
         "flag_present": bool(flag),
         "flag_ok": flag_ok,
@@ -182,8 +190,9 @@ def pair_view(*, pair_token: str | None = None, pair_flag: str | None = None) ->
         "token_stored": False,
         "both_required_on_hosted_garden": True,
         "note": (
+            "AZ Browser is the browser surface for AZnet. "
             "Local fields are not a hosted pair. Hosted AZNet garden ops "
-            "still require an AZBrowser pairing token and flag through FragGate."
+            "still require an AZ Browser pairing token and the azbrowser flag through FragGate."
         ),
     }
 
@@ -563,6 +572,14 @@ class OfflineNode:
             "sidenet": SIDENET,
             "sidenet_is_aznet": True,
             "sidenet_spec": SIDENET_SPEC,
+            "browser_surface": BROWSER_SURFACE,
+            "browser_slug": BROWSER_SLUG,
+            "browser_role": BROWSER_ROLE,
+            "browser_for": SIDENET,
+            "browser_in_this_package": False,
+            "browser_is_layer": False,
+            "layers_additive": True,
+            "products_merged": False,
             "layer": layer,
             "layers": list(LAYERS),
             "need": LAYER_NEED[layer],

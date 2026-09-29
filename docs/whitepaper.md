@@ -228,9 +228,11 @@ remains an ethics-coded remote shell. Full node process is local
 
 ## 11. Offline node client for AZnet
 
-AZnet is the sidenet: hash continuity, not a payload host. The local
-client is `azos node`. It writes hash refs under `.azos/node/` and
-leaves the Softwares desk unchanged.
+AZnet is the sidenet: hash continuity, not a payload host. **AZ Browser**
+is the browser surface for AZnet. The local client is `azos node`. It
+writes hash refs under `.azos/node/` and leaves the Softwares desk
+unchanged. AZ Browser stays a separate product. The three AZ-OS layers
+stay additive: `base`, `stacked`, and `standalone`.
 
 Three overlay modes, chosen by need:
 

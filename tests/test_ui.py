@@ -66,6 +66,9 @@ def test_ui_get_root_contains_azos_and_interface(tmp_path: Path) -> None:
         node = json.loads(node_resp.read().decode("utf-8"))
         assert node_resp.status == 200
         assert node["sidenet"] == "aznet"
+        assert node["browser_surface"] == "AZ Browser"
+        assert node["layers_additive"] is True
+        assert node["browser_is_layer"] is False
         assert node["l0_executed"] is False
         assert node["payload_host"] is False
         assert node["layers"] == ["base", "stacked", "standalone"]

@@ -333,6 +333,7 @@ def _human_node(rec: dict) -> str:
     lines = [
         f"Local AZnet client ({layer})",
         "Sidenet: AZnet",
+        "Browser surface: AZ Browser",
         f"Need: {rec.get('need', '')}",
     ]
     if op == "status":

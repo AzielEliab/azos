@@ -110,6 +110,12 @@ def _check_offline_node() -> Check:
         record = OfflineNode(root=tmp).status()
     if record.get("sidenet") != "aznet" or record.get("sidenet_is_aznet") is not True:
         return _fail("offline-node", "sidenet")
+    if record.get("browser_surface") != "AZ Browser" or record.get("browser_role") != "browser surface for AZnet":
+        return _fail("offline-node", "browser surface")
+    if record.get("browser_is_layer") is not False or record.get("layers_additive") is not True:
+        return _fail("offline-node", "layers")
+    if record.get("browser_in_this_package") is not False or "azbrowser" in slugs():
+        return _fail("offline-node", "browser package")
     if record.get("l0_executed") is not False or record.get("l0_replaced") is not False:
         return _fail("offline-node", "l0")
     if record.get("payload_host") is not False or record.get("softwares_desk") != "frozen":

@@ -228,7 +228,7 @@ Then open http://127.0.0.1:8800 (loopback only).
 
 ## Offline node client (local package)
 
-AZnet is the sidenet. \`azos node\` is a local hash client for that sidenet. It is not the hosted AZNet engine and it does not add a Softwares desk card.
+AZnet is the sidenet. **AZ Browser** is the browser surface for AZnet. \`azos node\` is a local hash client for that sidenet. It is not the hosted AZNet engine, it does not include AZ Browser, and it does not add a Softwares desk card. The AZ-OS layers stay \`base\`, \`stacked\`, and \`standalone\`.
 
 | Layer | Need |
 |---|---|

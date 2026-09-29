@@ -47,8 +47,10 @@ Python 3.10+. Core is stdlib only (`hashlib`, `secrets`, `json`,
 13. **Offline node is a local AZnet client.** `azos node` stores hash refs
     under `.azos/node/`. It does not host payloads, open a tunnel, enable
     the suite mesh, or replace FragGate. `probe` is GET health only.
-    Do not add a Softwares desk card for it. Layers `base`, `stacked`,
-    and `standalone` are overlay modes, not a second operating system.
+    Do not add a Softwares desk card for it. **AZ Browser** is the browser
+    surface for AZnet and stays a separate product. Layers `base`, `stacked`,
+    and `standalone` stay additive overlay modes. Do not add a fourth layer
+    for the browser, and do not install a second operating system.
 
 ## Where to change things
 

@@ -60,7 +60,7 @@ Advanced (same command names as before):
 | `azos version` | Package version |
 | `azos node` | Local AZnet hash client. Sidenet is AZnet |
 
-`azos node` keeps hash refs in `.azos/node/`. The text you pass to `stamp` is hashed and not stored.
+`azos node` keeps hash refs in `.azos/node/`. The text you pass to `stamp` is hashed and not stored. **AZ Browser** is the browser surface for AZnet. It is a separate product. This package does not include it. The AZ-OS layers stay `base`, `stacked`, and `standalone`.
 
 | Layer | Need |
 |---|---|
