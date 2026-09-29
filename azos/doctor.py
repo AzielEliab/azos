@@ -79,6 +79,39 @@ def _check_ethics_shell() -> Check:
     return _ok("ethics-shell", KIND)
 
 
+def _check_sidenet() -> Check:
+    from azos.sidenet import OfflineNode, SidenetRefuse
+
+    try:
+        with tempfile.TemporaryDirectory() as tmp:
+            node = OfflineNode(tmp)
+            menu = node.menu()
+    except Exception as exc:  # noqa: BLE001
+        return _fail("sidenet", str(exc))
+    if menu.get("layer") != "stacked-os":
+        return _fail("sidenet", "layer")
+    if menu.get("icann_tld_az") is not False or menu.get("radio_phy") is not False:
+        return _fail("sidenet", "icann or radio painted live")
+    if menu.get("softwares_cards"):
+        return _fail("sidenet", "invented softwares cards")
+    items = {item["id"]: item for item in menu.get("items") or [] if isinstance(item, dict)}
+    for slot_id in ("plane-b", "plane-c", "live-node-api", "doi"):
+        if items.get(slot_id, {}).get("status") != "SLOT":
+            return _fail("sidenet", slot_id)
+    if items.get("radio-phy", {}).get("status") == "LIVE":
+        return _fail("sidenet", "radio phy")
+    if items.get("softwares-desk", {}).get("status") != "FROZEN":
+        return _fail("sidenet", "softwares desk")
+    try:
+        node.reheal(vote=True)
+    except SidenetRefuse as exc:
+        if exc.code != "SIDENET-NO-VOTE":
+            return _fail("sidenet", exc.code)
+    else:
+        return _fail("sidenet", "vote was accepted")
+    return _ok("sidenet", "stacked offline node")
+
+
 def _check_json_roundtrip() -> Check:
     from azos.jsonio import export_json, import_json
 
@@ -103,6 +136,7 @@ CHECKS: tuple[Callable[[], Check], ...] = (
     _check_identity,
     _check_ethics_shell,
     _check_prefab_lattice,
+    _check_sidenet,
     _check_json_roundtrip,
 )
 

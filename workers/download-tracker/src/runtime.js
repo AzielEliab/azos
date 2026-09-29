@@ -226,6 +226,8 @@ azos doctor
 
 Then open http://127.0.0.1:8800 (loopback only).
 
+\`azos node\` is the SIDENET-P4 stacked offline client (not a kernel, not a Softwares card). It holds receipts and the presence tip in \`.azos/node/\`. \`azos node rejoin\` uses L0 FragGate/HTTPS when a published front answers. Phoenix is local wait / re-seal. Neighbor vote-to-fix is refused. The Softwares desk stays frozen. Plane B/C and the live-node API stay SLOT. Radio PHY is absent. No ICANN \`.az\` name is claimed. qnm-node is cited, not vendored.
+
 Counted download (gzip HTTP 200, no 302): https://azos-download-tracker.vibelock.workers.dev/download?asset=azos-0.3.0.tar.gz
 GitHub: https://github.com/AzielEliab/azos
 

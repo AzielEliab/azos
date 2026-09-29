@@ -221,6 +221,17 @@ def authorize_command(
     return GateResult(passed=passed, gates=checks)
 
 
+def node_proposal(actor: str) -> Proposal:
+    """Honest proposal for a local SIDENET-P4 write. Not a Softwares card."""
+    return Proposal(
+        action="sidenet",
+        definition="Write the local AZ-OS offline node under .azos/node.",
+        evidence="Operator asked the stacked node to seal, wait, or rejoin L0.",
+        impact="Files stay in .azos/node. HTTPS only to published L0 fronts when rejoin is asked. No host subprocess.",
+        actor=actor,
+    )
+
+
 def shell_proposal(actor: str) -> Proposal:
     """Honest proposal for opening a local ethics-gated shell session."""
     return Proposal(

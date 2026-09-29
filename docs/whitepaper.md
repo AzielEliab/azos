@@ -224,6 +224,13 @@ anonymity network. Anon-broadcast is not a publish path. AZ-OS
 remains an ethics-coded remote shell. Full node process is local
 `qnm-node/`.
 
+SIDENET-P4 is a stacked offline client in this package (`azos node`).
+It holds receipts and the presence tip under `.azos/node/`, and it
+rejoins L0 FragGate over HTTPS only when a published front answers.
+Phoenix is local wait / re-seal. REHEAL does not take a neighbor vote.
+The Softwares desk is not copied. Plane B, Plane C, and the live-node
+API stay SLOT. Radio PHY is absent. No ICANN `.az` name is claimed.
+
 ---
 
 ## 11. Motto

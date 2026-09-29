@@ -41,6 +41,7 @@ Python 3.10+. Core is stdlib only (`hashlib`, `secrets`, `json`,
 10. New behavior needs a test that fails without the change.
 11. Stay honest about scope: protocols, auth, sandbox.
 12. **Door vs local op.** `/v1/mesh/*` PROXY to aziel-runtime. Local ops are `/v1/{op}` only.
+13. **SIDENET-P4 is a stacked local node.** Receipts stay in `.azos/node/`. Do not invent Softwares cards, an ICANN name, or a radio PHY. Phoenix waits and re-seals locally. Neighbor vote-to-fix stays refused. Plane B/C and the live-node API stay SLOT until the published law says otherwise.
     Suite mesh default OFF; QNM rollup live|locked|isolated; QNS-CD-1.0
     hub cite (photon QNS1; local qnsd in qnm-node; no public proxy);
     no Node Gate; no auto-heal; not anonymity.
@@ -60,4 +61,5 @@ Python 3.10+. Core is stdlib only (`hashlib`, `secrets`, `json`,
 - Integrity lattice: `azos/lattice.py`
 - Hosted shell: `workers/download-tracker/src/runtime.js`
 - Suite mesh / QNM Live Nodes: `workers/download-tracker/src/mesh.js` (`/v1/mesh/*` PROXY to aziel-runtime; QNS-CD-1.0 hub cite, not a qnsd proxy).
+- Offline node (SIDENET-P4): `azos/sidenet.py` (`azos node`). Stacked on the shell. Not a Softwares card.
 - Sigil / brand mark (no words): `azos/templates/sigil.svg`

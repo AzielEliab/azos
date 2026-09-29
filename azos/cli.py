@@ -13,8 +13,9 @@ from pathlib import Path
 from typing import Sequence
 
 from azos import __version__
-from azos.errors import AuthorizationError, AzosError
-from azos.gate import shell_proposal
+from azos.errors import AuthorizationError, AzosError, HaltedError
+from azos.exec import SAFE_ACTIONS
+from azos.gate import authorize, node_proposal, shell_proposal
 from azos.interface import DEFAULT_HOST, DEFAULT_PORT, serve
 from azos.invite import emit_invite, invite_text
 from azos.runtime import Runtime
@@ -55,16 +56,18 @@ Advanced:
   invite    Print the adoption text and download URL
   import    Read a JSON file into .azos-state.json
   export    Write .azos-state.json to a file
+  node      Local offline node (receipts here; rejoin L0 when online)
   version   Print the package version
 
 Add --json to status, doctor, session, exec, halt, purge, import,
-or export for the machine-readable record. azos --json prints status.
+export, or node for the machine-readable record. azos --json prints status.
 
 Examples:
   azos
   azos ui
   azos shell
   azos doctor
+  azos node
   azos status --json
 
 Author: Aziel Eliab
@@ -168,6 +171,17 @@ def _build_parser() -> AzosParser:
 
     p_exp = add("export", "Write .azos-state.json to a file.")
     p_exp.add_argument("path")
+
+    p_node = add("node", "Local offline node. Receipts stay in .azos/node.")
+    p_node.add_argument(
+        "op",
+        nargs="?",
+        default="status",
+        choices=("status", "menu", "seal", "phoenix", "reseal", "reheal", "rejoin"),
+        help="status, menu, seal, phoenix, reseal, reheal, or rejoin.",
+    )
+    p_node.add_argument("--token", default=None, help="Issued token (hex).")
+    p_node.add_argument("--actor", default="operator", help="Name for a new token (default operator).")
 
     return parser
 
@@ -376,6 +390,103 @@ def _default(as_json: bool) -> int:
     return 0
 
 
+def _node_token_hash(rt: Runtime, *, token: str | None, actor: str) -> str:
+    if rt.halted:
+        raise HaltedError()
+    if token:
+        if not rt.arc.verify(token):
+            raise AuthorizationError("unauthorized: token missing or revoked")
+        return rt.arc.token_hash(token)
+    result = authorize(node_proposal(actor), SAFE_ACTIONS | frozenset({"sidenet"}))
+    if not result.passed:
+        raise AuthorizationError("unauthorized: ethics gates refused the offline node")
+    issued = rt.arc.issue(action="sidenet", actor=actor)
+    return rt.arc.token_hash(issued)
+
+
+def _human_node_write(op: str, result: dict) -> str:
+    if op == "rejoin":
+        if result.get("joined"):
+            return (
+                f"Rejoined L0 at {result.get('origin')}.\n"
+                "Softwares desk: frozen\n"
+                f"Presence tip: {result.get('tip')}\n"
+            )
+        reached = "L0 answered" if result.get("reachable") else "L0 did not answer"
+        return (
+            f"Local tip kept. {reached}.\n"
+            f"Code: {result.get('code')}\n"
+            "Softwares desk: frozen\n"
+            "\n"
+            "Next: azos node\n"
+        )
+    if op == "reheal":
+        return (
+            f"Reheal: {result.get('cure')}.\n"
+            f"Presence tip: {result.get('tip') or '(none yet)'}\n"
+            "Neighbor vote: refused\n"
+        )
+    if op == "phoenix":
+        return (
+            "Phoenix is waiting locally.\n"
+            "The presence tip is unchanged. No public hostname was restored.\n"
+            "\n"
+            "Next: azos node reseal\n"
+        )
+    tip = result.get("hash") or result.get("tip") or "(none yet)"
+    return f"{op}: local receipt recorded.\nPresence tip: {tip}\n"
+
+
+def _node_main(rt: Runtime, args: object, *, as_json: bool) -> int:
+    from azos.sidenet import OfflineNode, SidenetRefuse, menu_lines, status_lines
+
+    op = str(getattr(args, "op", "status") or "status")
+    node = OfflineNode(rt.root)
+    try:
+        if op == "status":
+            record = node.status()
+            _emit(record, as_json=as_json, human=status_lines(record))
+            return 0
+        if op == "menu":
+            record = node.menu()
+            _emit(record, as_json=as_json, human=menu_lines(record))
+            return 0
+        token_hash = _node_token_hash(
+            rt,
+            token=getattr(args, "token", None),
+            actor=str(getattr(args, "actor", "operator") or "operator"),
+        )
+        if op == "seal":
+            record = node.seal(token_hash=token_hash)
+        elif op == "phoenix":
+            record = node.phoenix(token_hash=token_hash)
+        elif op == "reseal":
+            record = node.reseal(token_hash=token_hash)
+        elif op == "reheal":
+            record = node.reheal(token_hash=token_hash)
+        elif op == "rejoin":
+            record = node.rejoin(token_hash=token_hash)
+        else:
+            sys.stderr.write(f'Unknown node action "{op}". Try: azos node --help\n')
+            return 2
+    except HaltedError as exc:
+        _write_auth_error(exc)
+        return 1
+    except AuthorizationError as exc:
+        _write_auth_error(exc)
+        return 1
+    except SidenetRefuse as exc:
+        sys.stderr.write(f"{exc}\nNext: azos node menu\n")
+        return 1
+    except AzosError as exc:
+        _write_error(exc)
+        return 1
+    _emit(record, as_json=as_json, human=_human_node_write(op, record))
+    if op == "rejoin" and not record.get("joined"):
+        return 1
+    return 0
+
+
 def _exit_code(exc: SystemExit) -> int:
     code = exc.code
     if code is None or code == 0:
@@ -519,6 +630,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         from azos.doctor import run_doctor
 
         return run_doctor(as_json=as_json)
+
+    if args.cmd == "node":
+        return _node_main(rt, args, as_json=as_json)
 
     if args.cmd == "import":
         from azos.jsonio import import_json

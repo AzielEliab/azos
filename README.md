@@ -57,9 +57,10 @@ Advanced (same command names as before):
 | `azos invite` | Adoption text and download URL. Writes no files |
 | `azos import FILE` | Read JSON into `.azos-state.json` |
 | `azos export FILE` | Write `.azos-state.json` |
+| `azos node` | Local offline node: receipts and presence tip in `.azos/node` |
 | `azos version` | Package version |
 
-`--json` on `status`, `doctor`, `session`, `exec`, `halt`, `purge`, `import`, and `export` prints the machine record. `azos --json` prints status.
+`--json` on `status`, `doctor`, `session`, `exec`, `halt`, `purge`, `import`, `export`, and `node` prints the machine record. `azos --json` prints status.
 
 Builtins for `azos exec`: `list_modules`, `echo`, `status`, `purge_session`, `shell`.
 
@@ -109,6 +110,16 @@ Counted download: https://azos-download-tracker.vibelock.workers.dev/
 No Zenodo DOI is claimed. `/v1` on the Worker does not increment downloads.
 
 Suite mesh: https://azos-download-tracker.vibelock.workers.dev/v1/mesh — read-only proxy, default off. QNS-CD-1.0 is a cite. GET does not enable it.
+
+### Offline node (SIDENET-P4)
+
+`azos node` is a stacked client on this shell. It is not a kernel and not a Softwares card.
+
+It keeps an append-only receipt chain and the presence tip in `.azos/node/`. `azos node menu` prints the multi-survival menu. Plane B, Plane C, the live-node API, and any DOI stay **SLOT**. The Softwares desk stays **frozen** (no cards are invented here). Radio PHY stays **absent**. No ICANN `.az` name is claimed.
+
+`azos node phoenix` waits locally. `azos node reseal` continues from this node's own tip. A neighbor vote-to-fix is refused. `azos node rejoin` calls aziel-runtime FragGate over HTTPS on the published fronts, and only after a health answer. If the network is down, the local tip stays and L0 is **unreachable**, not live.
+
+The full node process, including OS radio probes, remains [qnm-node](https://github.com/AzielEliab/qnm-node). This package does not vendor it and does not pretend a radio is present. See [docs/SIDENET-P4.md](docs/SIDENET-P4.md).
 
 Papers: [docs/whitepaper.md](docs/whitepaper.md). Contributing: [CONTRIBUTING.md](CONTRIBUTING.md).
 
