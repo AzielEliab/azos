@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import tarfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -133,3 +134,49 @@ def test_worker_kv_binding_present() -> None:
     toml = TOML.read_text(encoding="utf-8")
     assert 'binding = "DOWNLOADS"' in toml
     assert "816b8d5da5fd470f9c4e783f3c87ca77" in toml
+
+
+def test_counted_tarball_includes_offline_node_client() -> None:
+    """public/azos-0.3.0.tar.gz is the counted sdist and must match this tree.
+
+    The Worker skill points operators at this gzip for the local package.
+    That package includes the AZnet offline node client (azos/node.py).
+    """
+    archive = ROOT / "workers" / "download-tracker" / "public" / "azos-0.3.0.tar.gz"
+    prefix = "azos-0.3.0/"
+    generated = {"PKG-INFO", "setup.cfg"}
+    required = (
+        "azos/node.py",
+        "azos/cli.py",
+        "azos/doctor.py",
+        "azos/runtime.py",
+        "azos/interface.py",
+        "tests/test_node.py",
+        "SKILL.md",
+        "README.md",
+        "docs/whitepaper.md",
+        "CONTRIBUTING.md",
+    )
+    with tarfile.open(archive, "r:gz") as tar:
+        names = set(tar.getnames())
+        for rel in required:
+            member = prefix + rel
+            assert member in names
+            assert tar.extractfile(member).read() == (ROOT / rel).read_bytes()
+        for member in tar.getmembers():
+            if not member.isfile():
+                continue
+            rel = member.name.removeprefix(prefix)
+            if rel.startswith("azos.egg-info/") or rel in generated:
+                continue
+            assert (ROOT / rel).is_file()
+            assert tar.extractfile(member).read() == (ROOT / rel).read_bytes()
+        node = tar.extractfile(prefix + "azos/node.py").read().decode("utf-8")
+        sources = tar.extractfile(prefix + "azos.egg-info/SOURCES.txt").read().decode("utf-8")
+    assert 'CLIENT = "offline-node"' in node
+    assert 'SIDENET = "aznet"' in node
+    assert "This package does not include it." in node
+    assert 'softwares_desk' in node
+    assert "azos/node.py" in sources
+    assert "tests/test_node.py" in sources
+    assert not any("softwares" in name.lower() for name in names)
