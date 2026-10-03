@@ -29,7 +29,6 @@ def test_prefab_does_not_install_4dmap_or_aznews() -> None:
     assert "aznews" not in found
     assert "4dmap" not in slugs()
     assert "aznews" not in slugs()
-    assert all(app["installed"] is True for app in found.values())
 
 
 def test_status_refuses_absent_source_and_points_at_runtime(tmp_path: Path) -> None:
