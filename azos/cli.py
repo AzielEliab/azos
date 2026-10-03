@@ -57,10 +57,11 @@ Advanced:
   import    Read a JSON file into .azos-state.json
   export    Write .azos-state.json to a file
   node      Local AZnet hash client (sidenet). Three layers by need.
+  news      News and the map. Points at the runtime 4DMap join.
   version   Print the package version
 
 Add --json to status, doctor, session, exec, halt, purge, import,
-export, or node for the machine-readable record. azos --json prints status.
+export, node, or news for the machine-readable record. azos --json prints status.
 
 Examples:
   azos
@@ -202,6 +203,16 @@ def _build_parser() -> AzosParser:
         default=None,
         help="Reported as present or absent. Never stored.",
     )
+
+    p_news = add("news", "News and the map. The runtime 4DMap join. No second app.")
+    p_news.add_argument(
+        "op",
+        nargs="?",
+        default="status",
+        choices=("status", "pin", "open"),
+        help="status, pin, or open.",
+    )
+    p_news.add_argument("--actor", default="operator", help="Name on the offline record.")
 
     return parser
 
@@ -366,6 +377,37 @@ def _human_node(rec: dict) -> str:
     if rec.get("ok") is False:
         lines.append(str(rec.get("note") or rec.get("code") or "refused"))
     return "\n".join(lines) + "\n"
+
+
+def _human_news(rec: dict) -> str:
+    plain = str(rec.get("plain") or "").strip()
+    if not plain:
+        plain = "News and the map use the runtime 4DMap join. No news source is present."
+    return plain + "\n"
+
+
+def _news_command(args: argparse.Namespace, *, as_json: bool) -> int:
+    from azos.newsmap import NewsMap
+
+    door = NewsMap(root=Path.cwd())
+    op = args.op or "status"
+    try:
+        if op == "status":
+            rec = door.status()
+        elif op == "pin":
+            rec = door.pin(username=args.actor)
+        elif op == "open":
+            rec = door.open_news(username=args.actor)
+        else:
+            sys.stderr.write('Unknown news command. Try: azos news\n')
+            return 2
+    except AzosError as exc:
+        sys.stderr.write(f"{exc}\nNext: azos news\n")
+        return 1
+    _emit(rec, as_json=as_json, human=_human_news(rec))
+    if op == "status":
+        return 0
+    return 0 if rec.get("ok") else 1
 
 
 def _node_command(rt: Runtime, args: argparse.Namespace, *, as_json: bool) -> int:
@@ -664,6 +706,9 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     if args.cmd == "node":
         return _node_command(rt, args, as_json=as_json)
+
+    if args.cmd == "news":
+        return _news_command(args, as_json=as_json)
 
     if args.cmd == "import":
         from azos.jsonio import import_json

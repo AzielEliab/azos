@@ -93,6 +93,11 @@ def make_handler(runtime: Runtime):
             if path == "/api/lattice":
                 self._json(200, runtime.lattice.snapshot())
                 return
+            if path == "/api/newsmap":
+                from azos.newsmap import NewsMap
+
+                self._json(200, NewsMap(root=runtime.root).status())
+                return
             if path == "/api/invite":
                 self._json(200, {"invite": invite_text()})
                 return
@@ -191,6 +196,47 @@ def make_handler(runtime: Runtime):
                     self._json(
                         403,
                         {"ok": False, "error": str(exc), "invite": invite_text()},
+                    )
+                    return
+                self._json(200, out)
+                return
+
+            if path == "/api/newsmap":
+                from azos.errors import AzosError
+                from azos.newsmap import NewsMap
+
+                action = str(payload.get("action") or "").strip().lower()
+                username = str(payload.get("username") or payload.get("actor") or "operator")
+                door = NewsMap(root=runtime.root)
+                try:
+                    if action == "pin":
+                        out = door.pin(username=username)
+                    elif action == "open":
+                        out = door.open_news(username=username)
+                    else:
+                        self._json(
+                            400,
+                            {
+                                "ok": False,
+                                "refused": True,
+                                "live": False,
+                                "merged": False,
+                                "installed": False,
+                                "plain": "Choose pin a news item, or open the matching news.",
+                            },
+                        )
+                        return
+                except AzosError as exc:
+                    self._json(
+                        400,
+                        {
+                            "ok": False,
+                            "refused": True,
+                            "live": False,
+                            "merged": False,
+                            "installed": False,
+                            "plain": str(exc),
+                        },
                     )
                     return
                 self._json(200, out)

@@ -320,6 +320,7 @@ export function renderHomepage(stats) {
       <p class="banner">THIS IS: prefab AZ-OS — ethics-coded remote shell with catalog software hooked in. Windows-style desktop locally; the sigil / brand mark (rose-star, no words) replaces a vendor logo. TemporalLock × StaticClock integrity lattice. Author Aziel Eliab only.</p>
       <p class="banner">THIS IS NOT: a kernel, bootloader, hypervisor, replacement OS, VPN, worm, malware, unrestricted host bash, or SSH. Halt stops overlay authority. It does not kill the caller OS.</p>
       <p class="banner limit">THIS WORKER is the public homepage + counted download + read-only hosted ops (status, invite, health, skill, prefab, lattice snapshot). Session, exec, and lattice bind persist in product-Worker KV and need full AZ-OS (<code>azos ui</code> / <code>azos shell</code>). The HTTP proxy is not the full OS.</p>
+      <p class="banner" id="news-map">News and the map use one runtime join. A news item can become a map pin (date, event, and place), or a pin can open the matching news. That join is the runtime 4DMap engine, reached from full AZ-OS. This page does not install 4DMap and does not serve articles. The news source aznews is absent. The missing code is azos.news_source. Nothing here is live or merged.</p>
     </div>
 
     <div id="meshStrip" aria-label="Suite Live Nodes">

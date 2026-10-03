@@ -43,6 +43,7 @@ Ops (do **not** increment downloads or views):
 - `POST /v1/close` — close a session
 - `GET /v1/prefab` — installed catalog apps
 - `GET`/`POST /v1/lattice` — TemporalLock × StaticClock integrity lattice
+- `GET /v1/newsmap` — runtime AZNews ↔ 4DMap join. 4DMap is not installed. No news source. Not live.
 - Product POSTs listed in OpenAPI (`invite`, `halt`, `revoke`)
 
 Works with ChatGPT (GPT Actions / OpenAI), Grok (xAI), Venice, Claude (Anthropic), Cursor (MCP), Glama (MCP), Perplexity, Microsoft Copilot / Bing, Google Gemini / Vertex, Mistral, Meta AI, Apple Intelligence surfaces, Amazon Q tooling, DuckAssist, You.com, Cohere, and other MCP/OpenAPI-capable assistants. Import OpenAPI as a custom tool, use GPT Actions, HTTP tools, or MCP. Catalog MCP `mesh_*` + FragGate `slug=mesh`. Suite mesh default OFF. QNM-BUILD-1.0 live|locked|isolated. QNS-CD-1.0 photon QNS1 hub cite (qnm-node qnsd; no public proxy). No Node Gate. No auto-heal. Not anonymity. Author: Aziel Eliab only.
@@ -86,6 +87,10 @@ azos node probe
 ```
 
 `stamp` stores a sha256 ref and does not store the text. `probe` is `GET /v1/health` only. It does not call a FragGate op. When the machine is online, FragGate HTTPS at `https://aziel-runtime.vibelock.workers.dev/v1/fraggate/call` is still the door.
+
+## News and the map
+
+AZ-OS points at the runtime 4DMap engine (`slug=4dmap`, ops `news_pin` and `news_open`). A news item can become a map pin (date, event, and place), or a pin can open the matching news. This is not a second app and not a copy of the engine. 4DMap is not marked installed. The news source `aznews` is absent (`azos.news_source` is not in this package), so the surface refuses and does not invent articles. That refusal is not live and not merged. `azos news` and the local page at http://127.0.0.1:8800/ say this in plain language.
 
 Counted download (gzip HTTP 200, no 302): https://azos-download-tracker.vibelock.workers.dev/download?asset=azos-0.3.0.tar.gz
 GitHub: https://github.com/AzielEliab/azos

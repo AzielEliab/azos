@@ -30,6 +30,9 @@ def test_html_is_self_contained() -> None:
     assert "/api/shell" in html
     assert "Open shell" in html
     assert "Advanced" in html
+    assert "Pin a news item" in html
+    assert "Open the matching news" in html
+    assert "15:20" not in html
     assert "prefers-color-scheme" in html
     assert ":focus-visible" in html
     assert "/sigil.svg" in html
@@ -72,6 +75,44 @@ def test_ui_get_root_contains_azos_and_interface(tmp_path: Path) -> None:
         assert node["l0_executed"] is False
         assert node["payload_host"] is False
         assert node["layers"] == ["base", "stacked", "standalone"]
+        conn.request("GET", "/api/newsmap")
+        news_resp = conn.getresponse()
+        news = json.loads(news_resp.read().decode("utf-8"))
+        assert news_resp.status == 200
+        assert news["installed"] is False
+        assert news["source_present"] is False
+        assert news["live"] is False
+        assert news["engine_slug"] == "4dmap"
+        assert "azos.news_source" in news["plain"]
+        conn.request(
+            "POST",
+            "/api/newsmap",
+            body=json.dumps({"action": "pin", "username": "operator"}),
+            headers={"Content-Type": "application/json"},
+        )
+        posted = conn.getresponse()
+        posted_body = json.loads(posted.read().decode("utf-8"))
+        assert posted.status == 200
+        assert posted_body["refused"] is True
+        assert posted_body["installed"] is False
+        assert posted_body["live"] is False
+        assert posted_body["merged"] is False
+        assert "azos.news_source" in posted_body["plain"]
+        assert "article" not in posted_body
+        conn.request(
+            "POST",
+            "/api/newsmap",
+            body=json.dumps({"action": "open", "username": "operator", "fixture": True}),
+            headers={"Content-Type": "application/json"},
+        )
+        opened = conn.getresponse()
+        opened_body = json.loads(opened.read().decode("utf-8"))
+        assert opened.status == 200
+        assert opened_body["refused"] is True
+        assert opened_body["fixture"] is False
+        assert opened_body["live"] is False
+        assert opened_body["merged"] is False
+        assert "azos.news_source" in opened_body["plain"]
         conn.request("GET", "/sigil.svg")
         sig = conn.getresponse()
         svg = sig.read().decode("utf-8")

@@ -66,6 +66,9 @@ def test_worker_homepage_is_product_ui() -> None:
     assert "/v1/invite" in hp
     assert "/v1/prefab" in hp
     assert "/v1/lattice" in hp
+    assert 'id="news-map"' in hp
+    assert "azos.news_source" in hp
+    assert "does not install 4DMap" in hp
     assert "THE EVER BLOOMING FLOWER" not in hp.upper()
     assert "Claude (Anthropic)" in hp
     assert "other MCP/OpenAPI-capable assistants" in hp
@@ -120,6 +123,11 @@ def test_worker_runtime_exposes_ethics_shell() -> None:
     assert 'VERSION = "0.3.0"' in runtime
     assert "/v1/prefab" in runtime
     assert "/v1/lattice" in runtime
+    assert "/v1/newsmap" in runtime
+    assert "AZNEWS-SOURCE-ABSENT" in runtime
+    prefab_slugs = runtime.split("const slugs = [", 1)[1].split("];", 1)[0]
+    assert "4dmap" not in prefab_slugs
+    assert "aznews" not in prefab_slugs
     assert "Aziel Eliab" in runtime
     assert "Use with AI assistants" in runtime
     assert "Use with Grok, ChatGPT, Venice" not in runtime
