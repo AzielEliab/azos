@@ -181,6 +181,7 @@ class Runtime:
             "builtins": sorted(SAFE_ACTIONS),
             "shell": self.shell.snapshot(),
             "offline_node": _offline_node_summary(self.root),
+            "news_map": _news_map_summary(self.root),
             **scope,
             "prefab": prefab_snapshot(),
             "lattice": self.lattice.snapshot(),
@@ -224,6 +225,34 @@ def _version() -> str:
     from azos import __version__
 
     return __version__
+
+
+def _news_map_summary(root: Path) -> dict[str, Any]:
+    """Read-only pointer at the runtime AZNews ↔ 4DMap join. Writes nothing."""
+    from azos.newsmap import NewsMap
+
+    record = NewsMap(root=root).status()
+    return {
+        "join": record["join"],
+        "engine_slug": record["engine_slug"],
+        "engine_name": record["engine_name"],
+        "installed": False,
+        "engine_installed": False,
+        "second_app": False,
+        "engine_copy": False,
+        "source": record["source"],
+        "source_present": False,
+        "absent": record["absent"],
+        "code": record["code"],
+        "merged": False,
+        "live": False,
+        "lattice_live": False,
+        "door": record["door"],
+        "pin_op": record["pin_op"],
+        "open_op": record["open_op"],
+        "plain": record["plain"],
+        "author": record["author"],
+    }
 
 
 def _offline_node_summary(root: Path) -> dict[str, Any]:

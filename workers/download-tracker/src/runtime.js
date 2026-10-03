@@ -238,6 +238,10 @@ AZnet is the sidenet. **AZ Browser** is the browser surface for AZnet. \`azos no
 
 \`azos node probe\` is GET /v1/health only. It does not call a FragGate op. Online calls still use \`https://aziel-runtime.vibelock.workers.dev/v1/fraggate/call\`.
 
+## News and the map
+
+AZ-OS points at the runtime 4DMap engine (\`slug=4dmap\`, ops \`news_pin\` and \`news_open\`). A news item can become a map pin (date, event, and place), or a pin can open the matching news. This is not a second app and not a copy of the engine. 4DMap is not marked installed. The news source aznews is absent (azos.news_source is not in this package), so the surface refuses and does not invent articles. That refusal is not live and not merged.
+
 Counted download (gzip HTTP 200, no 302): https://azos-download-tracker.vibelock.workers.dev/download?asset=azos-0.3.0.tar.gz
 GitHub: https://github.com/AzielEliab/azos
 
@@ -716,6 +720,13 @@ function openapiDoc() {
           responses: { "200": { description: "Prefab apps" } },
         },
       },
+      "/v1/newsmap": {
+        get: {
+          operationId: "azosNewsMap",
+          summary: "Runtime AZNews to 4DMap join. 4DMap is not installed. No news source.",
+          responses: { "200": { description: "Join status. Source absent. Not live." } },
+        },
+      },
       "/v1/lattice": {
         get: {
           operationId: "azosLattice",
@@ -775,6 +786,31 @@ export async function handleRuntime(request, url, env) {
   if (path === "/v1/mesh" || path.startsWith("/v1/mesh/")) return null;
   if (path === "/v1/health" && request.method === "GET") {
     return runtimeJson(scopeMeta({ ok: true, product: PRODUCT, version: VERSION }));
+  }
+  if (path === "/v1/newsmap" && request.method === "GET") {
+    return runtimeJson(scopeMeta({
+      ok: false,
+      refused: true,
+      code: "AZNEWS-SOURCE-ABSENT",
+      absent: "azos.news_source",
+      source: "aznews",
+      source_present: false,
+      join: "aznews-4dmap",
+      engine_slug: "4dmap",
+      engine_name: "4DMap",
+      engine_copy: false,
+      second_app: false,
+      installed: false,
+      engine_installed: false,
+      merged: false,
+      live: false,
+      lattice_live: false,
+      door: "https://aziel-runtime.vibelock.workers.dev/v1/fraggate/call",
+      pin_op: "news_pin",
+      open_op: "news_open",
+      author: AUTHOR,
+      plain: "News and the map use one runtime join. A news item can become a map pin (date, event, and place), or a pin can open the matching news. That join is the runtime 4DMap engine on the FragGate door. AZ-OS does not install 4DMap and does not keep a second map. The news source aznews is absent. The missing code is azos.news_source. Nothing here is live or merged.",
+    }));
   }
   if (path === "/v1/prefab" && request.method === "GET") {
     const slugs = ["azos","temporallock","staticclock","shadowlock","foldlock","azai","godlock","vibelock","veillock","spectrallock","miragegrid","codelock","decisiongate","chronolock","azclce","ark","azbot","aziel-corpus","employeelock","whistlelock","trajectorylock","forgereceipts","glossafilter","postking","zsolver"];
@@ -1039,7 +1075,8 @@ export async function handleRuntime(request, url, env) {
   if (
     path === "/v1/status" || path === "/v1/invite" || path === "/v1/halt" ||
     path === "/v1/revoke" || path === "/v1/session" || path === "/v1/exec" ||
-    path === "/v1/close" || path === "/v1/lattice" || path === "/v1/prefab"
+    path === "/v1/close" || path === "/v1/lattice" || path === "/v1/prefab" ||
+    path === "/v1/newsmap"
   ) {
     return runtimeJson(scopeMeta({ error: "method not allowed" }), 405);
   }

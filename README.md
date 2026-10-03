@@ -59,6 +59,7 @@ Advanced (same command names as before):
 | `azos export FILE` | Write `.azos-state.json` |
 | `azos version` | Package version |
 | `azos node` | Local AZnet hash client. Sidenet is AZnet |
+| `azos news` | News and the map. Points at the runtime 4DMap join |
 
 `azos node` keeps hash refs in `.azos/node/`. The text you pass to `stamp` is hashed and not stored. **AZ Browser** is the browser surface for AZnet. It is a separate product. This package does not include it. The AZ-OS layers stay `base`, `stacked`, and `standalone`.
 
@@ -80,7 +81,7 @@ Shell commands: `help`, `pwd`, `ls`, `cat`, `write`, `echo`, `mkdir`, `rm`, `cd`
 
 `azos ui` prints `Open http://127.0.0.1:8800/` and serves AZ Interface on that address.
 
-The first screen has one primary action, **Open shell**. Help sits beside it. Halt, purge, the ethics form, catalog hooks, the lattice, and the log are under **Advanced**. Light and dark follow the system. Keyboard focus uses a gold ring. The layout fits a narrow phone width.
+The first screen has one primary action, **Open shell**. Help sits beside it. Under that, **News and the map** explains the runtime join: a news item can become a map pin (date, event, and place), or a pin can open the matching news. That join is the runtime 4DMap engine. AZ-OS does not install 4DMap and does not keep a second map. No news source is in this package (`azos.news_source` is absent), so those actions refuse instead of inventing articles. Nothing on that join is marked live or merged. Halt, purge, the ethics form, catalog hooks, the lattice, and the log are under **Advanced**. Light and dark follow the system. Keyboard focus uses a gold ring. The layout fits a narrow phone width.
 
 A program can send `Accept: application/json` on `GET /` for the status record. `GET /api/node` reports the local AZnet client. The Softwares desk on the page is unchanged.
 

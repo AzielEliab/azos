@@ -125,6 +125,30 @@ def _check_offline_node() -> Check:
     return _ok("offline-node", "aznet client")
 
 
+def _check_news_map() -> Check:
+    try:
+        from azos.newsmap import ABSENT_MODULE, ENGINE_SLUG, NewsMap
+        from azos.prefab import prefab_apps, slugs
+    except Exception as exc:  # noqa: BLE001
+        return _fail("news-map", str(exc))
+    if "4dmap" in slugs() or "aznews" in slugs():
+        return _fail("news-map", "prefab slug")
+    for app in prefab_apps():
+        if app.get("slug") in {"4dmap", "aznews"} and app.get("installed"):
+            return _fail("news-map", "installed")
+    with tempfile.TemporaryDirectory() as tmp:
+        record = NewsMap(root=tmp).status()
+    if record.get("installed") or record.get("engine_installed") or record.get("source_present"):
+        return _fail("news-map", "flags")
+    if record.get("live") or record.get("merged") or record.get("lattice_live"):
+        return _fail("news-map", "live")
+    if record.get("engine_slug") != ENGINE_SLUG or record.get("absent") != ABSENT_MODULE:
+        return _fail("news-map", "door")
+    if record.get("engine_copy") or record.get("second_app"):
+        return _fail("news-map", "copy")
+    return _ok("news-map", "runtime join, source absent")
+
+
 CHECKS: tuple[Callable[[], Check], ...] = (
     _check_version,
     _check_identity,
@@ -132,6 +156,7 @@ CHECKS: tuple[Callable[[], Check], ...] = (
     _check_prefab_lattice,
     _check_json_roundtrip,
     _check_offline_node,
+    _check_news_map,
 )
 
 

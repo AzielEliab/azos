@@ -184,6 +184,14 @@
       </div>
       <p class="note" id="ethics-line"></p>
 
+      <h2>News and the map</h2>
+      <p id="news-plain" class="lede">Loading the runtime join…</p>
+      <div class="row">
+        <button type="button" class="ghost" id="btn-news-pin">Pin a news item</button>
+        <button type="button" class="ghost" id="btn-news-open">Open the matching news</button>
+      </div>
+      <p id="news-result" class="note"></p>
+
       <details id="advanced">
         <summary>Advanced</summary>
         <label for="actor">Name on the session</label>
@@ -430,7 +438,8 @@
       ["Lattice", lattice.verified
         ? ((lattice.gear_ticks || 0) === 0 ? "Check passed. No entries yet." : "Check passed")
         : "Check did not pass"],
-      ["Version", st.version || ""]
+      ["Version", st.version || ""],
+      ["News and the map", (st.news_map && st.news_map.plain) || ""]
     ];
     $("status-list").innerHTML = rows.map((row) =>
       "<dt>" + esc(row[0]) + "</dt><dd>" + esc(row[1]) + "</dd>"
@@ -475,6 +484,8 @@
       renderCatalog();
       const invite = await (await fetch("/api/invite")).json();
       $("invite-text").textContent = invite.invite || "";
+      const news = await (await fetch("/api/newsmap")).json();
+      $("news-plain").textContent = news.plain || "";
       await refresh();
     } catch (err) {
       setMsg("The page could not read local status. Next: reload.", false);
@@ -527,6 +538,22 @@
     await refresh();
   }
 
+  async function newsAction(action) {
+    const actor = actorName();
+    const res = await fetch("/api/newsmap", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: action, username: actor })
+    });
+    const data = await res.json();
+    $("news-result").textContent = data.plain || "Refused.";
+  }
+  $("btn-news-pin").onclick = () => {
+    newsAction("pin").catch(() => { $("news-result").textContent = "The news join did not finish. Next: reload this page."; });
+  };
+  $("btn-news-open").onclick = () => {
+    newsAction("open").catch(() => { $("news-result").textContent = "The news join did not finish. Next: reload this page."; });
+  };
   $("btn-open").onclick = () => { openShell().catch(() => setMsg("The request did not finish. Next: reload this page.", false)); };
   $("btn-request").onclick = () => {
     setMsg("Checking the request…");
