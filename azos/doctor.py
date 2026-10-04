@@ -158,6 +158,28 @@ def _check_news_map() -> Check:
     return _ok("news-map", "runtime join, source absent")
 
 
+def _check_doors() -> Check:
+    try:
+        from azos.doors import prove, scope_follows
+    except Exception as exc:  # noqa: BLE001
+        return _fail("doors", str(exc))
+    with tempfile.TemporaryDirectory() as tmp:
+        try:
+            proof = prove(Path(tmp))
+            scope_follows(proof)
+        except Exception as exc:  # noqa: BLE001
+            return _fail("doors", str(exc))
+    flags = proof["flags"]
+    if flags.get("userspace_base") is not True:
+        return _fail("doors", "userspace")
+    if proof["doors"]["userspace_base"].get("booted") is True:
+        return _fail("doors", "booted")
+    for name in ("kernel", "booted", "installed", "internet", "mail_send", "mesh_node_live", "one_click_install_live", "join_live"):
+        if flags.get(name) is True:
+            return _fail("doors", name)
+    return _ok("doors", "userspace base; refused doors stay false")
+
+
 CHECKS: tuple[Callable[[], Check], ...] = (
     _check_version,
     _check_identity,
@@ -166,6 +188,7 @@ CHECKS: tuple[Callable[[], Check], ...] = (
     _check_json_roundtrip,
     _check_offline_node,
     _check_news_map,
+    _check_doors,
 )
 
 

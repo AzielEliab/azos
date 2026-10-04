@@ -65,6 +65,8 @@ Python 3.10+. Core is stdlib only (`hashlib`, `secrets`, `json`,
 - CLI: `azos/cli.py`
 - Prefab catalog apps: `azos/prefab.py`
 - Joined AZNews ↔ 4DMap door (not an installed app; runtime side not claimed done): `azos/newsmap.py`
+- Fetch door with no standing feed: `azos/news_source.py`
+- Door flags follow the door result: `azos/doors.py`
 - Standalone AZNews (outlets, weather gaps, tail events, dual hash chains): `azos/aznews.py`
 - Standalone 4DMap pins (not installed): `azos/fourdmap.py`
 - Primary and secondary hash chains: `azos/chains.py`

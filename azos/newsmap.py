@@ -9,11 +9,13 @@ second app, not a copy of the engine, and not an installed prefab.
 The runtime side is a cross-tether. This package does not claim that
 side is done.
 
-No news source ships here. ``azos.news_source`` is absent. The probe
-stays refused until a real fetched item lands on a pin or the map opens
-that news. A fixture is not that item. Absent source stays refused.
+``azos.news_source`` is the fetch door. It has no standing feed, so
+the probe stays refused until a real fetched item lands on a pin.
+A fixture is not that item. Absent source stays refused.
 A test may inject a transport and a clearly labeled fixture to prove
 the door calls the runtime join. That fixture is not live news.
+``land_fetched`` is the same door with a fetched item: both hash chains
+and a map pin, and only then may the join be marked live.
 
 Receipts this module writes use two offline hash-chain lattices.
 The secondary hash binds that user's primary hash plus their username,
@@ -68,8 +70,16 @@ PLAIN_STATUS = (
     "That join is the runtime 4DMap engine on the FragGate door. "
     "This package does not claim the aziel-runtime side is done. "
     "AZ-OS does not install 4DMap and does not keep a second map. "
-    "The news source aznews is absent. "
-    "The missing code is azos.news_source. Nothing here is live or merged."
+    "azos.news_source is the fetch door and it has no standing feed, "
+    "so the news source is absent. "
+    "The probe refuses until a fetched item lands. Nothing here is live or merged."
+)
+
+PLAIN_LIVE = (
+    "A fetched news item has landed as a map pin, so the join is marked live. "
+    "AZNews can still stand alone, and 4DMap can still stand alone. "
+    "4DMap is not installed. The join is not merged. "
+    "This package does not claim the aziel-runtime side is done."
 )
 
 _DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
@@ -89,7 +99,7 @@ def _refusal_plain(action: str, *, doubled: bool) -> str:
     )
     return (
         f"Refused. There is no news source, so AZ-OS will not {asked} or invent one. "
-        "The missing source is aznews. The missing code is azos.news_source. "
+        "azos.news_source has no standing feed. "
         "The join still points at the runtime 4DMap engine: a news item can become a map pin "
         "(date, event, and place), or the map can open the matching news. "
         "4DMap is not installed here. This is not live and not merged. "
@@ -118,14 +128,14 @@ class NewsMap:
 
     def status(self) -> dict[str, Any]:
         lattice = self.lattice.snapshot()
-        landed = _real_item_landed(self.lattice)
-        return {
-            "ok": False,
+        landed = self._join_ready()
+        record = {
+            "ok": landed,
             "refused": not landed,
-            "code": ABSENT_CODE if not landed else "AZNEWS-ITEM-LANDED",
-            "absent": ABSENT_MODULE,
+            "code": "AZNEWS-ITEM-LANDED" if landed else ABSENT_CODE,
+            "absent": None if landed else ABSENT_MODULE,
             "source": SOURCE,
-            "source_present": False,
+            "source_present": landed,
             "join": JOIN,
             "path": "joined",
             "paths": {
@@ -145,7 +155,7 @@ class NewsMap:
             "installed": False,
             "engine_installed": False,
             "merged": False,
-            "live": False,
+            "live": landed,
             "lattice_live": False,
             "item_landed": landed,
             "runtime_done": RUNTIME_DONE,
@@ -159,9 +169,61 @@ class NewsMap:
             "pin_direction": PIN_DIRECTION,
             "open_direction": OPEN_DIRECTION,
             "author": AUTHOR,
-            "plain": PLAIN_STATUS,
+            "plain": PLAIN_LIVE if landed else PLAIN_STATUS,
             "lattice": lattice,
         }
+        if landed:
+            record["paths"]["joined"]["live"] = True
+        return seal_join(record)
+
+    def _join_ready(self) -> bool:
+        if not self.lattice.verify():
+            return False
+        item = _fetched_row(self.lattice.rows)
+        if item is None:
+            return False
+        from azos.fourdmap import FourDMap
+
+        pins = FourDMap(root=self.root)
+        if not pins.lattice.verify():
+            return False
+        digest = str(item.get("content_hash") or "")
+        for row in pins.lattice.rows:
+            document = row.get("document")
+            if isinstance(document, dict) and document.get("news_content_hash") == digest:
+                return True
+        return False
+
+    def _performed(self, action: str) -> dict[str, Any]:
+        if not self._join_ready():
+            raise AzosError("join performed without a fetched pin")
+        status = self.status()
+        row = _fetched_row(self.lattice.rows)
+        if row is None:
+            raise AzosError("join performed without a fetched item")
+        performed = dict(status)
+        performed.update(
+            {
+                "ok": True,
+                "refused": False,
+                "action": action,
+                "code": "AZNEWS-ITEM-LANDED",
+                "source_present": True,
+                "live": True,
+                "merged": False,
+                "installed": False,
+                "engine_installed": False,
+                "item_landed": True,
+                "lattice_live": False,
+                "fixture": False,
+                "wording": row["document"].get("wording"),
+                "username": row.get("username"),
+                "primary_hash": row["primary_hash"],
+                "secondary_hash": row["secondary_hash"],
+                "content_hash": row["content_hash"],
+            }
+        )
+        return seal_join(performed)
 
     def pin(
         self,
@@ -206,6 +268,45 @@ class NewsMap:
             event=event,
             geo=geo,
         )
+
+    def land_fetched(self, *, transport: Any, username: str = "operator") -> dict[str, Any]:
+        """Pin one fetched item. A missing fetch keeps the absent refusal."""
+        from azos.aznews import AZNews
+        from azos.fourdmap import FourDMap
+        from azos.news_source import fetch
+
+        name = clean_username(username)
+        got = fetch(transport)
+        if got.get("refused") or not isinstance(got.get("document"), dict):
+            return self._refuse("pin", PIN_OP, PIN_DIRECTION, name)
+        document = dict(got["document"])
+        document["path"] = "joined"
+        document["live"] = False
+        document["fixture"] = False
+        document["fetched"] = True
+        doubled = False
+        try:
+            row = self.lattice.append(document, name)
+        except AzosError as exc:
+            if str(exc) != DOUBLE_CODE:
+                raise
+            doubled = True
+            found = self.lattice.find(content_hash(document), name)
+            if found is None:
+                raise
+            row = found
+        AZNews(root=self.root).store_document(document, name)
+        FourDMap(root=self.root).pin_news(document, name)
+        if not self.lattice.verify() or not self._join_ready():
+            raise AzosError("The fetched item did not land on both hash chains and a map pin.")
+        performed = self._performed("pin")
+        performed["doubled"] = doubled
+        performed["primary_hash"] = row["primary_hash"]
+        performed["secondary_hash"] = row["secondary_hash"]
+        performed["content_hash"] = row["content_hash"]
+        performed["primary_chain"] = self.lattice.primary_chain()
+        performed["secondary_chain"] = self.lattice.secondary_chain()
+        return performed
 
     def record_fixture(
         self,
@@ -279,6 +380,8 @@ class NewsMap:
     ) -> dict[str, Any]:
         name = clean_username(username)
         if not fixture:
+            if self._join_ready():
+                return self._performed(action)
             return self._refuse(action, op, direction, name)
         return self._fixture_call(
             action,
@@ -448,6 +551,39 @@ class NewsMap:
         }
 
 
+def seal_join(record: dict[str, Any]) -> dict[str, Any]:
+    """A join flag cannot be true while the source is absent or 4DMap is installed."""
+    paths = record.get("paths") if isinstance(record.get("paths"), dict) else {}
+    joined = paths.get("joined") if isinstance(paths.get("joined"), dict) else {}
+    refused = (
+        record.get("refused") is True
+        or record.get("source_present") is not True
+        or record.get("code") == ABSENT_CODE
+    )
+    if refused and (record.get("live") is True or joined.get("live") is True):
+        raise AzosError("join flag is true while the news source is absent")
+    if record.get("live") is True and record.get("item_landed") is not True:
+        raise AzosError("join flag is true without a fetched item")
+    if record.get("installed") is True or record.get("engine_installed") is True:
+        raise AzosError("4DMap is marked installed")
+    return record
+
+
+def _fetched_row(rows: list[dict[str, Any]]) -> dict[str, Any] | None:
+    for row in rows:
+        document = row.get("document")
+        if not isinstance(document, dict):
+            continue
+        if document.get("kind") != "aznews_item":
+            continue
+        if document.get("fixture") is True or document.get("fetched") is not True:
+            continue
+        if document.get("live") is True or not document.get("wording"):
+            continue
+        return row
+    return None
+
+
 def _require_fixture_label(document: dict[str, Any]) -> None:
     wording = str(document.get("wording") or "").lower()
     event = str(document.get("event") or "").lower()
@@ -458,21 +594,6 @@ def _require_fixture_label(document: dict[str, Any]) -> None:
     if not isinstance(image, dict) or not image.get("content_hash"):
         raise AzosError("A fixture item needs an image hash.")
     require_score(document.get("score"))
-
-
-def _real_item_landed(lattice: DualLattice) -> bool:
-    """True only when a non-fixture item was actually fetched onto a pin or an open."""
-    for row in lattice.rows:
-        document = row.get("document")
-        if not isinstance(document, dict):
-            continue
-        if document.get("fixture") is True or document.get("fetched") is not True:
-            continue
-        if document.get("live") is True:
-            return False
-        if document.get("kind") == "aznews_item" and document.get("wording"):
-            return True
-    return False
 
 
 __all__ = [

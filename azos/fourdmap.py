@@ -77,7 +77,7 @@ class FourDMap:
                 "lattice": self.lattice.snapshot(),
             }
         )
-        return record
+        return seal_map(record)
 
     def pin_place(
         self,
@@ -198,4 +198,13 @@ class FourDMap:
         record["live"] = False
         record["installed"] = False
         record["engine_installed"] = False
-        return record
+        return seal_map(record)
+
+
+def seal_map(record: dict[str, Any]) -> dict[str, Any]:
+    """4DMap stays uninstalled. A pin does not make the engine live."""
+    if record.get("installed") is True or record.get("engine_installed") is True:
+        raise AzosError("4DMap is marked installed")
+    if record.get("live") is True:
+        raise AzosError("4DMap is marked live")
+    return record

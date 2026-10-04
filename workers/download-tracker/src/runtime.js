@@ -9,6 +9,7 @@
  * /v1/mesh/* PROXY to aziel-runtime via AZIEL_RUNTIME (handled in index.js before this catch-all).
  */
 import { meshOpenApiPaths, meshPointer } from "./mesh.js";
+import { aznewsStatus, joinStatus, mapStatus } from "./newsmap.js";
 function runtimeCors() {
   return {
     "Access-Control-Allow-Origin": "*",
@@ -240,7 +241,7 @@ AZnet is the sidenet. **AZ Browser** is the browser surface for AZnet. \`azos no
 
 ## News and the map
 
-AZ-OS has a joined path and two standalone paths. AZNews can stand alone. 4DMap can stand alone. On the joined path, AZ-OS points at the runtime 4DMap engine (\`slug=4dmap\`, ops \`news_pin\` and \`news_open\`). A news item can become a map pin (date, event, and place), or a pin can open the matching news. This is not a second app and not a copy of the engine. This package does not claim the aziel-runtime side is done. 4DMap is not marked installed. The news source aznews is absent (azos.news_source is not in this package), so the probe refuses and does not invent articles. That refusal is not live and not merged. Internet, mail, the kernel, one-click install, and the mesh node are not marked live.
+AZ-OS has a joined path and two standalone paths. AZNews can stand alone. 4DMap can stand alone. On the joined path, AZ-OS points at the runtime 4DMap engine (\`slug=4dmap\`, ops \`news_pin\` and \`news_open\`). A news item can become a map pin (date, event, and place), or a pin can open the matching news. This is not a second app and not a copy of the engine. This package does not claim the aziel-runtime side is done. 4DMap is not marked installed. \`azos.news_source\` is the fetch door and it has no standing feed, so the probe refuses until a real fetched item lands. A fixture is not that item and does not flip the live flag. Internet, mail, the kernel, one-click install, and the mesh node are not marked live. \`azos news\`, \`azos map\`, and the local page at http://127.0.0.1:8800/ say this in plain language.
 
 Counted download (gzip HTTP 200, no 302): https://azos-download-tracker.vibelock.workers.dev/download?asset=azos-0.3.0.tar.gz
 GitHub: https://github.com/AzielEliab/azos
@@ -761,8 +762,22 @@ function openapiDoc() {
       "/v1/newsmap": {
         get: {
           operationId: "azosNewsMap",
-          summary: "Joined AZNews and 4DMap probe. Standalone paths exist in full AZ-OS. 4DMap is not installed. No news source. Runtime side is not claimed done.",
-          responses: { "200": { description: "Join status. Source absent. Not live." } },
+          summary: "Joined AZNews and 4DMap probe. Standalone paths exist in full AZ-OS. 4DMap is not installed. No standing feed. Runtime side is not claimed done.",
+          responses: { "200": { description: "Join status. Source absent until a fetched item is pinned. Not live by default." } },
+        },
+      },
+      "/v1/aznews": {
+        get: {
+          operationId: "azosNewsStandalone",
+          summary: "Standalone AZNews. No standing feed. Not live.",
+          responses: { "200": { description: "AZNews can stand alone. Not live." } },
+        },
+      },
+      "/v1/map": {
+        get: {
+          operationId: "azosMapStandalone",
+          summary: "Standalone 4DMap. Not installed.",
+          responses: { "200": { description: "4DMap can stand alone. Not installed." } },
         },
       },
       "/v1/lattice": {
@@ -826,42 +841,13 @@ export async function handleRuntime(request, url, env) {
     return runtimeJson(scopeMeta({ ok: true, product: PRODUCT, version: VERSION }));
   }
   if (path === "/v1/newsmap" && request.method === "GET") {
-    return runtimeJson(scopeMeta({
-      ok: false,
-      refused: true,
-      code: "AZNEWS-SOURCE-ABSENT",
-      absent: "azos.news_source",
-      source: "aznews",
-      source_present: false,
-      join: "aznews-4dmap",
-      engine_slug: "4dmap",
-      engine_name: "4DMap",
-      engine_copy: false,
-      second_app: false,
-      installed: false,
-      engine_installed: false,
-      merged: false,
-      live: false,
-      lattice_live: false,
-      runtime_done: false,
-      runtime_claimed: false,
-      cross_tether: true,
-      internet_live: false,
-      mail_live: false,
-      kernel_live: false,
-      one_click_install_live: false,
-      mesh_node_live: false,
-      paths: {
-        joined: { present: true, id: "aznews-4dmap", live: false },
-        aznews_standalone: { present: true, live: false, installed: false },
-        fourdmap_standalone: { present: true, installed: false, engine_installed: false, live: false },
-      },
-      door: "https://aziel-runtime.vibelock.workers.dev/v1/fraggate/call",
-      pin_op: "news_pin",
-      open_op: "news_open",
-      author: AUTHOR,
-      plain: "News and the map have a joined path and two standalone paths. On the joined path, a news item can become a map pin (date, event, and place), or a pin can open the matching news. AZNews can stand alone, and 4DMap can stand alone. That join is the runtime 4DMap engine on the FragGate door. This page does not claim the aziel-runtime side is done. AZ-OS does not install 4DMap and does not keep a second map. The news source aznews is absent. The missing code is azos.news_source. Nothing here is live or merged.",
-    }));
+    return runtimeJson(scopeMeta(joinStatus(null)));
+  }
+  if (path === "/v1/aznews" && request.method === "GET") {
+    return runtimeJson(scopeMeta(aznewsStatus()));
+  }
+  if (path === "/v1/map" && request.method === "GET") {
+    return runtimeJson(scopeMeta(mapStatus()));
   }
   if (path === "/v1/prefab" && request.method === "GET") {
     const slugs = ["azos","temporallock","staticclock","shadowlock","foldlock","azai","godlock","vibelock","veillock","spectrallock","miragegrid","codelock","decisiongate","chronolock","azclce","ark","azbot","aziel-corpus","employeelock","whistlelock","trajectorylock","forgereceipts","glossafilter","postking","zsolver"];
@@ -948,7 +934,8 @@ export async function handleRuntime(request, url, env) {
         "GET /v1/health", "GET /v1/skill", "GET /v1/mesh",
         "POST /v1/status", "POST /v1/invite",
         "POST /v1/session", "POST /v1/exec", "POST /v1/close",
-        "GET /v1/prefab", "GET /v1/lattice", "POST /v1/lattice",
+        "GET /v1/prefab", "GET /v1/newsmap", "GET /v1/aznews", "GET /v1/map",
+        "GET /v1/lattice", "POST /v1/lattice",
         "POST /v1/halt", "POST /v1/revoke",
         "GET /openapi.json", "GET /ai",
       ],
@@ -1127,7 +1114,7 @@ export async function handleRuntime(request, url, env) {
     path === "/v1/status" || path === "/v1/invite" || path === "/v1/halt" ||
     path === "/v1/revoke" || path === "/v1/session" || path === "/v1/exec" ||
     path === "/v1/close" || path === "/v1/lattice" || path === "/v1/prefab" ||
-    path === "/v1/newsmap"
+    path === "/v1/newsmap" || path === "/v1/aznews" || path === "/v1/map"
   ) {
     return runtimeJson(scopeMeta({ error: "method not allowed" }), 405);
   }

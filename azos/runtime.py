@@ -232,6 +232,17 @@ def _news_map_summary(root: Path) -> dict[str, Any]:
     from azos.newsmap import NewsMap
 
     record = NewsMap(root=root).status()
+    live = (
+        record.get("live") is True
+        and record.get("source_present") is True
+        and record.get("refused") is not True
+        and record.get("item_landed") is True
+        and record.get("code") != "AZNEWS-SOURCE-ABSENT"
+    )
+    paths = dict(record.get("paths") or {})
+    joined = dict(paths.get("joined") or {})
+    joined["live"] = live
+    paths["joined"] = joined
     return {
         "join": record["join"],
         "engine_slug": record["engine_slug"],
@@ -241,19 +252,19 @@ def _news_map_summary(root: Path) -> dict[str, Any]:
         "second_app": False,
         "engine_copy": False,
         "source": record["source"],
-        "source_present": False,
+        "source_present": live,
         "absent": record["absent"],
         "code": record["code"],
         "merged": False,
-        "live": False,
+        "live": live,
         "lattice_live": False,
         "door": record["door"],
         "pin_op": record["pin_op"],
         "open_op": record["open_op"],
         "plain": record["plain"],
-        "item_landed": record.get("item_landed") is True,
+        "item_landed": live,
         "author": record["author"],
-        "paths": record.get("paths"),
+        "paths": paths,
         "runtime_done": False,
         "runtime_claimed": False,
         "cross_tether": True,

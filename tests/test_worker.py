@@ -9,6 +9,7 @@ ROOT = Path(__file__).resolve().parents[1]
 JS = ROOT / "workers" / "download-tracker" / "src" / "index.js"
 HP = ROOT / "workers" / "download-tracker" / "src" / "homepage.js"
 RT = ROOT / "workers" / "download-tracker" / "src" / "runtime.js"
+NM = ROOT / "workers" / "download-tracker" / "src" / "newsmap.js"
 TOML = ROOT / "workers" / "download-tracker" / "wrangler.toml"
 
 
@@ -124,12 +125,15 @@ def test_worker_runtime_exposes_ethics_shell() -> None:
     assert "/v1/prefab" in runtime
     assert "/v1/lattice" in runtime
     assert "/v1/newsmap" in runtime
-    assert "AZNEWS-SOURCE-ABSENT" in runtime
-    assert "runtime_done: false" in runtime
+    assert "joinStatus(null)" in runtime
+    newsmap = NM.read_text(encoding="utf-8")
+    assert "AZNEWS-SOURCE-ABSENT" in newsmap
+    assert "runtime_done: false" in newsmap
     assert "one_click_install_live: false" in runtime
     assert "mesh_node_live: false" in runtime
-    assert "mail_live: false" in runtime
-    assert "internet_live: false" in runtime
+    assert "mail_live: false" in newsmap
+    assert "internet_live: false" in newsmap
+    assert "kernel_live: false" in newsmap
     assert "kernel_base: false" in runtime
     assert "booted: false" in runtime
     assert "os_yet: false" in runtime
@@ -147,6 +151,20 @@ def test_worker_runtime_exposes_ethics_shell() -> None:
     assert "other MCP/OpenAPI-capable assistants" in runtime
     assert "/v1/mesh" in runtime
     assert "meshPointer" in runtime
+
+
+def test_join_flag_script_rejects_a_live_label() -> None:
+    import subprocess
+
+    script = ROOT / "workers" / "download-tracker" / "scripts" / "verify-join-flags.mjs"
+    completed = subprocess.run(
+        ["node", str(script)],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert completed.returncode == 0, completed.stderr
+    assert "join flags ok" in completed.stdout
 
 
 def test_worker_kv_binding_present() -> None:

@@ -2,9 +2,10 @@
 
 AZNews can be used without 4DMap. The joined path lives in ``azos.newsmap``.
 This module does not install a prefab app and does not claim the
-aziel-runtime side is done. The news source module ``azos.news_source``
-is still absent, so the probe stays refused until a real fetched item
-lands. A fixture is not that item and does not flip the live flag.
+aziel-runtime side is done. ``azos.news_source`` is the fetch door.
+It has no standing feed, so this probe stays refused until a real
+fetched item lands. A fixture is not that item and does not flip the
+live flag.
 
 Author: Aziel Eliab.
 """
@@ -130,7 +131,8 @@ class AZNews:
                 "refused": True,
                 "plain": (
                     "AZNews can stand alone, without the map. "
-                    "The news source aznews is absent. The missing code is azos.news_source. "
+                    "azos.news_source is the fetch door and it has no standing feed, "
+                    "so the news source is absent. "
                     "Outlets, weather, and the tail-event catalog are cited locally. "
                     "Nothing is marked live unless it was fetched, and this probe did not fetch a feed. "
                     "This package does not claim the aziel-runtime side is done. "
@@ -139,7 +141,23 @@ class AZNews:
                 "lattice": self.lattice.snapshot(),
             }
         )
-        return record
+        if self._has_fetched_item():
+            record["ok"] = True
+            record["refused"] = False
+            record["live"] = True
+            record["source_present"] = True
+            record["code"] = "AZNEWS-ITEM-LANDED"
+            record["absent"] = None
+            record["plain"] = (
+                "A fetched item is on the AZNews hash chains. "
+                "AZNews can stand alone. 4DMap is not installed."
+            )
+        return seal_news(record)
+
+    def _has_fetched_item(self) -> bool:
+        if not self.lattice.verify():
+            return False
+        return _has_fetched_item_rows(self.lattice.rows)
 
     def outlets(self) -> dict[str, Any]:
         payload = _load("outlets.json")
@@ -364,6 +382,25 @@ class AZNews:
         )
         return record
 
+    def fetch_item(self, *, transport: Any, username: str = "operator") -> dict[str, Any]:
+        """Store one fetched item on the standalone chains. Does not open the map."""
+        from azos.news_source import fetch
+
+        got = fetch(transport)
+        if got.get("refused") or not isinstance(got.get("document"), dict):
+            return self.status()
+        document = dict(got["document"])
+        document["path"] = PATH
+        stored = self._store(document, username)
+        status = self.status()
+        stored["live"] = status["live"] is True
+        stored["source_present"] = status["source_present"] is True
+        stored["code"] = status["code"]
+        stored["refused"] = status["refused"]
+        stored["installed"] = False
+        stored["plain"] = status["plain"]
+        return seal_news(stored)
+
     def record_item(
         self,
         *,
@@ -378,6 +415,7 @@ class AZNews:
         fixture: bool = True,
         path: str = PATH,
         fetched: bool = False,
+        source_present: bool = False,
     ) -> dict[str, Any]:
         """Append one supplied item to both hash chains. Does not mark the probe live."""
         document = news_document(
@@ -391,6 +429,7 @@ class AZNews:
             fixture=fixture,
             path=path,
             fetched=fetched,
+            source_present=source_present,
         )
         return self._store(document, username)
 
@@ -450,6 +489,7 @@ def news_document(
     fixture: bool = True,
     path: str = PATH,
     fetched: bool = False,
+    source_present: bool = False,
 ) -> dict[str, Any]:
     text = scan_text(wording, "wording")
     if not text:
@@ -473,7 +513,7 @@ def news_document(
         "fixture": bool(fixture),
         "fetched": bool(fetched),
         "source": SOURCE,
-        "source_present": False,
+        "source_present": bool(source_present) and bool(fetched) and not bool(fixture),
         "live": False,
         "author": AUTHOR,
     }
@@ -540,6 +580,31 @@ def _swan_document(event: dict[str, Any]) -> dict[str, Any]:
         "fetched_live": False,
         "author": AUTHOR,
     }
+
+
+def seal_news(record: dict[str, Any]) -> dict[str, Any]:
+    """AZNews stays not live while the source is absent, and it is not installed."""
+    refused = record.get("refused") is True or record.get("source_present") is not True
+    if refused and record.get("live") is True:
+        raise AzosError("AZNews live is true while the source is absent")
+    if record.get("installed") is True or record.get("engine_installed") is True:
+        raise AzosError("AZNews is marked installed")
+    return record
+
+
+def _has_fetched_item_rows(rows: list[dict[str, Any]]) -> bool:
+    for row in rows:
+        document = row.get("document")
+        if not isinstance(document, dict):
+            continue
+        if document.get("kind") != "aznews_item":
+            continue
+        if document.get("fixture") is True or document.get("fetched") is not True:
+            continue
+        if document.get("live") is True or not document.get("wording"):
+            continue
+        return True
+    return False
 
 
 def swan_by_id(event_id: str) -> dict[str, Any] | None:

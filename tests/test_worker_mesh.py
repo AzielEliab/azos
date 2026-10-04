@@ -57,6 +57,36 @@ def test_mesh_note_cites_qns_cd() -> None:
     assert "export function withQnsCd" in MESH
 
 
+def test_empty_mesh_locks_each_meaning_once() -> None:
+    """Wrangler rejects a second copy of these keys. The later copy was the meaning."""
+    import re
+
+    start = MESH.index("export function emptyMesh")
+    brace = MESH.index(") {", start) + 2
+    depth = 0
+    end = brace
+    for index, char in enumerate(MESH[brace:], brace):
+        if char == "{":
+            depth += 1
+        elif char == "}":
+            depth -= 1
+            if depth == 0:
+                end = index
+                break
+    body = MESH[brace : end + 1]
+    for key in ("spec", "node_gate", "auto_heal", "anonymity_network", "author", "identity"):
+        found = re.findall(rf"(?<![\w]){key}:", body)
+        assert found == [f"{key}:"], key
+    assert body.index("...extra") < body.index("node_gate:")
+    assert body.index("...extra") < body.index("spec:")
+    assert "node_gate: false" in body
+    assert "auto_heal: false" in body
+    assert "anonymity_network: false" in body
+    assert "author: MESH_IDENTITY" in body
+    assert "identity: MESH_IDENTITY" in body
+    assert 'spec: QNM_SPEC' in body
+
+
 def test_mesh_pointer_and_openapi_helpers() -> None:
     assert "export function meshPointer" in MESH
     assert "export function meshOpenApiPaths" in MESH
