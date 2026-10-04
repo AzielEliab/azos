@@ -75,12 +75,14 @@ def place(dest: Path | str) -> dict[str, Any]:
         and (target / "fourdmap.py").is_file()
     )
     return {
-        "ok": ok,
-        "refused": not ok,
+        "ok": False,
+        "refused": True,
         "placed": ok,
         "files": len(copied) if ok else 0,
         "fourdmap_installed": False,
         "host_os": False,
+        "installed": False,
+        "os_yet": False,
         "dest": str(root),
     }
 
@@ -111,16 +113,17 @@ def one_click(dest: Path | str) -> dict[str, Any]:
             "plain": "One-click install is not live.",
         }
     placed = place(dest)
-    ok = placed.get("ok") is True
     return {
-        "ok": ok,
-        "refused": not ok,
-        "placed": ok,
+        "ok": False,
+        "refused": True,
+        "placed": placed.get("placed") is True,
+        "installed": False,
+        "os_yet": False,
         "files": placed.get("files"),
         "remote_curl": False,
         "pip_ran": False,
         "host_shell": False,
         "fourdmap_installed": False,
-        "code": "ONE-CLICK-RAN" if ok else "ONE-CLICK-NOT-LIVE",
-        "plain": "The install path ran in this process." if ok else "One-click install is not live.",
+        "code": "ONE-CLICK-NOT-LIVE",
+        "plain": "One-click install is not live.",
     }

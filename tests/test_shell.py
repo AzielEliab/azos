@@ -102,23 +102,23 @@ def test_shell_status_and_session_are_sentences(runtime: Runtime) -> None:
     status = runtime.run_command("status", session_id=session, token=token)
     assert status["ok"] is True
     assert "{" not in status["stdout"]
-    assert "The AZ-OS entry ran." in status["stdout"]
-    assert "not a host kernel" in status["stdout"]
+    assert "There is no kernel." in status["stdout"]
     assert "not a boot" in status["stdout"]
+    assert "not this kernel and not this boot" in status["stdout"]
     assert "not joined and not live" in status["stdout"]
     record = status["status"]
-    assert record["kernel"] is True
+    assert record["kernel"] is False
     assert record["kernel_base"] is False
-    assert record["booted"] is True
-    assert record["installed"] is True
+    assert record["booted"] is False
+    assert record["installed"] is False
     assert record["os_yet"] is False
     assert record["userspace_base"] is True
-    assert record["internet_base"]["live"] is True
-    assert record["internet_base"]["installed"] is True
+    assert record["internet_base"]["live"] is False
+    assert record["internet_base"]["installed"] is False
     assert record["alt_internet_live"] is False
-    assert record["mail_send"] is True
-    assert record["one_click_install_live"] is True
-    assert record["mesh_node_live"] is True
+    assert record["mail_send"] is False
+    assert record["one_click_install_live"] is False
+    assert record["mesh_node_live"] is False
     session_out = runtime.run_command("session", session_id=session, token=token)
     assert session_out["ok"] is True
     assert "{" not in session_out["stdout"]

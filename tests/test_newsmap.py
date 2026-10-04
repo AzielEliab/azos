@@ -337,13 +337,14 @@ def test_fetched_item_joins_only_when_both_chains_and_a_pin_exist(tmp_path: Path
     assert opened["wording"].startswith("The basin gauge")
     proof = prove(tmp_path)
     assert proof["flags"]["join_live"] is True
-    assert proof["flags"]["kernel"] is True
+    assert proof["flags"]["kernel"] is False
     assert proof["doors"]["kernel"]["host_kernel"] is False
-    assert proof["flags"]["booted"] is True
+    assert proof["doors"]["kernel"]["kernel_base"] is False
+    assert proof["flags"]["booted"] is False
     assert proof["doors"]["booted"]["hardware"] is False
-    assert proof["flags"]["mail_send"] is True
+    assert proof["flags"]["mail_send"] is False
     assert proof["doors"]["mail_send"]["public_mta"] is False
-    assert proof["flags"]["mesh_node_live"] is True
+    assert proof["flags"]["mesh_node_live"] is False
     assert proof["doors"]["mesh_node_live"]["public_bind"] is False
     assert proof["doors"]["userspace_base"]["booted"] is False
 

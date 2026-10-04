@@ -119,18 +119,6 @@ MAX_COMMAND_CHARS = 4096
 MAX_FILE_BYTES = 65536
 HISTORY_CAP = 100
 
-KERNEL_YES = "The AZ-OS entry ran. This is not a host kernel."
-KERNEL_NO = "There is no kernel."
-BOOT_YES = "This has booted. That boot is not the userspace base."
-BOOT_NO = "This has not booted."
-INSTALLED_YES = "This process installed AZ-OS into a directory."
-INSTALLED_NO = "This is not installed as an operating system."
-MAIL_YES = "Mail can be sent from here to a local mailbox."
-MAIL_NO = "Mail is not sent from here."
-CLICK_YES = "The install path ran in this process."
-CLICK_NO = "One-click install is not live."
-MESH_YES = "A node is bound on 127.0.0.1."
-MESH_NO = "This is not a live mesh node."
 USERSPACE_YES = "The userspace base is present. That is a base, not a boot."
 
 SCOPE: Mapping[str, object] = {
@@ -142,17 +130,17 @@ SCOPE: Mapping[str, object] = {
     "sandbox": "session-vfs",
     "host_subprocess": False,
     "ssh": False,
-    "kernel": True,
+    "kernel": False,
     "kernel_base": False,
-    "booted": True,
-    "installed": True,
+    "booted": False,
+    "installed": False,
     "os_yet": False,
     "userspace_base": True,
-    "internet_base": {"live": True, "installed": True},
+    "internet_base": {"live": False, "installed": False},
     "alt_internet_live": False,
-    "mail_send": True,
-    "one_click_install_live": True,
-    "mesh_node_live": True,
+    "mail_send": False,
+    "one_click_install_live": False,
+    "mesh_node_live": False,
     "doors_replaced": False,
     "app_shells_started": False,
     "worm": False,
@@ -191,10 +179,14 @@ def plain_limits(facts: Mapping[str, object] | None = None) -> str:
     net_installed = "installed" if net.get("installed") is True else "not installed"
     return " ".join(
         (
-            said("kernel", KERNEL_YES, KERNEL_NO),
+            said("kernel", "There is a kernel.", "There is no kernel."),
             said("kernel_base", "The kernel base is present.", "The kernel base is absent."),
-            said("booted", BOOT_YES, BOOT_NO),
-            said("installed", INSTALLED_YES, INSTALLED_NO),
+            said("booted", "This has booted.", "This has not booted."),
+            said(
+                "installed",
+                "This is installed as an operating system.",
+                "This is not installed as an operating system.",
+            ),
             said("os_yet", "This is an operating system.", "This is not an operating system yet."),
             userspace,
             f"The internet base is {net_live} and {net_installed}.",
@@ -203,9 +195,13 @@ def plain_limits(facts: Mapping[str, object] | None = None) -> str:
                 "An alternative internet is live.",
                 "An alternative internet is not live.",
             ),
-            said("mail_send", MAIL_YES, MAIL_NO),
-            said("one_click_install_live", CLICK_YES, CLICK_NO),
-            said("mesh_node_live", MESH_YES, MESH_NO),
+            said("mail_send", "Mail can be sent from here.", "Mail is not sent from here."),
+            said(
+                "one_click_install_live",
+                "One-click install is live.",
+                "One-click install is not live.",
+            ),
+            said("mesh_node_live", "This is a live mesh node.", "This is not a live mesh node."),
             said("doors_replaced", "An existing door was replaced.", "Existing doors stay in place."),
             said("app_shells_started", "App shells were started.", "App shells are not started."),
         )
@@ -239,10 +235,15 @@ def plain_news_listing(news: object) -> str:
     )
 
 
+INTERFACE_LINE = (
+    "AZ Interface is a separate shell. It is not this kernel and not this boot."
+)
+
+
 def human_limits(status: Mapping[str, object] | None = None) -> str:
-    """OS limits plus the news listing, as sentences."""
+    """OS limits, the news listing, and the separate interface shell, as sentences."""
     news = status.get("news_map") if isinstance(status, Mapping) else None
-    return plain_limits(status) + " " + plain_news_listing(news)
+    return plain_limits(status) + " " + plain_news_listing(news) + " " + INTERFACE_LINE
 
 
 def scope_dict() -> dict[str, object]:

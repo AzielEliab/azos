@@ -93,12 +93,12 @@ def acquire() -> dict[str, Any]:
         "refused": True,
         "fetched": True,
         "fixture": False,
-        "source_present": True,
+        "source_present": False,
         "standing_feed": True,
         "live": False,
         "installed": False,
         "code": FIELDS_CODE,
-        "absent": None,
+        "absent": ABSENT_MODULE,
         "source": "aznews",
         "document": None,
         "feed_url": FEED_URL,
@@ -108,7 +108,7 @@ def acquire() -> dict[str, Any]:
         "author": AUTHOR,
         "plain": (
             "azos.news_source fetched the standing feed. "
-            "The item has no score and no place, so it was not stored and the join is not live."
+            "The item has no score and no place, so the news source is absent and the join is not live."
         ),
     }
 

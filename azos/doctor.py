@@ -1,7 +1,7 @@
 """Self-check for AZ-OS. No telemetry.
 
-The door check GETs FragGate health and the standing news feed.
-Those two calls are the internet door and the news door.
+The door check reads the same refusals the runtime publishes.
+It does not treat a receipt, a loopback bind, or a userspace file as a kernel.
 
     azos doctor
 """
@@ -178,21 +178,25 @@ def _check_doors() -> Check:
     if proof["doors"]["userspace_base"].get("booted") is True:
         return _fail("doors", "booted")
     for name in ("kernel", "booted", "installed", "internet", "mail_send", "mesh_node_live", "one_click_install_live"):
-        if flags.get(name) is not True:
+        if flags.get(name) is not False:
             return _fail("doors", name)
-        if proof["doors"][name].get("refused") is True:
+        if proof["doors"][name].get("refused") is not True:
             return _fail("doors", name)
     if flags.get("join_live") is True:
         return _fail("doors", "join")
-    if proof["doors"]["kernel"].get("host_kernel") is True:
+    if proof["doors"]["join_live"].get("code") != "AZNEWS-SOURCE-ABSENT":
+        return _fail("doors", "join")
+    if proof["doors"]["kernel"].get("host_kernel") is True or proof["doors"]["kernel"].get("kernel_base") is True:
         return _fail("doors", "host kernel")
-    if proof["doors"]["mail_send"].get("public_mta") is True:
+    if proof["doors"]["mail_send"].get("public_mta") is True or proof["doors"]["mail_send"].get("sent") is True:
         return _fail("doors", "public mail")
-    if proof["doors"]["mesh_node_live"].get("public_bind") is True:
+    if proof["doors"]["mesh_node_live"].get("public_bind") is True or proof["doors"]["mesh_node_live"].get("live") is True:
         return _fail("doors", "public bind")
     if proof["doors"]["installed"].get("fourdmap_installed") is True:
         return _fail("doors", "4dmap")
-    return _ok("doors", "entry, boot, install, internet, local mail, loopback node")
+    if proof["doors"]["booted"].get("booted") is True:
+        return _fail("doors", "booted")
+    return _ok("doors", "userspace base, not a boot")
 
 
 CHECKS: tuple[Callable[[], Check], ...] = (

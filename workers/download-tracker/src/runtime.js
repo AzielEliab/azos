@@ -241,7 +241,7 @@ AZnet is the sidenet. **AZ Browser** is the browser surface for AZnet. \`azos no
 
 ## News and the map
 
-AZ-OS has a joined path and two standalone paths. AZNews can stand alone. 4DMap can stand alone. On the joined path, AZ-OS points at the runtime 4DMap engine (\`slug=4dmap\`, ops \`news_pin\` and \`news_open\`). A news item can become a map pin (date, event, and place), or a pin can open the matching news. This is not a second app and not a copy of the engine. This package does not claim the aziel-runtime side is done. 4DMap is not marked installed. \`azos.news_source\` can GET a standing feed. That feed has no score and no place, so the stored probe refuses until a complete fetched item lands. A fixture is not that item and does not flip the live flag. The local doors mark the process entry, the overlay boot, a directory install, HTTPS health, a local mailbox, the in-process install path, and a 127.0.0.1 node only after that door runs. The hosted page does not boot a host kernel, send public mail, or bind a mesh node. \`azos news\`, \`azos map\`, and the local page at http://127.0.0.1:8800/ say this in plain language.
+AZ-OS has a joined path and two standalone paths. AZNews can stand alone. 4DMap can stand alone. On the joined path, AZ-OS points at the runtime 4DMap engine (\`slug=4dmap\`, ops \`news_pin\` and \`news_open\`). A news item can become a map pin (date, event, and place), or a pin can open the matching news. This is not a second app and not a copy of the engine. This package does not claim the aziel-runtime side is done. 4DMap is not marked installed. \`azos.news_source\` can GET a standing feed. That feed has no score and no place, so the news source stays absent and AZNews and 4DMap stay not joined until a complete fetched item lands. A fixture is not that item and does not flip the live flag. The userspace base is present. That is a base, not a boot. The kernel base is absent. This has not booted. This is not installed as an operating system. The internet base is not live and not installed. Mail is not sent from here. One-click install is not live. This is not a live mesh node. A process receipt, a loopback bind, and a userspace file are not a host kernel. AZ Interface is a separate shell. It is not this kernel and not this boot. \`azos news\`, \`azos map\`, and the local page at http://127.0.0.1:8800/ say this in plain language.
 
 Counted download (gzip HTTP 200, no 302): https://azos-download-tracker.vibelock.workers.dev/download?asset=azos-0.3.0.tar.gz
 GitHub: https://github.com/AzielEliab/azos
@@ -297,17 +297,17 @@ function plainLimits(src) {
     ? "The userspace base is present. That is a base, not a boot."
     : "The userspace base is absent.";
   return [
-    said(d.kernel, "The AZ-OS entry ran. This is not a host kernel.", "There is no kernel."),
+    said(d.kernel, "There is a kernel.", "There is no kernel."),
     said(d.kernel_base, "The kernel base is present.", "The kernel base is absent."),
-    said(d.booted, "This has booted. That boot is not the userspace base.", "This has not booted."),
-    said(d.installed, "This process installed AZ-OS into a directory.", "This is not installed as an operating system."),
+    said(d.booted, "This has booted.", "This has not booted."),
+    said(d.installed, "This is installed as an operating system.", "This is not installed as an operating system."),
     said(d.os_yet, "This is an operating system.", "This is not an operating system yet."),
     userspace,
     "The internet base is " + (net.live === true ? "live" : "not live") + " and " + (net.installed === true ? "installed" : "not installed") + ".",
     said(d.alt_internet_live, "An alternative internet is live.", "An alternative internet is not live."),
-    said(d.mail_send, "Mail can be sent from here to a local mailbox.", "Mail is not sent from here."),
-    said(d.one_click_install_live, "The install path ran in this process.", "One-click install is not live."),
-    said(d.mesh_node_live, "A node is bound on 127.0.0.1.", "This is not a live mesh node."),
+    said(d.mail_send, "Mail can be sent from here.", "Mail is not sent from here."),
+    said(d.one_click_install_live, "One-click install is live.", "One-click install is not live."),
+    said(d.mesh_node_live, "This is a live mesh node.", "This is not a live mesh node."),
     said(d.doors_replaced, "An existing door was replaced.", "Existing doors stay in place."),
     said(d.app_shells_started, "App shells were started.", "App shells are not started."),
   ].join(" ");

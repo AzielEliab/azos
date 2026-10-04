@@ -512,8 +512,8 @@ class OfflineNode:
         """Listen on 127.0.0.1, answer one GET, then close.
 
         This does not bind 0.0.0.0 and it does not enable the suite mesh.
-        ``public_bind`` stays false. The node is live only while this
-        answer is read back.
+        ``public_bind`` stays false. A loopback answer is not a live mesh
+        node and it is not a host kernel.
         """
         token = b"azos-node-bound"
         layer = self._resolved_layer()
@@ -585,15 +585,18 @@ class OfflineNode:
         record = self._honesty(layer)
         record.update(
             {
-                "ok": answered,
+                "ok": False,
                 "bound": answered,
                 "answered": answered,
+                "live": False,
+                "mesh_node_live": False,
+                "kernel": False,
                 "public_bind": False,
                 "mesh_enable": False,
                 "host": "127.0.0.1",
                 "port": port,
                 "suite_mesh": False,
-                "code": "MESH-NODE-LIVE" if answered else "MESH-NODE-NOT-LIVE",
+                "code": "MESH-NODE-NOT-LIVE",
                 "error": error,
             }
         )

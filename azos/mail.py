@@ -1,7 +1,7 @@
-"""Local mailbox. A message is sent when it can be read back.
+"""Local mailbox note. Both hash chains can record a message.
 
-Both hash chains record the message. There is no public mail server.
-The document itself is not marked live.
+A local read-back is not mail sent from the hosted door. There is no
+public mail server. The document itself is not marked live.
 
 Author: Aziel Eliab.
 """
@@ -57,15 +57,17 @@ def send_local(
     if not sent:
         return _refused("The message was not read back.")
     return {
-        "ok": True,
-        "refused": False,
-        "sent": True,
+        "ok": False,
+        "refused": True,
+        "sent": False,
+        "local_mailbox": True,
         "public_mta": False,
-        "code": "MAIL-SENT",
+        "mail_send": False,
+        "code": "MAIL-SEND-REFUSED",
         "username": name,
         "primary_hash": row["primary_hash"],
         "secondary_hash": row["secondary_hash"],
-        "plain": "Mail can be sent from here to a local mailbox.",
+        "plain": "Mail is not sent from here.",
     }
 
 
