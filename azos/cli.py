@@ -14,6 +14,7 @@ from typing import Sequence
 
 from azos import __version__
 from azos.errors import AuthorizationError, AzosError
+from azos.ethics import human_limits
 from azos.gate import shell_proposal
 from azos.interface import DEFAULT_HOST, DEFAULT_PORT, serve
 from azos.invite import emit_invite, invite_text
@@ -268,6 +269,8 @@ def _human_status(st: dict) -> str:
         f"Log entries: {st.get('log_length', 0)}\n"
         f"Active tokens: {tokens.get('active', 0)}\n"
         f"Open sessions: {shell.get('active', 0)}\n"
+        "\n"
+        f"{human_limits(st)}\n"
         "\n"
         "Next: azos ui    or    azos shell\n"
     )

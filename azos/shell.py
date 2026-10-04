@@ -22,6 +22,7 @@ from azos.ethics import (
     MOTTO,
     PRINCIPLES,
     SHELL_VERBS,
+    human_limits,
     scope_dict,
 )
 from azos.errors import AuthorizationError, HaltedError
@@ -34,10 +35,10 @@ WELCOME_TEXT = (
     f"{MOTTO}\n"
     "Author: Aziel Eliab\n"
     "\n"
-    "This session is a sandboxed vfs. Commands are principle-bound.\n"
-    "Protocols: https-json (hosted), http-loopback (AZ Interface), cli-stdin.\n"
-    "Auth: ARC token after the five gates. Sandbox: session vfs only.\n"
-    "No host subprocess. No SSH. No kernel. Type `help`.\n"
+    "This session is a folder for commands on this machine.\n"
+    "There is no kernel. This has not booted.\n"
+    "The userspace base is present. That is a base, not a boot.\n"
+    "Mail is not sent from here. Type help.\n"
 )
 
 
@@ -386,7 +387,12 @@ class Shell:
             return ws.cd(args[0] if args else "/") + "\n", extra
         if verb == "status":
             extra["status"] = self.runtime.status()
-            return json.dumps(extra["status"], indent=2) + "\n", extra
+            state = (
+                "This session is halted. New commands are refused."
+                if extra["status"].get("halted")
+                else "This session can take a command."
+            )
+            return state + " " + human_limits(extra["status"]) + "\n", extra
         if verb == "principles":
             block = "\n".join(f"{i}. {p}" for i, p in enumerate(PRINCIPLES, start=1))
             return block + "\n", extra
@@ -405,7 +411,17 @@ class Shell:
             return str(rec.get("actor") or "operator") + "\n", extra
         if verb == "session":
             extra["scope"] = scope_dict()
-            return json.dumps(self._public(rec, token=None), indent=2) + "\n", extra
+            public = self._public(rec, token=None)
+            extra["session_record"] = public
+            actor = public.get("actor") or "operator"
+            cwd = public.get("cwd") or "/"
+            return (
+                f"This session is open for {actor}. "
+                f"The working directory is {cwd}. "
+                "A session is a folder for commands. It is not a boot. "
+                + human_limits(self.runtime.status())
+                + "\n"
+            ), extra
         if verb == "halt":
             self.runtime.halt()
             extra["halted"] = True

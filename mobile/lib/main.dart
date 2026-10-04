@@ -62,26 +62,26 @@ class ControlPage extends StatefulWidget {
 class _ControlPageState extends State<ControlPage> {
   String? _token;
   bool _halted = false;
-  String _status = 'idle — no token';
+  String _status = 'No token yet. This phone has not booted an operating system.';
   bool _showInvite = true;
 
   void _issue() {
     if (_halted) {
-      setState(() => _status = 'halted: new tokens refused');
+      setState(() => _status = 'This phone is halted. A new token is refused.');
       return;
     }
     final r = Random.secure();
     final bytes = List<int>.generate(32, (_) => r.nextInt(256));
     setState(() {
       _token = bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
-      _status = 'token issued (in-memory). Integrity precedes execution.';
+      _status = 'A token was issued in memory. Integrity precedes execution. This is not a boot.';
     });
   }
 
   void _revoke() {
     setState(() {
       _token = null;
-      _status = 'token revoked (label). Default deny.';
+      _status = 'The token was revoked. The next command is refused until a new token is issued.';
     });
   }
 
@@ -89,7 +89,7 @@ class _ControlPageState extends State<ControlPage> {
     setState(() {
       _halted = true;
       _token = null;
-      _status = 'HALT. Lumen watch remains a label: running. Tokens revoked.';
+      _status = 'Halted. The watch label stays on. Tokens were revoked. The phone operating system keeps running.';
     });
   }
 
@@ -117,12 +117,20 @@ class _ControlPageState extends State<ControlPage> {
             style: TextStyle(color: kGold, fontStyle: FontStyle.italic, fontSize: 16),
           ),
           const SizedBox(height: 16),
-          Text('Status: $_status'),
+          Text(_status),
           Text(
-            _token == null ? 'token: none' : 'token: ${_token!.substring(0, 16)}… (hashed-at-rest analogue: not shown full)',
-            style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+            _token == null
+                ? 'No token is showing.'
+                : 'A token was issued. Only the first 16 characters are shown here.',
           ),
-          Text('halted: $_halted   lumen: running (watch loop is a label on this phone)'),
+          Text(
+            _halted
+                ? 'This phone is halted. The watch label stays on. There is no kernel, and this has not booted.'
+                : 'The watch label is on. There is no kernel. This has not booted. The userspace base is present. That is a base, not a boot.',
+          ),
+          const Text(
+            'The internet base is not live and not installed. An alternative internet is not live. Mail is not sent from here. This phone is not a live mesh node. AZNews and 4DMap are not joined and not live.',
+          ),
           const SizedBox(height: 12),
           Wrap(
             spacing: 8,

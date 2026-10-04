@@ -320,14 +320,15 @@ export function renderHomepage(stats) {
       <p class="banner">THIS IS: prefab AZ-OS — ethics-coded remote shell with catalog software hooked in. Windows-style desktop locally; the sigil / brand mark (rose-star, no words) replaces a vendor logo. TemporalLock × StaticClock integrity lattice. Author Aziel Eliab only.</p>
       <p class="banner">THIS IS NOT: a kernel, bootloader, hypervisor, replacement OS, VPN, worm, malware, unrestricted host bash, or SSH. Halt stops overlay authority. It does not kill the caller OS.</p>
       <p class="banner limit">THIS WORKER is the public homepage + counted download + read-only hosted ops (status, invite, health, skill, prefab, lattice snapshot). Session, exec, and lattice bind persist in product-Worker KV and need full AZ-OS (<code>azos ui</code> / <code>azos shell</code>). The HTTP proxy is not the full OS.</p>
-      <p class="banner" id="news-map">News and the map have a joined path and two standalone paths. AZNews can stand alone. 4DMap can stand alone. On the joined path, a news item can become a map pin (date, event, and place), or a pin can open the matching news. That join is the runtime 4DMap engine, reached from full AZ-OS. This page does not install 4DMap and does not serve articles. This page does not claim the aziel-runtime side is done. The news source aznews is absent. The missing code is azos.news_source. Nothing here is live or merged.</p>
+      <p class="banner" id="news-map">AZNews and 4DMap are listed. They are not joined and not live. No fetched news item has landed as a map pin. AZNews can stand alone. 4DMap can stand alone. A news item could become a map pin (date, event, and place), or a pin could open the matching news, only after a real item is fetched. This page does not install 4DMap and does not serve articles. This page does not claim the aziel-runtime side is done. The news source is absent. Nothing here is live or merged.</p>
+      <p class="banner" id="limits-plain">There is no kernel. The kernel base is absent. This has not booted. This is not installed as an operating system. This is not an operating system yet. The userspace base is present. That is a base, not a boot. The internet base is not live and not installed. An alternative internet is not live. Mail is not sent from here. One-click install is not live. This is not a live mesh node. Existing doors stay in place. App shells are not started.</p>
     </div>
 
     <div id="meshStrip" aria-label="Suite Live Nodes">
       <div class="live"><b id="meshLiveCount">0</b> Live Nodes</div>
-      <div id="meshLine">Suite mesh: off (default). QNM-BUILD-1.0. QNS-CD-1.0. Not an anonymity network.</div>
+      <div id="meshLine">The suite mesh is off. This page is not a live mesh node. The cite is QNM-BUILD-1.0 and QNS-CD-1.0. Not an anonymity network.</div>
       <div class="rollup">live <b id="qnmLive">0</b> · locked <b id="qnmLocked">0</b> · isolated <b id="qnmIsolated">0</b></div>
-      <div>No Node Gate · No public qnsd proxy · No auto-heal · Aziel Eliab only</div>
+      <div>No Node Gate. No public qnsd proxy. No auto-heal. Author Aziel Eliab only. This page does not start a mesh node.</div>
       <div>
         <input id="meshBearer" type="text" maxlength="80" placeholder="bearer (required to enable)" aria-label="mesh bearer">
         <button id="meshEnable" type="button" title="Enable suite mesh. Declared bearer required. Default off.">Enable</button>
@@ -335,7 +336,7 @@ export function renderHomepage(stats) {
         <button id="meshJoin" type="button" title="Join as azos. Refused while mesh is OFF. No auto-join.">Join</button>
         <button id="meshLeave" type="button" title="Leave this node. No auto-heal.">Leave</button>
       </div>
-      <p id="meshProducts">Catalog MCP mesh_* · FragGate slug=mesh · /v1/mesh/* PROXY · QNS-CD-1.0 photon QNS1 (hub cite) · not AnonBroadcast · not AZMail ring · not a Node Gate · not a public qnsd proxy</p>
+      <p id="meshProducts">The catalog mesh tools and the FragGate mesh door stay as they are. This page does not replace them. /v1/mesh is a proxy. QNS-CD-1.0 is a hub cite. Not an anonymity network. No public qnsd proxy.</p>
     </div>
 
     <div class="grid">
@@ -345,7 +346,7 @@ export function renderHomepage(stats) {
           <p class="count">${v}<span>Views</span></p>
           <p class="count">${n}<span>Live downloads</span></p>
         </div>
-        <p class="kid"><strong>Two big buttons.</strong> Download saves the gzip (the Downloads number goes up). One-click install copies a Terminal command. After it finishes, type <code>azos ui</code>.</p>
+        <p class="kid"><strong>Two big buttons.</strong> Download saves the gzip (the Downloads number goes up). One-click install copies a Terminal command. One-click install is not live. It does not install an operating system and it does not boot one. After the command finishes, type <code>azos ui</code>.</p>
         <div class="btns">
           <a class="btn primary dl" href="/download?asset=${DEFAULT_ASSET}">Download</a>
           <button type="button" class="btn install" id="install-btn">One-click install</button>
@@ -378,13 +379,14 @@ export function renderHomepage(stats) {
           <div class="fields" id="status-fields">
             <div class="field"><b>Lumen</b><span id="st-lumen">…</span></div>
             <div class="field"><b>Version</b><span id="st-version">${VERSION}</span></div>
-            <div class="field"><b>Kind</b><span id="st-kind">ethics-coded remote shell</span></div>
+            <div class="field"><b>Kind</b><span id="st-kind">This is an ethics-coded remote shell. It is not a kernel.</span></div>
             <div class="field"><b>Author</b><span>${AUTHOR}</span></div>
-            <div class="field"><b>Kernel</b><span>no</span></div>
-            <div class="field"><b>VPN</b><span>no — AZ-OS is not a VPN</span></div>
-            <div class="field"><b>Host subprocess</b><span>no</span></div>
-            <div class="field"><b>Halt kills OS</b><span>no</span></div>
+            <div class="field"><b>Kernel</b><span id="st-kernel">There is no kernel.</span></div>
+            <div class="field"><b>VPN</b><span>AZ-OS is not a VPN.</span></div>
+            <div class="field"><b>Host commands</b><span>This page does not run commands on the host computer.</span></div>
+            <div class="field"><b>Halt</b><span>Halt stops new AZ-OS commands. It does not shut down the computer.</span></div>
           </div>
+          <p id="st-limits" style="margin-top:.8rem">There is no kernel. The kernel base is absent. This has not booted. This is not installed as an operating system. This is not an operating system yet. The userspace base is present. That is a base, not a boot. The internet base is not live and not installed. An alternative internet is not live. Mail is not sent from here. One-click install is not live. This page is not a live mesh node. Existing doors stay in place. App shells are not started.</p>
           <p class="note" id="st-note" style="margin-top:.8rem"></p>
           <h3 style="font-size:.95rem;color:var(--gold);margin:1rem 0 .4rem">Principles</h3>
           <ol id="st-principles" style="margin:0;padding-left:1.15rem">${principles}</ol>
@@ -402,8 +404,8 @@ export function renderHomepage(stats) {
         </section>
 
         <section class="panel" id="tab-prefab" role="tabpanel">
-          <p class="note">Prefab AZ-OS ships catalog hooks as installed apps. Opening a URL is voluntary. Hosted prefab is a directory, not a silent copy onto disk.</p>
-          <p class="kid" id="prefab-count">Installed hooks: …</p>
+          <p class="note">These are catalog hooks. Opening a page is voluntary. This page does not start their shells, and it does not copy them onto disk.</p>
+          <p class="kid" id="prefab-count">Catalog hooks: …</p>
           <div class="apps" id="prefab-apps"></div>
         </section>
 
@@ -412,7 +414,7 @@ export function renderHomepage(stats) {
           <div class="fields">
             <div class="field"><b>Gear ticks</b><span id="lat-gears">…</span></div>
             <div class="field"><b>Timeslates</b><span id="lat-slates">…</span></div>
-            <div class="field"><b>Rollback</b><span>false</span></div>
+            <div class="field"><b>Rollback</b><span>Nothing here rolls back.</span></div>
             <div class="field"><b>Tip</b><span id="lat-tip">none</span></div>
           </div>
           <p class="note" id="lat-note" style="margin-top:.8rem"></p>
@@ -537,7 +539,32 @@ export function renderHomepage(stats) {
         var el = document.getElementById(id);
         if (el) el.textContent = value == null ? "" : String(value);
       }
-      function yn(v) { return v ? "yes" : "no"; }
+      // Machine name for the absent news source: azos.news_source. People see a sentence, not this code.
+      function said(flag, yes, no) { return flag === true ? yes : no; }
+      function plainLimits(d) {
+        var src = d || {};
+        var net = src.internet_base && typeof src.internet_base === "object" ? src.internet_base : {};
+        var userspace = src.userspace_base === true
+          ? "The userspace base is present. That is a base, not a boot."
+          : "The userspace base is absent.";
+        var netLive = net.live === true ? "live" : "not live";
+        var netInstalled = net.installed === true ? "installed" : "not installed";
+        return [
+          said(src.kernel, "There is a kernel.", "There is no kernel."),
+          said(src.kernel_base, "The kernel base is present.", "The kernel base is absent."),
+          said(src.booted, "This has booted.", "This has not booted."),
+          said(src.installed, "This is installed as an operating system.", "This is not installed as an operating system."),
+          said(src.os_yet, "This is an operating system.", "This is not an operating system yet."),
+          userspace,
+          "The internet base is " + netLive + " and " + netInstalled + ".",
+          said(src.alt_internet_live, "An alternative internet is live.", "An alternative internet is not live."),
+          said(src.mail_send, "Mail can be sent from here.", "Mail is not sent from here."),
+          said(src.one_click_install_live, "One-click install is live.", "One-click install is not live."),
+          said(src.mesh_node_live, "This is a live mesh node.", "This is not a live mesh node."),
+          said(src.doors_replaced, "An existing door was replaced.", "Existing doors stay in place."),
+          said(src.app_shells_started, "App shells were started.", "App shells are not started.")
+        ].join(" ");
+      }
 
       function showTab(name) {
         document.querySelectorAll(".tabs [role=tab]").forEach(function (b) {
@@ -555,10 +582,14 @@ export function renderHomepage(stats) {
         busy(true);
         var out = await jfetch("/v1/status", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
         var d = out.data || {};
-        setText("st-lumen", d.lumen || "unknown");
+        setText("st-lumen", d.lumen === "running" ? "The watch is on." : (d.lumen === "stopped" ? "The watch is off." : "The watch state was not reported."));
         setText("st-version", d.version || "${VERSION}");
-        setText("st-kind", d.kind || "ethics_coded_remote_shell");
-        setText("st-note", d.note || d.limitation || "Read-only status / principles. No remote exec on this route.");
+        setText("st-kind", "This is an ethics-coded remote shell. It is not a kernel.");
+        setText("st-kernel", d.kernel === true ? "There is a kernel." : "There is no kernel.");
+        setText("st-limits", plainLimits(d));
+        var limits = document.getElementById("limits-plain");
+        if (limits) limits.textContent = plainLimits(d) + " AZNews and 4DMap are listed. They are not joined and not live. No fetched news item has landed as a map pin.";
+        setText("st-note", "This reading is status only. It does not run a command.");
         var verbs = d.shell_verbs || [];
         var box = document.getElementById("st-verbs");
         if (box) {
@@ -576,7 +607,9 @@ export function renderHomepage(stats) {
         busy(true);
         var out = await jfetch("/v1/health");
         var d = out.data || {};
-        setText("st-note", "Health " + (out.ok ? "ok" : "fail") + " · kernel=" + yn(d.kernel) + " · ssh=" + yn(d.ssh) + " · overlay=" + yn(d.overlay));
+        setText("st-kernel", d.kernel === true ? "There is a kernel." : "There is no kernel.");
+        setText("st-limits", plainLimits(d));
+        setText("st-note", (out.ok ? "The health check passed. " : "The health check failed. ") + plainLimits(d));
         busy(false);
       }
       async function loadInvite() {
@@ -588,7 +621,7 @@ export function renderHomepage(stats) {
         var out = await jfetch("/v1/prefab");
         var d = out.data || {};
         var apps = d.apps || [];
-        setText("prefab-count", "Installed hooks: " + (d.installed != null ? d.installed : apps.length));
+        setText("prefab-count", "Catalog hooks listed: " + apps.length + ". This page does not start their shells.");
         var box = document.getElementById("prefab-apps");
         if (!box) return;
         box.innerHTML = "";
@@ -652,7 +685,7 @@ export function renderHomepage(stats) {
           var row = document.createElement("div");
           row.className = "gate";
           row.innerHTML = '<span>' + esc(name) + '</span><span class="' + (g.pass ? 'pass' : 'fail') + '">' +
-            (g.pass ? 'PASS' : 'FAIL') + '</span><span>' + esc(g.reason) + '</span>';
+            (g.pass ? 'This check passed.' : 'This check stopped.') + '</span><span>' + esc(g.reason) + '</span>';
           box.appendChild(row);
         });
       }
@@ -705,14 +738,14 @@ export function renderHomepage(stats) {
           $("qnmIsolated").textContent = String(isolated);
           var line = $("meshLine");
           var qns = (j.qns_cd && j.qns_cd.spec) || j.qns_cd_spec || "QNS-CD-1.0";
-          if (on) line.textContent = "Suite mesh: on · live " + live + " · locked " + locked + " · isolated " + isolated + ". " + qns + " hub cite. Not an anonymity network.";
-          else if (j.status === "unavailable" || (j.ok === false && j.error)) line.textContent = "Suite mesh: off (unavailable). QNM-BUILD-1.0. " + qns + ". Not an anonymity network.";
-          else line.textContent = "Suite mesh: off (default). QNM-BUILD-1.0. " + qns + ". Not an anonymity network.";
+          if (on) line.textContent = "The suite mesh reports that it is on. The live count is " + live + ". This page is not a live mesh node. The cite is QNM-BUILD-1.0 and " + qns + ". Not an anonymity network.";
+          else if (j.status === "unavailable" || (j.ok === false && j.error)) line.textContent = "The suite mesh is off because it could not be read. This page is not a live mesh node. The cite is QNM-BUILD-1.0 and " + qns + ". Not an anonymity network.";
+          else line.textContent = "The suite mesh is off. This page is not a live mesh node. The cite is QNM-BUILD-1.0 and " + qns + ". Not an anonymity network.";
           var products = j.products_present || j.products || [];
           var names = Array.isArray(products) ? products.map(function (p) { return typeof p === "string" ? p : (p && (p.product || p.slug)) || ""; }).filter(Boolean) : [];
           var nodes = Array.isArray(j.nodes) ? j.nodes : [];
           var extra = names.length ? " · products " + names.join(", ") : (nodes.length ? " · " + nodes.length + " node labels" : "");
-          $("meshProducts").textContent = "Catalog MCP mesh_* · FragGate slug=mesh · /v1/mesh/* PROXY · " + qns + " photon QNS1 (hub cite) · not AnonBroadcast · not AZMail ring · not a Node Gate · not a public qnsd proxy" + extra;
+          $("meshProducts").textContent = "The catalog mesh tools and the FragGate mesh door stay as they are. This page does not replace them. /v1/mesh is a proxy. " + qns + " is a hub cite. Not an anonymity network. No public qnsd proxy." + (extra ? " " + extra + "." : "");
         }
         async function meshGet(path) {
           var r = await fetch(path, { headers: { "user-agent": "Mozilla/5.0", accept: "application/json" } });
