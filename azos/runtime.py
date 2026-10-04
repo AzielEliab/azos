@@ -251,6 +251,7 @@ def _news_map_summary(root: Path) -> dict[str, Any]:
         "pin_op": record["pin_op"],
         "open_op": record["open_op"],
         "plain": record["plain"],
+        "item_landed": record.get("item_landed") is True,
         "author": record["author"],
         "paths": record.get("paths"),
         "runtime_done": False,

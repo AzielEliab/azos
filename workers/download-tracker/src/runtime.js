@@ -288,8 +288,32 @@ Source:
   ${SOURCE_URL}
 `;
 
+function plainLimits(src) {
+  const d = src || {};
+  const net = d.internet_base && typeof d.internet_base === "object" ? d.internet_base : {};
+  const said = (flag, yes, no) => (flag === true ? yes : no);
+  const userspace = d.userspace_base === true
+    ? "The userspace base is present. That is a base, not a boot."
+    : "The userspace base is absent.";
+  return [
+    said(d.kernel, "There is a kernel.", "There is no kernel."),
+    said(d.kernel_base, "The kernel base is present.", "The kernel base is absent."),
+    said(d.booted, "This has booted.", "This has not booted."),
+    said(d.installed, "This is installed as an operating system.", "This is not installed as an operating system."),
+    said(d.os_yet, "This is an operating system.", "This is not an operating system yet."),
+    userspace,
+    "The internet base is " + (net.live === true ? "live" : "not live") + " and " + (net.installed === true ? "installed" : "not installed") + ".",
+    said(d.alt_internet_live, "An alternative internet is live.", "An alternative internet is not live."),
+    said(d.mail_send, "Mail can be sent from here.", "Mail is not sent from here."),
+    said(d.one_click_install_live, "One-click install is live.", "One-click install is not live."),
+    said(d.mesh_node_live, "This is a live mesh node.", "This is not a live mesh node."),
+    said(d.doors_replaced, "An existing door was replaced.", "Existing doors stay in place."),
+    said(d.app_shells_started, "App shells were started.", "App shells are not started."),
+  ].join(" ");
+}
+
 function scopeMeta(obj) {
-  return {
+  const body = {
     motto: MOTTO,
     author: AUTHOR,
     kind: "ethics_coded_remote_shell",
@@ -297,6 +321,18 @@ function scopeMeta(obj) {
     ethics_gated: true,
     overlay: true,
     kernel: false,
+    kernel_base: false,
+    booted: false,
+    installed: false,
+    os_yet: false,
+    userspace_base: true,
+    internet_base: { live: false, installed: false },
+    alt_internet_live: false,
+    mail_send: false,
+    one_click_install_live: false,
+    mesh_node_live: false,
+    doors_replaced: false,
+    app_shells_started: false,
     worm: false,
     malware: false,
     ssh: false,
@@ -313,6 +349,8 @@ function scopeMeta(obj) {
     gates: GATES,
     ...obj,
   };
+  body.limits_plain = plainLimits(body);
+  return body;
 }
 
 function randomHex(nBytes) {
@@ -401,9 +439,10 @@ function welcomeText() {
     MOTTO,
     "Author: Aziel Eliab",
     "",
-    "This session is a sandboxed vfs. Commands are principle-bound.",
-    "Protocol: https-json. Auth: ARC after five gates. Sandbox: KV vfs.",
-    "No host subprocess. No SSH. No kernel. Type `help`.",
+    "This session is a folder for commands.",
+    "There is no kernel. This has not booted.",
+    "The userspace base is present. That is a base, not a boot.",
+    "Mail is not sent from here. Type help.",
     "",
   ].join("\n");
 }
@@ -552,7 +591,7 @@ function dispatch(sess, command) {
     return path + "\n";
   }
   if (verb === "status") {
-    return JSON.stringify(scopeMeta({
+    const meta = scopeMeta({
       ok: true,
       product: PRODUCT,
       version: VERSION,
@@ -560,7 +599,11 @@ function dispatch(sess, command) {
       halted: Boolean(sess.halted),
       builtins: SAFE_ACTIONS,
       shell_verbs: SHELL_VERBS,
-    }), null, 2) + "\n";
+    });
+    const state = sess.halted
+      ? "This session is halted. New commands are refused."
+      : "This session can take a command.";
+    return state + " " + meta.limits_plain + "\n";
   }
   if (verb === "principles") {
     return PRINCIPLES.map((p, i) => `${i + 1}. ${p}`).join("\n") + "\n";
@@ -573,13 +616,8 @@ function dispatch(sess, command) {
   }
   if (verb === "whoami") return String(sess.actor || "operator") + "\n";
   if (verb === "session") {
-    return JSON.stringify({
-      session: sess.id,
-      actor: sess.actor,
-      cwd: vfs.cwd,
-      opened_at: sess.opened_at,
-      closed: Boolean(sess.closed),
-    }, null, 2) + "\n";
+    const meta = scopeMeta({});
+    return "This session is open for " + (sess.actor || "operator") + ". The working directory is " + vfs.cwd + ". A session is a folder for commands. It is not a boot. " + meta.limits_plain + "\n";
   }
   if (verb === "halt") {
     sess.halted = true;

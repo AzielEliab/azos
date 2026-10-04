@@ -97,6 +97,33 @@ def test_exec_shell_builtin_opens_and_runs(runtime: Runtime) -> None:
     assert out["stdout"].strip() == "/"
 
 
+def test_shell_status_and_session_are_sentences(runtime: Runtime) -> None:
+    token, session = _open(runtime)
+    status = runtime.run_command("status", session_id=session, token=token)
+    assert status["ok"] is True
+    assert "{" not in status["stdout"]
+    assert "There is no kernel." in status["stdout"]
+    assert "not a boot" in status["stdout"]
+    assert "not joined and not live" in status["stdout"]
+    record = status["status"]
+    assert record["kernel"] is False
+    assert record["kernel_base"] is False
+    assert record["booted"] is False
+    assert record["installed"] is False
+    assert record["os_yet"] is False
+    assert record["userspace_base"] is True
+    assert record["internet_base"]["live"] is False
+    assert record["internet_base"]["installed"] is False
+    assert record["alt_internet_live"] is False
+    assert record["mail_send"] is False
+    assert record["one_click_install_live"] is False
+    assert record["mesh_node_live"] is False
+    session_out = runtime.run_command("session", session_id=session, token=token)
+    assert session_out["ok"] is True
+    assert "{" not in session_out["stdout"]
+    assert "not a boot" in session_out["stdout"]
+
+
 def test_workspace_stays_under_session(runtime: Runtime, tmp_path: Path) -> None:
     token, session = _open(runtime)
     runtime.run_command("write a.txt x", session_id=session, token=token)

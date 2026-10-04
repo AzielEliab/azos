@@ -170,6 +170,7 @@
     <section id="page-shell" class="page show">
       <h1>Shell</h1>
       <p class="lede">AZ-OS runs registered commands in a session folder on this machine, after an ethics check.</p>
+      <p id="limits-plain">There is no kernel. The kernel base is absent. This has not booted. This is not installed as an operating system. This is not an operating system yet. The userspace base is present. That is a base, not a boot. The internet base is not live and not installed. An alternative internet is not live. Mail is not sent from here. One-click install is not live. This is not a live mesh node. Existing doors stay in place. App shells are not started. AZNews and 4DMap are listed. They are not joined and not live. No fetched news item has landed as a map pin.</p>
       <div class="row" id="open-row">
         <button type="button" class="primary" id="btn-open">Open shell</button>
         <button type="button" class="ghost" id="btn-help">Help</button>
@@ -259,10 +260,6 @@
 
         <h2>Integrity lattice</h2>
         <p id="lattice-human" class="note">Loading…</p>
-        <details>
-          <summary>Lattice record</summary>
-          <pre class="log" id="lattice-record"></pre>
-        </details>
 
         <h2>Execution log</h2>
         <pre class="log" id="log">—</pre>
@@ -278,7 +275,8 @@
 
     <section id="page-status" class="page">
       <h1>Status</h1>
-      <p class="lede">Plain reading of this install. The machine record is <code>azos status --json</code>.</p>
+      <p class="lede">Plain reading of this install. A program can still ask for the machine record with <code>azos status --json</code>.</p>
+      <p id="status-limits"></p>
       <dl class="kv" id="status-list"></dl>
       <div class="row" style="margin-top:16px">
         <button type="button" class="ghost" id="btn-refresh">Refresh</button>
@@ -297,6 +295,7 @@
         <li>Purge deletes that <code>.azos</code> folder only, after you type CONFIRM.</li>
       </ul>
       <p>Integrity precedes execution.</p>
+      <p>There is no kernel. This has not booted. The userspace base is present. That is a base, not a boot. AZNews and 4DMap are listed. They are not joined and not live.</p>
       <p class="note">This page listens on 127.0.0.1. A program can send <code>Accept: application/json</code> on GET / for the status record. People get this page.</p>
       <p class="note">In a terminal: <code>azos doctor</code> checks the install. <code>azos --help</code> lists commands.</p>
     </section>
@@ -320,6 +319,44 @@
     return String(value == null ? "" : value).replace(/[&<>"']/g, (ch) => ({
       "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
     }[ch]));
+  }
+
+  function newsSentence(news) {
+    const record = news || {};
+    const paths = record.paths || {};
+    const joined = paths.joined || {};
+    const landed = record.item_landed === true;
+    const live = record.live === true || joined.live === true || record.merged === true;
+    if (landed && live) {
+      return "AZNews and 4DMap are listed. A fetched news item has landed as a map pin, so the join is marked live.";
+    }
+    if (landed) {
+      return "AZNews and 4DMap are listed. A fetched news item has landed as a map pin. They are not marked live.";
+    }
+    return "AZNews and 4DMap are listed. They are not joined and not live. No fetched news item has landed as a map pin.";
+  }
+
+  function latticeSentences(lattice) {
+    const ticks = lattice && lattice.gear_ticks != null ? lattice.gear_ticks : 0;
+    const slates = lattice && lattice.timeslates != null ? lattice.timeslates : 0;
+    const empty = ticks === 0 && slates === 0;
+    const head = lattice && lattice.verified
+      ? (empty ? "The integrity check passed. There are no entries yet." : "The integrity check passed.")
+      : "The integrity check did not pass.";
+    const tickWord = ticks === 1 ? "1 gear tick" : ticks + " gear ticks";
+    const slateWord = slates === 1 ? "1 timeslate" : slates + " timeslates";
+    const count = empty
+      ? "There are no gear ticks and no timeslates."
+      : "There are " + tickWord + " and " + slateWord + ".";
+    return head + " " + count + " Nothing here rolls back. This record is not a kernel and not a boot.";
+  }
+
+  function logSentence(entry) {
+    const action = String((entry && entry.action) || "a step");
+    if (action.indexOf("shell:") === 0) {
+      return "Recorded the command " + action.slice(6) + ".";
+    }
+    return "Recorded " + action.replace(/[_:]/g, " ") + ".";
   }
 
   function showPage(name) {
@@ -418,11 +455,11 @@
   }
 
   function chip(st) {
-    if (st.halted && st.lumen === "running") return "Halted — watch still on";
-    if (st.halted) return "Halted";
-    if (sessionId) return "Session open";
-    if (st.lumen === "running") return "Ready";
-    return "Watch is off";
+    if (st.halted && st.lumen === "running") return "Halted. The watch is still on.";
+    if (st.halted) return "Halted.";
+    if (sessionId) return "A session is open.";
+    if (st.lumen === "running") return "The watch is on.";
+    return "The watch is off.";
   }
 
   function fillStatus(st) {
@@ -430,7 +467,7 @@
     const tokens = st.tokens || {};
     const lattice = st.lattice || {};
     const rows = [
-      ["Shell", st.halted ? "Halted. New commands are refused." : "Ready."],
+      ["Shell", st.halted ? "Halted. New commands are refused." : "The watch is on. New commands can be checked."],
       ["Watch (Lumen)", st.lumen === "running" ? "On" : "Off"],
       ["Session folder", st.session || ""],
       ["Log entries", String(st.log_length != null ? st.log_length : 0)],
@@ -440,8 +477,12 @@
         ? ((lattice.gear_ticks || 0) === 0 ? "Check passed. No entries yet." : "Check passed")
         : "Check did not pass"],
       ["Version", st.version || ""],
-      ["News and the map", (st.news_map && st.news_map.plain) || ""]
+      ["News and the map", newsSentence(st.news_map)]
     ];
+    const limits = $("status-limits");
+    if (limits) limits.textContent = (st.limits_plain ? st.limits_plain + " " : "") + newsSentence(st.news_map);
+    const lead = $("limits-plain");
+    if (lead && st.limits_plain) lead.textContent = st.limits_plain + " " + newsSentence(st.news_map);
     $("status-list").innerHTML = rows.map((row) =>
       "<dt>" + esc(row[0]) + "</dt><dd>" + esc(row[1]) + "</dd>"
     ).join("");
@@ -454,19 +495,10 @@
     enableToken(Boolean(token) && !st.halted);
     if (st.halted) showSession(false);
     const log = await (await fetch("/api/log")).json();
-    const lines = (log.entries || []).map((entry) =>
-      (entry.hash || "").slice(0, 12) + "  " + (entry.action || "")
-    );
-    $("log").textContent = lines.length ? lines.join("\n") : "Empty until a command runs.";
+    const lines = (log.entries || []).map(logSentence);
+    $("log").textContent = lines.length ? lines.join(" ") : "The log is empty until a command runs.";
     const lattice = await (await fetch("/api/lattice")).json();
-    const ticks = lattice.gear_ticks != null ? lattice.gear_ticks : 0;
-    const slates = lattice.timeslates != null ? lattice.timeslates : 0;
-    const empty = ticks === 0 && slates === 0;
-    const head = lattice.verified
-      ? (empty ? "Lattice check passed. No entries yet." : "Lattice check passed.")
-      : "Lattice check did not pass.";
-    $("lattice-human").textContent = head + " Gear ticks: " + ticks + ". Timeslates: " + slates + ".";
-    $("lattice-record").textContent = JSON.stringify(lattice, null, 2);
+    $("lattice-human").textContent = latticeSentences(lattice);
     return st;
   }
 
@@ -486,13 +518,14 @@
       const invite = await (await fetch("/api/invite")).json();
       $("invite-text").textContent = invite.invite || "";
       const news = await (await fetch("/api/newsmap")).json();
-      $("news-plain").textContent = news.plain || "";
       const aloneNews = await (await fetch("/api/aznews")).json();
       const aloneMap = await (await fetch("/api/map")).json();
-      const newsLive = aloneNews.live === true ? "live" : "not live";
-      const mapInstalled = aloneMap.installed === true ? "installed" : "not installed";
-      $("news-paths").textContent =
-        "Standalone AZNews is " + newsLive + ". Standalone 4DMap is " + mapInstalled + ". The joined probe stays refused while the news source is absent.";
+      $("news-plain").textContent = newsSentence(news);
+      const newsLive = aloneNews.live === true ? "AZNews is live." : "AZNews is listed and is not live.";
+      const mapState = aloneMap.installed === true
+        ? "4DMap is installed."
+        : "4DMap is listed and is not installed.";
+      $("news-paths").textContent = newsLive + " " + mapState;
       await refresh();
     } catch (err) {
       setMsg("The page could not read local status. Next: reload.", false);
