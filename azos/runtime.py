@@ -252,6 +252,11 @@ def _news_map_summary(root: Path) -> dict[str, Any]:
         "open_op": record["open_op"],
         "plain": record["plain"],
         "author": record["author"],
+        "paths": record.get("paths"),
+        "runtime_done": False,
+        "runtime_claimed": False,
+        "cross_tether": True,
+        "not_live": record.get("not_live"),
     }
 
 

@@ -49,7 +49,7 @@ Issues = "https://github.com/AzielEliab/azos/issues"
 include = ["azos*"]
 
 [tool.setuptools.package-data]
-azos = ["templates/*.html", "templates/*.svg"]
+azos = ["templates/*.html", "templates/*.svg", "data/*.json", "data/*.tsv"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

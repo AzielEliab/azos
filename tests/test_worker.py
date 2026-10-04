@@ -125,6 +125,11 @@ def test_worker_runtime_exposes_ethics_shell() -> None:
     assert "/v1/lattice" in runtime
     assert "/v1/newsmap" in runtime
     assert "AZNEWS-SOURCE-ABSENT" in runtime
+    assert "runtime_done: false" in runtime
+    assert "one_click_install_live: false" in runtime
+    assert "mesh_node_live: false" in runtime
+    assert "mail_live: false" in runtime
+    assert "internet_live: false" in runtime
     prefab_slugs = runtime.split("const slugs = [", 1)[1].split("];", 1)[0]
     assert "4dmap" not in prefab_slugs
     assert "aznews" not in prefab_slugs

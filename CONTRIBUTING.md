@@ -64,7 +64,10 @@ Python 3.10+. Core is stdlib only (`hashlib`, `secrets`, `json`,
 - Control surface: `azos/interface.py`, `azos/templates/ui.html`
 - CLI: `azos/cli.py`
 - Prefab catalog apps: `azos/prefab.py`
-- Runtime AZNews ↔ 4DMap door (not an installed app): `azos/newsmap.py`
+- Joined AZNews ↔ 4DMap door (not an installed app; runtime side not claimed done): `azos/newsmap.py`
+- Standalone AZNews (outlets, weather gaps, tail events, dual hash chains): `azos/aznews.py`
+- Standalone 4DMap pins (not installed): `azos/fourdmap.py`
+- Primary and secondary hash chains: `azos/chains.py`
 - Integrity lattice: `azos/lattice.py`
 - Hosted shell: `workers/download-tracker/src/runtime.js`
 - Suite mesh / QNM Live Nodes: `workers/download-tracker/src/mesh.js` (`/v1/mesh/*` PROXY to aziel-runtime; QNS-CD-1.0 hub cite, not a qnsd proxy).

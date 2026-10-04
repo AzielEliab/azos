@@ -43,7 +43,7 @@ Ops (do **not** increment downloads or views):
 - `POST /v1/close` — close a session
 - `GET /v1/prefab` — installed catalog apps
 - `GET`/`POST /v1/lattice` — TemporalLock × StaticClock integrity lattice
-- `GET /v1/newsmap` — runtime AZNews ↔ 4DMap join. 4DMap is not installed. No news source. Not live.
+- `GET /v1/newsmap` — joined AZNews and 4DMap probe. Standalone paths exist in the local package. 4DMap is not installed. No news source. Not live. This repo does not claim the aziel-runtime side is done.
 - Product POSTs listed in OpenAPI (`invite`, `halt`, `revoke`)
 
 Works with ChatGPT (GPT Actions / OpenAI), Grok (xAI), Venice, Claude (Anthropic), Cursor (MCP), Glama (MCP), Perplexity, Microsoft Copilot / Bing, Google Gemini / Vertex, Mistral, Meta AI, Apple Intelligence surfaces, Amazon Q tooling, DuckAssist, You.com, Cohere, and other MCP/OpenAPI-capable assistants. Import OpenAPI as a custom tool, use GPT Actions, HTTP tools, or MCP. Catalog MCP `mesh_*` + FragGate `slug=mesh`. Suite mesh default OFF. QNM-BUILD-1.0 live|locked|isolated. QNS-CD-1.0 photon QNS1 hub cite (qnm-node qnsd; no public proxy). No Node Gate. No auto-heal. Not anonymity. Author: Aziel Eliab only.
@@ -90,7 +90,7 @@ azos node probe
 
 ## News and the map
 
-AZ-OS points at the runtime 4DMap engine (`slug=4dmap`, ops `news_pin` and `news_open`). A news item can become a map pin (date, event, and place), or a pin can open the matching news. This is not a second app and not a copy of the engine. 4DMap is not marked installed. The news source `aznews` is absent (`azos.news_source` is not in this package), so the surface refuses and does not invent articles. That refusal is not live and not merged. `azos news` and the local page at http://127.0.0.1:8800/ say this in plain language.
+AZNews and 4DMap each have a standalone path, and they share a joined path. AZNews can list cited outlets, record weather gaps, and chain a cited tail-event catalog without opening the map. 4DMap can pin a cited tail event without a news article. On the joined path, AZ-OS points at the runtime 4DMap engine (`slug=4dmap`, ops `news_pin` and `news_open`). A news item can become a map pin (date, event, and place), or a pin can open the matching news. This is not a second app and not a copy of the engine. This package does not claim the aziel-runtime side is done. 4DMap is not marked installed. The news source `aznews` is absent (`azos.news_source` is not in this package), so the probe refuses until a real fetched item lands. A fixture is not that item and does not flip the live flag. Internet, mail, the kernel, one-click install, and the mesh node are not marked live. `azos news`, `azos map`, and the local page at http://127.0.0.1:8800/ say this in plain language.
 
 Counted download (gzip HTTP 200, no 302): https://azos-download-tracker.vibelock.workers.dev/download?asset=azos-0.3.0.tar.gz
 GitHub: https://github.com/AzielEliab/azos
