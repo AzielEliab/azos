@@ -57,11 +57,12 @@ Advanced:
   import    Read a JSON file into .azos-state.json
   export    Write .azos-state.json to a file
   node      Local AZnet hash client (sidenet). Three layers by need.
-  news      News and the map. Points at the runtime 4DMap join.
+  news      AZNews, alone or joined to the map. The news source is absent.
+  map       4DMap pins, alone. 4DMap is not installed.
   version   Print the package version
 
 Add --json to status, doctor, session, exec, halt, purge, import,
-export, node, or news for the machine-readable record. azos --json prints status.
+export, node, news, or map for the machine-readable record. azos --json prints status.
 
 Examples:
   azos
@@ -204,15 +205,26 @@ def _build_parser() -> AzosParser:
         help="Reported as present or absent. Never stored.",
     )
 
-    p_news = add("news", "News and the map. The runtime 4DMap join. No second app.")
+    p_news = add("news", "AZNews, alone or joined to the map. The news source is absent.")
     p_news.add_argument(
         "op",
         nargs="?",
         default="status",
-        choices=("status", "pin", "open"),
-        help="status, pin, or open.",
+        choices=("status", "pin", "open", "outlets", "weather", "swans"),
+        help="status, pin, open, outlets, weather, or swans.",
     )
     p_news.add_argument("--actor", default="operator", help="Name on the offline record.")
+
+    p_map = add("map", "Standalone 4DMap pins. 4DMap is not installed.")
+    p_map.add_argument(
+        "op",
+        nargs="?",
+        default="status",
+        choices=("status", "pin"),
+        help="status or pin.",
+    )
+    p_map.add_argument("--actor", default="operator", help="Name on the offline record.")
+    p_map.add_argument("--event", default=None, help="Cited tail-event id to pin.")
 
     return parser
 
@@ -387,9 +399,11 @@ def _human_news(rec: dict) -> str:
 
 
 def _news_command(args: argparse.Namespace, *, as_json: bool) -> int:
+    from azos.aznews import AZNews
     from azos.newsmap import NewsMap
 
     door = NewsMap(root=Path.cwd())
+    news = AZNews(root=Path.cwd())
     op = args.op or "status"
     try:
         if op == "status":
@@ -398,6 +412,13 @@ def _news_command(args: argparse.Namespace, *, as_json: bool) -> int:
             rec = door.pin(username=args.actor)
         elif op == "open":
             rec = door.open_news(username=args.actor)
+        elif op == "outlets":
+            rec = news.outlets()
+        elif op == "weather":
+            rec = news.weather(username=args.actor)
+        elif op == "swans":
+            rec = news.chain_black_swans(username=args.actor)
+            rec.pop("events", None)
         else:
             sys.stderr.write('Unknown news command. Try: azos news\n')
             return 2
@@ -405,6 +426,32 @@ def _news_command(args: argparse.Namespace, *, as_json: bool) -> int:
         sys.stderr.write(f"{exc}\nNext: azos news\n")
         return 1
     _emit(rec, as_json=as_json, human=_human_news(rec))
+    if op == "status":
+        return 0
+    return 0 if rec.get("ok") else 1
+
+
+def _map_command(args: argparse.Namespace, *, as_json: bool) -> int:
+    from azos.fourdmap import FourDMap
+
+    surface = FourDMap(root=Path.cwd())
+    op = args.op or "status"
+    try:
+        if op == "status":
+            rec = surface.status()
+        elif op == "pin":
+            if not args.event:
+                sys.stderr.write("azos map pin needs a cited event id.\nNext: azos map\n")
+                return 2
+            rec = surface.pin_catalog(args.event, username=args.actor)
+        else:
+            sys.stderr.write('Unknown map command. Try: azos map\n')
+            return 2
+    except AzosError as exc:
+        sys.stderr.write(f"{exc}\nNext: azos map\n")
+        return 1
+    plain = str(rec.get("plain") or "4DMap is not installed.")
+    _emit(rec, as_json=as_json, human=plain + "\n")
     if op == "status":
         return 0
     return 0 if rec.get("ok") else 1
@@ -709,6 +756,9 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     if args.cmd == "news":
         return _news_command(args, as_json=as_json)
+
+    if args.cmd == "map":
+        return _map_command(args, as_json=as_json)
 
     if args.cmd == "import":
         from azos.jsonio import import_json

@@ -146,6 +146,15 @@ def _check_news_map() -> Check:
         return _fail("news-map", "door")
     if record.get("engine_copy") or record.get("second_app"):
         return _fail("news-map", "copy")
+    if record.get("runtime_done") is not False or record.get("cross_tether") is not True:
+        return _fail("news-map", "runtime")
+    paths = record.get("paths") if isinstance(record.get("paths"), dict) else {}
+    if not paths.get("joined") or not paths.get("aznews_standalone") or not paths.get("fourdmap_standalone"):
+        return _fail("news-map", "paths")
+    not_live = record.get("not_live") if isinstance(record.get("not_live"), dict) else {}
+    for key in ("internet", "mail", "kernel", "one_click_install", "mesh_node"):
+        if not_live.get(key) is not False:
+            return _fail("news-map", key)
     return _ok("news-map", "runtime join, source absent")
 
 

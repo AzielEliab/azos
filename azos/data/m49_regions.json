@@ -1,0 +1,155 @@
+{
+  "citation": {
+    "name": "United Nations M49 standard country or area codes for statistical use",
+    "url": "https://unstats.un.org/unsd/methodology/m49/overview/",
+    "retrieved": "2026-10-04"
+  },
+  "note": "Geographic regions, sub-regions, and intermediate regions. Countries are not listed. No weather station is included, so a reading cannot be invented for a region.",
+  "regions": [
+    {
+      "code": "002",
+      "name": "Africa",
+      "level": "region"
+    },
+    {
+      "code": "015",
+      "name": "Northern Africa",
+      "level": "sub-region"
+    },
+    {
+      "code": "202",
+      "name": "Sub-Saharan Africa",
+      "level": "sub-region"
+    },
+    {
+      "code": "014",
+      "name": "Eastern Africa",
+      "level": "intermediate"
+    },
+    {
+      "code": "017",
+      "name": "Middle Africa",
+      "level": "intermediate"
+    },
+    {
+      "code": "018",
+      "name": "Southern Africa",
+      "level": "intermediate"
+    },
+    {
+      "code": "011",
+      "name": "Western Africa",
+      "level": "intermediate"
+    },
+    {
+      "code": "019",
+      "name": "Americas",
+      "level": "region"
+    },
+    {
+      "code": "419",
+      "name": "Latin America and the Caribbean",
+      "level": "sub-region"
+    },
+    {
+      "code": "029",
+      "name": "Caribbean",
+      "level": "intermediate"
+    },
+    {
+      "code": "013",
+      "name": "Central America",
+      "level": "intermediate"
+    },
+    {
+      "code": "005",
+      "name": "South America",
+      "level": "intermediate"
+    },
+    {
+      "code": "021",
+      "name": "Northern America",
+      "level": "sub-region"
+    },
+    {
+      "code": "142",
+      "name": "Asia",
+      "level": "region"
+    },
+    {
+      "code": "143",
+      "name": "Central Asia",
+      "level": "sub-region"
+    },
+    {
+      "code": "030",
+      "name": "Eastern Asia",
+      "level": "sub-region"
+    },
+    {
+      "code": "035",
+      "name": "South-eastern Asia",
+      "level": "sub-region"
+    },
+    {
+      "code": "034",
+      "name": "Southern Asia",
+      "level": "sub-region"
+    },
+    {
+      "code": "145",
+      "name": "Western Asia",
+      "level": "sub-region"
+    },
+    {
+      "code": "150",
+      "name": "Europe",
+      "level": "region"
+    },
+    {
+      "code": "151",
+      "name": "Eastern Europe",
+      "level": "sub-region"
+    },
+    {
+      "code": "154",
+      "name": "Northern Europe",
+      "level": "sub-region"
+    },
+    {
+      "code": "039",
+      "name": "Southern Europe",
+      "level": "sub-region"
+    },
+    {
+      "code": "155",
+      "name": "Western Europe",
+      "level": "sub-region"
+    },
+    {
+      "code": "009",
+      "name": "Oceania",
+      "level": "region"
+    },
+    {
+      "code": "053",
+      "name": "Australia and New Zealand",
+      "level": "sub-region"
+    },
+    {
+      "code": "054",
+      "name": "Melanesia",
+      "level": "sub-region"
+    },
+    {
+      "code": "057",
+      "name": "Micronesia",
+      "level": "sub-region"
+    },
+    {
+      "code": "061",
+      "name": "Polynesia",
+      "level": "sub-region"
+    }
+  ]
+}

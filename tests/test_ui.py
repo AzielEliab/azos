@@ -84,6 +84,26 @@ def test_ui_get_root_contains_azos_and_interface(tmp_path: Path) -> None:
         assert news["live"] is False
         assert news["engine_slug"] == "4dmap"
         assert "azos.news_source" in news["plain"]
+        assert news["runtime_done"] is False
+        assert news["paths"]["aznews_standalone"]["present"] is True
+        assert news["paths"]["fourdmap_standalone"]["installed"] is False
+        assert news["not_live"]["kernel"] is False
+        assert news["not_live"]["mesh_node"] is False
+        conn.request("GET", "/api/aznews")
+        aznews_resp = conn.getresponse()
+        aznews = json.loads(aznews_resp.read().decode("utf-8"))
+        assert aznews_resp.status == 200
+        assert aznews["live"] is False
+        assert aznews["path"] == "standalone"
+        assert aznews["installed"] is False
+        conn.request("GET", "/api/map")
+        map_resp = conn.getresponse()
+        alone_map = json.loads(map_resp.read().decode("utf-8"))
+        assert map_resp.status == 200
+        assert alone_map["installed"] is False
+        assert alone_map["engine_installed"] is False
+        assert alone_map["live"] is False
+        assert alone_map["runtime_done"] is False
         conn.request(
             "POST",
             "/api/newsmap",

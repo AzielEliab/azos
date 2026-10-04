@@ -240,7 +240,7 @@ AZnet is the sidenet. **AZ Browser** is the browser surface for AZnet. \`azos no
 
 ## News and the map
 
-AZ-OS points at the runtime 4DMap engine (\`slug=4dmap\`, ops \`news_pin\` and \`news_open\`). A news item can become a map pin (date, event, and place), or a pin can open the matching news. This is not a second app and not a copy of the engine. 4DMap is not marked installed. The news source aznews is absent (azos.news_source is not in this package), so the surface refuses and does not invent articles. That refusal is not live and not merged.
+AZ-OS has a joined path and two standalone paths. AZNews can stand alone. 4DMap can stand alone. On the joined path, AZ-OS points at the runtime 4DMap engine (\`slug=4dmap\`, ops \`news_pin\` and \`news_open\`). A news item can become a map pin (date, event, and place), or a pin can open the matching news. This is not a second app and not a copy of the engine. This package does not claim the aziel-runtime side is done. 4DMap is not marked installed. The news source aznews is absent (azos.news_source is not in this package), so the probe refuses and does not invent articles. That refusal is not live and not merged. Internet, mail, the kernel, one-click install, and the mesh node are not marked live.
 
 Counted download (gzip HTTP 200, no 302): https://azos-download-tracker.vibelock.workers.dev/download?asset=azos-0.3.0.tar.gz
 GitHub: https://github.com/AzielEliab/azos
@@ -723,7 +723,7 @@ function openapiDoc() {
       "/v1/newsmap": {
         get: {
           operationId: "azosNewsMap",
-          summary: "Runtime AZNews to 4DMap join. 4DMap is not installed. No news source.",
+          summary: "Joined AZNews and 4DMap probe. Standalone paths exist in full AZ-OS. 4DMap is not installed. No news source. Runtime side is not claimed done.",
           responses: { "200": { description: "Join status. Source absent. Not live." } },
         },
       },
@@ -805,11 +805,24 @@ export async function handleRuntime(request, url, env) {
       merged: false,
       live: false,
       lattice_live: false,
+      runtime_done: false,
+      runtime_claimed: false,
+      cross_tether: true,
+      internet_live: false,
+      mail_live: false,
+      kernel_live: false,
+      one_click_install_live: false,
+      mesh_node_live: false,
+      paths: {
+        joined: { present: true, id: "aznews-4dmap", live: false },
+        aznews_standalone: { present: true, live: false, installed: false },
+        fourdmap_standalone: { present: true, installed: false, engine_installed: false, live: false },
+      },
       door: "https://aziel-runtime.vibelock.workers.dev/v1/fraggate/call",
       pin_op: "news_pin",
       open_op: "news_open",
       author: AUTHOR,
-      plain: "News and the map use one runtime join. A news item can become a map pin (date, event, and place), or a pin can open the matching news. That join is the runtime 4DMap engine on the FragGate door. AZ-OS does not install 4DMap and does not keep a second map. The news source aznews is absent. The missing code is azos.news_source. Nothing here is live or merged.",
+      plain: "News and the map have a joined path and two standalone paths. On the joined path, a news item can become a map pin (date, event, and place), or a pin can open the matching news. AZNews can stand alone, and 4DMap can stand alone. That join is the runtime 4DMap engine on the FragGate door. This page does not claim the aziel-runtime side is done. AZ-OS does not install 4DMap and does not keep a second map. The news source aznews is absent. The missing code is azos.news_source. Nothing here is live or merged.",
     }));
   }
   if (path === "/v1/prefab" && request.method === "GET") {

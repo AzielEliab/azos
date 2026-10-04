@@ -192,3 +192,83 @@ def test_cli_news_is_plain_language(tmp_path: Path, monkeypatch, capsys) -> None
     assert payload["live"] is False
     assert payload["merged"] is False
     assert payload["absent"] == "azos.news_source"
+    assert payload["runtime_done"] is False
+    assert payload["not_live"]["internet"] is False
+    assert payload["not_live"]["one_click_install"] is False
+    assert "standalone" in out
+
+
+def test_fixture_item_is_on_both_chains_without_flipping_live(tmp_path: Path) -> None:
+    door = NewsMap(root=tmp_path)
+    before = door.status()
+    assert before["code"] == ABSENT_CODE
+    assert before["live"] is False
+    assert before["installed"] is False
+    assert before["engine_installed"] is False
+    image_hash = "ab" * 32
+    wording = "Fixture wording for the joined door, with the full sentence."
+    stored = door.record_fixture(
+        username="operator",
+        wording=wording,
+        image={"content_hash": image_hash, "fetch_url": "https://example.invalid/fixture.png"},
+        score=0.25,
+        date="2026-01-01",
+        event="fixture event",
+        geo="fixture place",
+    )
+    assert stored["live"] is False
+    assert stored["installed"] is False
+    assert stored["engine_installed"] is False
+    assert stored["probe_live"] is False
+    assert stored["probe_code"] == ABSENT_CODE
+    assert door.status()["live"] is False
+    assert door.status()["source_present"] is False
+    assert door.status()["engine_installed"] is False
+    primary = door.lattice.primary_chain()
+    secondary = door.lattice.secondary_chain()
+    assert primary[-1]["document"]["wording"] == wording
+    assert secondary[-1]["document"]["wording"] == wording
+    assert primary[-1]["document"]["image"]["content_hash"] == image_hash
+    assert secondary[-1]["document"]["image"]["content_hash"] == image_hash
+    assert secondary[-1]["document"]["image"]["fetch_url"] == "https://example.invalid/fixture.png"
+    assert primary[-1]["document"]["score"] == 0.25
+    assert secondary[-1]["document"]["score"] == 0.25
+    assert primary[-1]["live"] is False
+    assert secondary[-1]["live"] is False
+    assert door.lattice.verify()
+    from azos.aznews import AZNews
+    from azos.fourdmap import FourDMap
+
+    news = AZNews(root=tmp_path)
+    pins = FourDMap(root=tmp_path)
+    assert news.lattice.verify()
+    assert pins.lattice.verify()
+    assert news.lattice.primary_chain()[-1]["document"]["wording"] == wording
+    assert news.lattice.secondary_chain()[-1]["document"]["score"] == 0.25
+    assert pins.lattice.primary_chain()[-1]["document"]["event"] == "fixture event"
+    assert pins.status()["installed"] is False
+    assert news.status()["live"] is False
+
+
+def test_fixture_image_bytes_are_hashed_onto_both_chains(tmp_path: Path) -> None:
+    import hashlib
+
+    raw = b"\x89PNG fixture-bytes"
+    door = NewsMap(root=tmp_path)
+    stored = door.record_fixture(
+        username="reader",
+        wording="Fixture bytes stay hashed.",
+        image_bytes=raw,
+        score=1,
+        date="2026-02-02",
+        event="fixture bytes",
+        geo="fixture desk",
+    )
+    digest = hashlib.sha256(raw).hexdigest()
+    assert stored["live"] is False
+    assert door.status()["live"] is False
+    for chain in (door.lattice.primary_chain(), door.lattice.secondary_chain()):
+        image = chain[-1]["document"]["image"]
+        assert image["content_hash"] == digest
+        assert image["byte_length"] == len(raw)
+        assert "fixture-bytes" not in json.dumps(image)

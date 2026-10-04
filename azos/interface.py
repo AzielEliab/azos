@@ -98,6 +98,16 @@ def make_handler(runtime: Runtime):
 
                 self._json(200, NewsMap(root=runtime.root).status())
                 return
+            if path == "/api/aznews":
+                from azos.aznews import AZNews
+
+                self._json(200, AZNews(root=runtime.root).status())
+                return
+            if path == "/api/map":
+                from azos.fourdmap import FourDMap
+
+                self._json(200, FourDMap(root=runtime.root).status())
+                return
             if path == "/api/invite":
                 self._json(200, {"invite": invite_text()})
                 return
