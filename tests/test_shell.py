@@ -104,6 +104,7 @@ def test_shell_status_and_session_are_sentences(runtime: Runtime) -> None:
     assert "{" not in status["stdout"]
     assert "There is no kernel." in status["stdout"]
     assert "not a boot" in status["stdout"]
+    assert "not this kernel and not this boot" in status["stdout"]
     assert "not joined and not live" in status["stdout"]
     record = status["status"]
     assert record["kernel"] is False

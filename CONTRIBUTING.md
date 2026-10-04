@@ -15,7 +15,9 @@ python -m pytest -q
 ```
 
 Python 3.10+. Core is stdlib only (`hashlib`, `secrets`, `json`,
-`http.server`, `threading`, `shlex`). pytest is the dev extra. No network.
+`http.server`, `threading`, `shlex`). pytest is the dev extra. The
+internet door GETs FragGate health, and the news door GETs the standing
+feed. Other checks stay on this machine.
 
 ## Ground rules
 
@@ -65,6 +67,8 @@ Python 3.10+. Core is stdlib only (`hashlib`, `secrets`, `json`,
 - CLI: `azos/cli.py`
 - Prefab catalog apps: `azos/prefab.py`
 - Joined AZNews ↔ 4DMap door (not an installed app; runtime side not claimed done): `azos/newsmap.py`
+- Fetch door (standing feed; missing score and place stay refused): `azos/news_source.py`
+- Door flags follow the door result: `azos/doors.py`
 - Standalone AZNews (outlets, weather gaps, tail events, dual hash chains): `azos/aznews.py`
 - Standalone 4DMap pins (not installed): `azos/fourdmap.py`
 - Primary and secondary hash chains: `azos/chains.py`

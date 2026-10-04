@@ -272,3 +272,178 @@ def test_fixture_image_bytes_are_hashed_onto_both_chains(tmp_path: Path) -> None
         assert image["content_hash"] == digest
         assert image["byte_length"] == len(raw)
         assert "fixture-bytes" not in json.dumps(image)
+
+
+def _fetched_transport():
+    def transport() -> dict:
+        return {
+            "fetched": True,
+            "fixture": False,
+            "wording": "The basin gauge rose after the storm and stayed above the mark.",
+            "score": 4,
+            "date": "2026-04-04",
+            "event": "basin gauge",
+            "geo": "test basin",
+            "image": {
+                "content_hash": "ab" * 32,
+                "fetch_url": "https://example.invalid/gauge.png",
+            },
+        }
+
+    return transport
+
+
+def test_fetched_item_joins_only_when_both_chains_and_a_pin_exist(tmp_path: Path) -> None:
+    from azos.aznews import AZNews
+    from azos.chains import GENESIS, primary_hash, secondary_hash
+    from azos.doors import prove
+    from azos.fourdmap import FourDMap
+
+    door = NewsMap(root=tmp_path)
+    stored = door.land_fetched(transport=_fetched_transport(), username="operator")
+    assert stored["live"] is True
+    assert stored["refused"] is False
+    assert stored["installed"] is False
+    assert stored["engine_installed"] is False
+    assert stored["merged"] is False
+    assert stored["lattice_live"] is False
+    assert door.lattice.verify()
+    row = door.lattice.rows[-1]
+    assert row["primary_hash"] == primary_hash(GENESIS, row["content_hash"])
+    assert row["secondary_hash"] == secondary_hash(GENESIS, row["primary_hash"], "operator")
+    assert len(door.lattice.primary_chain()) == len(door.lattice.secondary_chain()) == 1
+    for chain in (door.lattice.primary_chain(), door.lattice.secondary_chain()):
+        document = chain[-1]["document"]
+        assert document["wording"].startswith("The basin gauge")
+        assert document["score"] == 4
+        assert document["image"]["content_hash"] == "ab" * 32
+        assert document["live"] is False
+    status = door.status()
+    assert status["live"] is True
+    assert status["source_present"] is True
+    assert status["item_landed"] is True
+    assert status["paths"]["joined"]["live"] is True
+    assert status["installed"] is False
+    pins = FourDMap(root=tmp_path)
+    assert pins.status()["installed"] is False
+    assert pins.status()["live"] is False
+    assert pins.lattice.verify()
+    news = AZNews(root=tmp_path)
+    assert news.status()["live"] is True
+    assert news.status()["path"] == "standalone"
+    assert news.lattice.verify()
+    opened = door.open_news(username="reader")
+    assert opened["refused"] is False
+    assert opened["wording"].startswith("The basin gauge")
+    proof = prove(tmp_path)
+    assert proof["flags"]["join_live"] is True
+    assert proof["flags"]["kernel"] is False
+    assert proof["doors"]["kernel"]["host_kernel"] is False
+    assert proof["doors"]["kernel"]["kernel_base"] is False
+    assert proof["flags"]["booted"] is False
+    assert proof["doors"]["booted"]["hardware"] is False
+    assert proof["flags"]["mail_send"] is False
+    assert proof["doors"]["mail_send"]["public_mta"] is False
+    assert proof["flags"]["mesh_node_live"] is False
+    assert proof["doors"]["mesh_node_live"]["public_bind"] is False
+    assert proof["doors"]["userspace_base"]["booted"] is False
+
+
+def test_standalone_fetch_does_not_mark_the_join_live(tmp_path: Path) -> None:
+    from azos.aznews import AZNews
+    from azos.fourdmap import FourDMap
+
+    news = AZNews(root=tmp_path)
+    stored = news.fetch_item(transport=_fetched_transport(), username="offline-user")
+    assert stored["live"] is True
+    assert stored["installed"] is False
+    assert news.lattice.verify()
+    row = news.lattice.rows[-1]
+    from azos.chains import GENESIS, secondary_hash
+
+    assert row["secondary_hash"] == secondary_hash(GENESIS, row["primary_hash"], "offline-user")
+    assert len(news.lattice.primary_chain()) == len(news.lattice.secondary_chain()) == 1
+    assert NewsMap(root=tmp_path).status()["live"] is False
+    assert NewsMap(root=tmp_path).status()["code"] == ABSENT_CODE
+    assert len(FourDMap(root=tmp_path).lattice) == 0
+
+
+def test_missing_fetch_keeps_the_refusal(tmp_path: Path) -> None:
+    door = NewsMap(root=tmp_path)
+
+    def transport() -> dict:
+        return {"fetched": False}
+
+    refused = door.land_fetched(transport=transport, username="operator")
+    assert refused["refused"] is True
+    assert refused["live"] is False
+    assert refused["code"] == ABSENT_CODE
+    assert door.status()["live"] is False
+    assert door.status()["paths"]["joined"]["live"] is False
+
+
+def test_http_get_of_a_complete_item_joins(tmp_path: Path) -> None:
+    import threading
+    from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+    import hashlib
+
+    from azos.chains import GENESIS, secondary_hash
+    from azos.fourdmap import FourDMap
+    from azos.news_source import http_item
+
+    png = b"\x89PNG\r\n\x1a\nbasin-gauge"
+    document = {
+        "wording": "The gauge at the test basin stayed above the mark after the storm.",
+        "score": 4,
+        "date": "2026-04-04",
+        "event": "basin gauge",
+        "geo": "test basin",
+    }
+
+    class Handler(BaseHTTPRequestHandler):
+        def do_GET(self) -> None:  # noqa: N802
+            if self.path == "/gauge.png":
+                body = png
+                kind = "image/png"
+            elif self.path == "/item.json":
+                body = json.dumps(document).encode("utf-8")
+                kind = "application/json"
+            else:
+                self.send_response(404)
+                self.end_headers()
+                return
+            self.send_response(200)
+            self.send_header("Content-Type", kind)
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+        def log_message(self, fmt: str, *args: object) -> None:
+            return
+
+    httpd = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+    port = httpd.server_address[1]
+    document["image_url"] = f"http://127.0.0.1:{port}/gauge.png"
+    thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+    thread.start()
+    try:
+        stored = NewsMap(root=tmp_path).land_fetched(
+            transport=lambda: http_item(f"http://127.0.0.1:{port}/item.json"),
+            username="operator",
+        )
+    finally:
+        httpd.shutdown()
+        httpd.server_close()
+        thread.join(timeout=2)
+    assert stored["live"] is True
+    assert stored["installed"] is False
+    assert stored["engine_installed"] is False
+    row = NewsMap(root=tmp_path).lattice.rows[-1]
+    assert row["secondary_hash"] == secondary_hash(GENESIS, row["primary_hash"], "operator")
+    assert row["document"]["image"]["content_hash"] == hashlib.sha256(png).hexdigest()
+    assert row["document"]["live"] is False
+    pins = FourDMap(root=tmp_path)
+    assert pins.status()["installed"] is False
+    assert pins.status()["live"] is False
+    assert pins.lattice.verify()

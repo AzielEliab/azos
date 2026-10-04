@@ -119,6 +119,8 @@ MAX_COMMAND_CHARS = 4096
 MAX_FILE_BYTES = 65536
 HISTORY_CAP = 100
 
+USERSPACE_YES = "The userspace base is present. That is a base, not a boot."
+
 SCOPE: Mapping[str, object] = {
     "kind": KIND,
     "remote_shell": True,
@@ -170,7 +172,7 @@ def plain_limits(facts: Mapping[str, object] | None = None) -> str:
         return yes if src.get(flag) is True else no
 
     if src.get("userspace_base") is True:
-        userspace = "The userspace base is present. That is a base, not a boot."
+        userspace = USERSPACE_YES
     else:
         userspace = "The userspace base is absent."
     net_live = "live" if net.get("live") is True else "not live"
@@ -233,10 +235,15 @@ def plain_news_listing(news: object) -> str:
     )
 
 
+INTERFACE_LINE = (
+    "AZ Interface is a separate shell. It is not this kernel and not this boot."
+)
+
+
 def human_limits(status: Mapping[str, object] | None = None) -> str:
-    """OS limits plus the news listing, as sentences."""
+    """OS limits, the news listing, and the separate interface shell, as sentences."""
     news = status.get("news_map") if isinstance(status, Mapping) else None
-    return plain_limits(status) + " " + plain_news_listing(news)
+    return plain_limits(status) + " " + plain_news_listing(news) + " " + INTERFACE_LINE
 
 
 def scope_dict() -> dict[str, object]:
