@@ -38,7 +38,7 @@ def test_html_is_self_contained() -> None:
     assert "/sigil.svg" in html
     assert "THE EVER BLOOMING FLOWER" not in html.upper()
     assert "windows logo" not in html.lower()
-    assert "There is no kernel." in html
+    assert "The AZ-OS entry ran. This is not a host kernel." in html
     assert "That is a base, not a boot." in html
     assert "not joined and not live" in html
     assert "JSON.stringify(lattice" not in html

@@ -3,9 +3,9 @@
 AZNews can be used without 4DMap. The joined path lives in ``azos.newsmap``.
 This module does not install a prefab app and does not claim the
 aziel-runtime side is done. ``azos.news_source`` is the fetch door.
-It has no standing feed, so this probe stays refused until a real
-fetched item lands. A fixture is not that item and does not flip the
-live flag.
+A standing feed that lacks a score or a place is not stored, so this
+probe stays refused until a complete fetched item lands. A fixture is
+not that item and does not flip the live flag.
 
 Author: Aziel Eliab.
 """
@@ -131,8 +131,8 @@ class AZNews:
                 "refused": True,
                 "plain": (
                     "AZNews can stand alone, without the map. "
-                    "azos.news_source is the fetch door and it has no standing feed, "
-                    "so the news source is absent. "
+                    "azos.news_source is the fetch door. A feed with no score and no place "
+                    "is not stored, so the news source on this probe is absent. "
                     "Outlets, weather, and the tail-event catalog are cited locally. "
                     "Nothing is marked live unless it was fetched, and this probe did not fetch a feed. "
                     "This package does not claim the aziel-runtime side is done. "

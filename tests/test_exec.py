@@ -49,7 +49,9 @@ def test_token_after_pass_allows_builtin(runtime: Runtime) -> None:
     assert "shell" in listed["modules"]
     st = runtime.run("status", token=result.token)
     assert st["overlay"] == "AZ-OS"
-    assert st["kernel"] is False
+    assert st["kernel"] is True
+    assert st["kernel_base"] is False
+    assert st["os_yet"] is False
 
 
 def test_revoke_then_exec_fails(runtime: Runtime) -> None:

@@ -550,17 +550,17 @@ export function renderHomepage(stats) {
         var netLive = net.live === true ? "live" : "not live";
         var netInstalled = net.installed === true ? "installed" : "not installed";
         return [
-          said(src.kernel, "There is a kernel.", "There is no kernel."),
+          said(src.kernel, "The AZ-OS entry ran. This is not a host kernel.", "There is no kernel."),
           said(src.kernel_base, "The kernel base is present.", "The kernel base is absent."),
-          said(src.booted, "This has booted.", "This has not booted."),
-          said(src.installed, "This is installed as an operating system.", "This is not installed as an operating system."),
+          said(src.booted, "This has booted. That boot is not the userspace base.", "This has not booted."),
+          said(src.installed, "This process installed AZ-OS into a directory.", "This is not installed as an operating system."),
           said(src.os_yet, "This is an operating system.", "This is not an operating system yet."),
           userspace,
           "The internet base is " + netLive + " and " + netInstalled + ".",
           said(src.alt_internet_live, "An alternative internet is live.", "An alternative internet is not live."),
-          said(src.mail_send, "Mail can be sent from here.", "Mail is not sent from here."),
-          said(src.one_click_install_live, "One-click install is live.", "One-click install is not live."),
-          said(src.mesh_node_live, "This is a live mesh node.", "This is not a live mesh node."),
+          said(src.mail_send, "Mail can be sent from here to a local mailbox.", "Mail is not sent from here."),
+          said(src.one_click_install_live, "The install path ran in this process.", "One-click install is not live."),
+          said(src.mesh_node_live, "A node is bound on 127.0.0.1.", "This is not a live mesh node."),
           said(src.doors_replaced, "An existing door was replaced.", "Existing doors stay in place."),
           said(src.app_shells_started, "App shells were started.", "App shells are not started.")
         ].join(" ");
@@ -585,7 +585,7 @@ export function renderHomepage(stats) {
         setText("st-lumen", d.lumen === "running" ? "The watch is on." : (d.lumen === "stopped" ? "The watch is off." : "The watch state was not reported."));
         setText("st-version", d.version || "${VERSION}");
         setText("st-kind", "This is an ethics-coded remote shell. It is not a kernel.");
-        setText("st-kernel", d.kernel === true ? "There is a kernel." : "There is no kernel.");
+        setText("st-kernel", d.kernel === true ? "The AZ-OS entry ran. This is not a host kernel." : "There is no kernel.");
         setText("st-limits", plainLimits(d));
         var limits = document.getElementById("limits-plain");
         if (limits) limits.textContent = plainLimits(d) + " AZNews and 4DMap are listed. They are not joined and not live. No fetched news item has landed as a map pin.";
@@ -607,7 +607,7 @@ export function renderHomepage(stats) {
         busy(true);
         var out = await jfetch("/v1/health");
         var d = out.data || {};
-        setText("st-kernel", d.kernel === true ? "There is a kernel." : "There is no kernel.");
+        setText("st-kernel", d.kernel === true ? "The AZ-OS entry ran. This is not a host kernel." : "There is no kernel.");
         setText("st-limits", plainLimits(d));
         setText("st-note", (out.ok ? "The health check passed. " : "The health check failed. ") + plainLimits(d));
         busy(false);

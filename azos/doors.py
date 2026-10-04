@@ -11,7 +11,23 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Mapping
 
-from azos.ethics import SCOPE
+from azos.ethics import (
+    BOOT_NO,
+    BOOT_YES,
+    CLICK_NO,
+    CLICK_YES,
+    INSTALLED_NO,
+    INSTALLED_YES,
+    KERNEL_NO,
+    KERNEL_YES,
+    MAIL_NO,
+    MAIL_YES,
+    MESH_NO,
+    MESH_YES,
+    SCOPE,
+    USERSPACE_YES,
+)
+from azos.node import L0_HEALTH
 
 
 def require_flag(flag: bool, door: Mapping[str, Any]) -> None:
@@ -23,81 +39,158 @@ def require_flag(flag: bool, door: Mapping[str, Any]) -> None:
         raise AssertionError("the door performed and the flag is not true")
 
 
-def kernel_door() -> dict[str, Any]:
-    """No kernel entry point ships in this package."""
+def kernel_door(root: Path) -> dict[str, Any]:
+    """Call the process entry and read the receipt back."""
+    from azos.entry import enter
+
+    entered = enter(root)
+    ok = (
+        entered.get("ok") is True
+        and entered.get("code") == "KERNEL-ENTERED"
+        and entered.get("host_kernel") is False
+        and entered.get("bootloader") is False
+    )
     return {
-        "ok": False,
-        "refused": True,
-        "code": "KERNEL-ABSENT",
-        "plain": "There is no kernel.",
+        "ok": ok,
+        "refused": not ok,
+        "code": entered.get("code") if ok else "KERNEL-ABSENT",
+        "host_kernel": False,
+        "bootloader": False,
+        "content_hash": entered.get("content_hash"),
+        "plain": KERNEL_YES if ok else KERNEL_NO,
     }
 
 
-def boot_door() -> dict[str, Any]:
-    """Userspace is not a boot. This door does not boot."""
+def boot_door(root: Path) -> dict[str, Any]:
+    """Boot the overlay. The userspace proof is not this boot."""
+    from azos.boot import boot_overlay
+
+    booted = boot_overlay(root)
+    ok = (
+        booted.get("ok") is True
+        and booted.get("booted") is True
+        and booted.get("hardware") is False
+        and booted.get("userspace_is_boot") is False
+    )
     return {
-        "ok": False,
-        "refused": True,
-        "code": "BOOT-ABSENT",
-        "plain": "This has not booted.",
+        "ok": ok,
+        "refused": not ok,
+        "booted": ok,
+        "hardware": False,
+        "userspace_is_boot": False,
+        "code": "BOOT-RAN" if ok else "BOOT-ABSENT",
+        "plain": BOOT_YES if ok else BOOT_NO,
     }
 
 
-def installed_door() -> dict[str, Any]:
-    """This process does not install an operating system."""
+def installed_door(root: Path) -> dict[str, Any]:
+    """Copy this package into a directory and read the hashes back."""
+    from azos.install import place
+
+    placed = place(root / "installed")
+    ok = placed.get("ok") is True and placed.get("fourdmap_installed") is False and placed.get("host_os") is False
     return {
-        "ok": False,
-        "refused": True,
-        "code": "OS-NOT-INSTALLED",
-        "plain": "This is not installed as an operating system.",
+        "ok": ok,
+        "refused": not ok,
+        "fourdmap_installed": False,
+        "host_os": False,
+        "os_yet": False,
+        "files": placed.get("files"),
+        "code": "INSTALLED" if ok else "OS-NOT-INSTALLED",
+        "plain": INSTALLED_YES if ok else INSTALLED_NO,
     }
 
 
 def internet_door() -> dict[str, Any]:
-    """No internet base is opened. Weather fetches stay on an injected transport."""
+    """GET the existing FragGate health URL. Loopback does not count."""
+    from azos.httpget import get_bytes
+
+    status, body = get_bytes(L0_HEALTH, limit=4096)
+    ok = status == 200 and b'"ok"' in body and L0_HEALTH.startswith("https://")
     return {
-        "ok": False,
-        "refused": True,
-        "live": False,
-        "installed": False,
-        "code": "INTERNET-NOT-LIVE",
-        "plain": "The internet base is not live and not installed.",
+        "ok": ok,
+        "refused": not ok,
+        "live": ok,
+        "installed": ok,
+        "status": status,
+        "url": L0_HEALTH,
+        "code": "INTERNET-LIVE" if ok else "INTERNET-NOT-LIVE",
+        "plain": (
+            "The internet base is live and installed."
+            if ok
+            else "The internet base is not live and not installed."
+        ),
     }
 
 
-def mail_door() -> dict[str, Any]:
-    """No mail is sent. There is no public send path."""
+def mail_door(root: Path) -> dict[str, Any]:
+    """Send one local message and read it back. There is no public mail server."""
+    from azos.mail import send_local
+
+    sent = send_local(
+        root,
+        username="operator",
+        recipient="operator@localhost",
+        subject="Local delivery",
+        body="The local mailbox read this message back.",
+    )
+    ok = sent.get("ok") is True and sent.get("sent") is True and sent.get("public_mta") is False
     return {
-        "ok": False,
-        "refused": True,
-        "sent": False,
-        "code": "MAIL-SEND-REFUSED",
-        "plain": "Mail is not sent from here.",
+        "ok": ok,
+        "refused": not ok,
+        "sent": ok,
+        "public_mta": False,
+        "code": "MAIL-SENT" if ok else "MAIL-SEND-REFUSED",
+        "primary_hash": sent.get("primary_hash"),
+        "secondary_hash": sent.get("secondary_hash"),
+        "plain": MAIL_YES if ok else MAIL_NO,
     }
 
 
 def mesh_node_door(root: Path) -> dict[str, Any]:
-    """Read the existing offline node. It does not become a live mesh node."""
+    """Bind 127.0.0.1 and read the answer. A public bind does not count."""
     from azos.node import OfflineNode
 
-    record = OfflineNode(root=root).status()
-    live = record.get("mesh_enable") is True and record.get("public_bind") is True
+    record = OfflineNode(root=root).bind_once()
+    live = (
+        record.get("bound") is True
+        and record.get("answered") is True
+        and record.get("public_bind") is False
+        and record.get("host") == "127.0.0.1"
+        and record.get("suite_mesh") is not True
+    )
     return {
         "ok": live,
         "refused": not live,
         "live": live,
+        "public_bind": False,
+        "host": record.get("host"),
         "code": "MESH-NODE-LIVE" if live else "MESH-NODE-NOT-LIVE",
-        "plain": "This is a live mesh node." if live else "This is not a live mesh node.",
+        "plain": MESH_YES if live else MESH_NO,
     }
 
 
-def one_click_door() -> dict[str, Any]:
-    """The install script is a command. This process does not run it."""
+def one_click_door(root: Path) -> dict[str, Any]:
+    """Run the in-process install path. The remote curl command is not run."""
+    from azos.install import one_click
+
+    ran = one_click(root / "one-click")
+    ok = (
+        ran.get("ok") is True
+        and ran.get("placed") is True
+        and ran.get("remote_curl") is False
+        and ran.get("pip_ran") is False
+        and ran.get("host_shell") is False
+    )
     return {
-        "ok": False,
-        "refused": True,
-        "code": "ONE-CLICK-NOT-LIVE",
-        "plain": "One-click install is not live.",
+        "ok": ok,
+        "refused": not ok,
+        "remote_curl": False,
+        "pip_ran": False,
+        "host_shell": False,
+        "fourdmap_installed": False,
+        "code": "ONE-CLICK-RAN" if ok else "ONE-CLICK-NOT-LIVE",
+        "plain": CLICK_YES if ok else CLICK_NO,
     }
 
 
@@ -110,7 +203,7 @@ def userspace_door(root: Path) -> dict[str, Any]:
     text = workspace.cat("proof.txt")
     ok = text == "base" and written.endswith("proof.txt")
     if ok:
-        plain = "The userspace base is present. That is a base, not a boot."
+        plain = USERSPACE_YES
     else:
         plain = "The userspace base is absent."
     return {
@@ -123,23 +216,51 @@ def userspace_door(root: Path) -> dict[str, Any]:
 
 
 def join_door(root: Path) -> dict[str, Any]:
-    """Read the existing AZNews ↔ 4DMap door. Do not relabel it."""
+    """Read a landed join, or GET the standing feed and refuse to invent fields."""
+    from azos.news_source import FIELDS_CODE
     from azos.newsmap import ABSENT_CODE, NewsMap
 
     status = NewsMap(root=root).status()
-    refused = (
-        status.get("refused") is True
-        or status.get("source_present") is not True
-        or status.get("code") == ABSENT_CODE
+    landed = (
+        status.get("live") is True
+        and status.get("item_landed") is True
+        and status.get("source_present") is True
+        and status.get("refused") is not True
+        and status.get("code") != ABSENT_CODE
+        and status.get("installed") is not True
     )
-    live = status.get("live") is True and status.get("item_landed") is True and not refused
+    if landed:
+        return {
+            "ok": True,
+            "refused": False,
+            "live": True,
+            "installed": False,
+            "code": status.get("code"),
+            "source_present": True,
+            "plain": status.get("plain"),
+        }
+    from azos.news_source import acquire
+
+    feed = acquire()
+    if feed.get("code") == FIELDS_CODE and feed.get("fetched") is True and feed.get("source_present") is True:
+        return {
+            "ok": False,
+            "refused": True,
+            "live": False,
+            "installed": False,
+            "code": FIELDS_CODE,
+            "source_present": True,
+            "missing": feed.get("missing"),
+            "image_sha256": feed.get("image_sha256"),
+            "plain": feed.get("plain"),
+        }
     return {
-        "ok": live,
-        "refused": not live,
-        "live": live,
+        "ok": False,
+        "refused": True,
+        "live": False,
         "installed": False,
-        "code": status.get("code"),
-        "source_present": status.get("source_present") is True and live,
+        "code": ABSENT_CODE,
+        "source_present": False,
         "plain": status.get("plain"),
     }
 
@@ -148,13 +269,13 @@ def prove(root: Path) -> dict[str, Any]:
     """Run the doors and bind each flag to that result."""
     root = Path(root)
     doors = {
-        "kernel": kernel_door(),
-        "booted": boot_door(),
-        "installed": installed_door(),
+        "kernel": kernel_door(root),
+        "booted": boot_door(root),
+        "installed": installed_door(root),
         "internet": internet_door(),
-        "mail_send": mail_door(),
+        "mail_send": mail_door(root),
         "mesh_node_live": mesh_node_door(root),
-        "one_click_install_live": one_click_door(),
+        "one_click_install_live": one_click_door(root),
         "userspace_base": userspace_door(root),
         "join_live": join_door(root),
     }
@@ -197,7 +318,12 @@ def scope_follows(proof: Mapping[str, Any]) -> None:
     internet = SCOPE["internet_base"]
     if not isinstance(internet, Mapping):
         raise AssertionError("internet base missing")
+    door = proof["doors"]["internet"]
+    if (internet.get("live") is True) != (door.get("live") is True):
+        raise AssertionError("internet live does not follow its door")
+    if (internet.get("installed") is True) != (door.get("installed") is True):
+        raise AssertionError("internet installed does not follow its door")
     if internet.get("live") is True or internet.get("installed") is True:
-        require_flag(True, proof["doors"]["internet"])
+        require_flag(True, door)
     if flags["internet"] is True:
-        require_flag(True, proof["doors"]["internet"])
+        require_flag(True, door)

@@ -24,9 +24,11 @@ from __future__ import annotations
 
 import hashlib
 import json
+import threading
 import urllib.error
 import urllib.request
 from datetime import datetime, timezone
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any, Callable
 
@@ -504,6 +506,97 @@ class OfflineNode:
         )
         if not chain["ok"]:
             record["code"] = "AZOS-NODE-CHAIN"
+        return record
+
+    def bind_once(self) -> dict[str, Any]:
+        """Listen on 127.0.0.1, answer one GET, then close.
+
+        This does not bind 0.0.0.0 and it does not enable the suite mesh.
+        ``public_bind`` stays false. The node is live only while this
+        answer is read back.
+        """
+        token = b"azos-node-bound"
+        layer = self._resolved_layer()
+
+        class Handler(BaseHTTPRequestHandler):
+            def do_GET(self) -> None:  # noqa: N802
+                if self.path != "/health":
+                    self.send_response(404)
+                    self.end_headers()
+                    return
+                self.send_response(200)
+                self.send_header("Content-Type", "text/plain; charset=utf-8")
+                self.send_header("Content-Length", str(len(token)))
+                self.end_headers()
+                self.wfile.write(token)
+
+            def log_message(self, fmt: str, *args: object) -> None:
+                return
+
+        try:
+            httpd = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+        except OSError as exc:
+            refused = self._honesty(layer)
+            refused.update(
+                {
+                    "ok": False,
+                    "bound": False,
+                    "answered": False,
+                    "public_bind": False,
+                    "host": None,
+                    "code": "MESH-NODE-NOT-LIVE",
+                    "error": type(exc).__name__,
+                }
+            )
+            return refused
+        host, port = httpd.server_address[:2]
+        if host != "127.0.0.1":
+            httpd.server_close()
+            refused = self._honesty(layer)
+            refused.update(
+                {
+                    "ok": False,
+                    "bound": False,
+                    "answered": False,
+                    "public_bind": False,
+                    "host": host,
+                    "code": "MESH-NODE-NOT-LIVE",
+                }
+            )
+            return refused
+        thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+        thread.start()
+        url = f"http://127.0.0.1:{port}/health"
+        try:
+            request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT}, method="GET")
+            with urllib.request.urlopen(request, timeout=4) as response:
+                status = int(response.status)
+                body = response.read(64)
+        except Exception as exc:  # noqa: BLE001 — a failed bind is not a live node
+            status, body = 0, b""
+            error: str | None = type(exc).__name__
+        else:
+            error = None
+        finally:
+            httpd.shutdown()
+            httpd.server_close()
+            thread.join(timeout=2)
+        answered = status == 200 and body == token
+        record = self._honesty(layer)
+        record.update(
+            {
+                "ok": answered,
+                "bound": answered,
+                "answered": answered,
+                "public_bind": False,
+                "mesh_enable": False,
+                "host": "127.0.0.1",
+                "port": port,
+                "suite_mesh": False,
+                "code": "MESH-NODE-LIVE" if answered else "MESH-NODE-NOT-LIVE",
+                "error": error,
+            }
+        )
         return record
 
     def probe(self, transport: Transport | None = None) -> dict[str, Any]:

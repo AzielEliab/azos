@@ -1,4 +1,7 @@
-"""Self-check for AZ-OS. No network, no telemetry.
+"""Self-check for AZ-OS. No telemetry.
+
+The door check GETs FragGate health and the standing news feed.
+Those two calls are the internet door and the news door.
 
     azos doctor
 """
@@ -174,10 +177,22 @@ def _check_doors() -> Check:
         return _fail("doors", "userspace")
     if proof["doors"]["userspace_base"].get("booted") is True:
         return _fail("doors", "booted")
-    for name in ("kernel", "booted", "installed", "internet", "mail_send", "mesh_node_live", "one_click_install_live", "join_live"):
-        if flags.get(name) is True:
+    for name in ("kernel", "booted", "installed", "internet", "mail_send", "mesh_node_live", "one_click_install_live"):
+        if flags.get(name) is not True:
             return _fail("doors", name)
-    return _ok("doors", "userspace base; refused doors stay false")
+        if proof["doors"][name].get("refused") is True:
+            return _fail("doors", name)
+    if flags.get("join_live") is True:
+        return _fail("doors", "join")
+    if proof["doors"]["kernel"].get("host_kernel") is True:
+        return _fail("doors", "host kernel")
+    if proof["doors"]["mail_send"].get("public_mta") is True:
+        return _fail("doors", "public mail")
+    if proof["doors"]["mesh_node_live"].get("public_bind") is True:
+        return _fail("doors", "public bind")
+    if proof["doors"]["installed"].get("fourdmap_installed") is True:
+        return _fail("doors", "4dmap")
+    return _ok("doors", "entry, boot, install, internet, local mail, loopback node")
 
 
 CHECKS: tuple[Callable[[], Check], ...] = (

@@ -337,10 +337,14 @@ def test_fetched_item_joins_only_when_both_chains_and_a_pin_exist(tmp_path: Path
     assert opened["wording"].startswith("The basin gauge")
     proof = prove(tmp_path)
     assert proof["flags"]["join_live"] is True
-    assert proof["flags"]["kernel"] is False
-    assert proof["flags"]["booted"] is False
-    assert proof["flags"]["mail_send"] is False
-    assert proof["flags"]["mesh_node_live"] is False
+    assert proof["flags"]["kernel"] is True
+    assert proof["doors"]["kernel"]["host_kernel"] is False
+    assert proof["flags"]["booted"] is True
+    assert proof["doors"]["booted"]["hardware"] is False
+    assert proof["flags"]["mail_send"] is True
+    assert proof["doors"]["mail_send"]["public_mta"] is False
+    assert proof["flags"]["mesh_node_live"] is True
+    assert proof["doors"]["mesh_node_live"]["public_bind"] is False
     assert proof["doors"]["userspace_base"]["booted"] is False
 
 
@@ -375,3 +379,70 @@ def test_missing_fetch_keeps_the_refusal(tmp_path: Path) -> None:
     assert refused["code"] == ABSENT_CODE
     assert door.status()["live"] is False
     assert door.status()["paths"]["joined"]["live"] is False
+
+
+def test_http_get_of_a_complete_item_joins(tmp_path: Path) -> None:
+    import threading
+    from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+    import hashlib
+
+    from azos.chains import GENESIS, secondary_hash
+    from azos.fourdmap import FourDMap
+    from azos.news_source import http_item
+
+    png = b"\x89PNG\r\n\x1a\nbasin-gauge"
+    document = {
+        "wording": "The gauge at the test basin stayed above the mark after the storm.",
+        "score": 4,
+        "date": "2026-04-04",
+        "event": "basin gauge",
+        "geo": "test basin",
+    }
+
+    class Handler(BaseHTTPRequestHandler):
+        def do_GET(self) -> None:  # noqa: N802
+            if self.path == "/gauge.png":
+                body = png
+                kind = "image/png"
+            elif self.path == "/item.json":
+                body = json.dumps(document).encode("utf-8")
+                kind = "application/json"
+            else:
+                self.send_response(404)
+                self.end_headers()
+                return
+            self.send_response(200)
+            self.send_header("Content-Type", kind)
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+        def log_message(self, fmt: str, *args: object) -> None:
+            return
+
+    httpd = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+    port = httpd.server_address[1]
+    document["image_url"] = f"http://127.0.0.1:{port}/gauge.png"
+    thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+    thread.start()
+    try:
+        stored = NewsMap(root=tmp_path).land_fetched(
+            transport=lambda: http_item(f"http://127.0.0.1:{port}/item.json"),
+            username="operator",
+        )
+    finally:
+        httpd.shutdown()
+        httpd.server_close()
+        thread.join(timeout=2)
+    assert stored["live"] is True
+    assert stored["installed"] is False
+    assert stored["engine_installed"] is False
+    row = NewsMap(root=tmp_path).lattice.rows[-1]
+    assert row["secondary_hash"] == secondary_hash(GENESIS, row["primary_hash"], "operator")
+    assert row["document"]["image"]["content_hash"] == hashlib.sha256(png).hexdigest()
+    assert row["document"]["live"] is False
+    pins = FourDMap(root=tmp_path)
+    assert pins.status()["installed"] is False
+    assert pins.status()["live"] is False
+    assert pins.lattice.verify()

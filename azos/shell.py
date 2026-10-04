@@ -36,9 +36,10 @@ WELCOME_TEXT = (
     "Author: Aziel Eliab\n"
     "\n"
     "This session is a folder for commands on this machine.\n"
-    "There is no kernel. This has not booted.\n"
+    "The AZ-OS entry ran. This is not a host kernel.\n"
+    "This has booted. That boot is not the userspace base.\n"
     "The userspace base is present. That is a base, not a boot.\n"
-    "Mail is not sent from here. Type help.\n"
+    "Mail can be sent from here to a local mailbox. Type help.\n"
 )
 
 

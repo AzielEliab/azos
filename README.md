@@ -82,7 +82,7 @@ Shell commands: `help`, `pwd`, `ls`, `cat`, `write`, `echo`, `mkdir`, `rm`, `cd`
 
 `azos ui` prints `Open http://127.0.0.1:8800/` and serves AZ Interface on that address.
 
-The first screen has one primary action, **Open shell**. Help sits beside it. Under that, **News and the map** explains the joined path and the two standalone paths. AZNews can stand alone. 4DMap can stand alone. On the joined path, a news item can become a map pin (date, event, and place), or a pin can open the matching news. That join points at the runtime 4DMap engine. This package does not claim the aziel-runtime side is done. AZ-OS does not install 4DMap and does not keep a second map. `azos.news_source` is the fetch door and it has no standing feed, so pin and open refuse instead of inventing articles. Nothing on that join is marked live or merged until a fetched item lands as a map pin. Halt, purge, the ethics form, catalog hooks, the lattice, and the log are under **Advanced**. Light and dark follow the system. Keyboard focus uses a gold ring. The layout fits a narrow phone width.
+The first screen has one primary action, **Open shell**. Help sits beside it. Under that, **News and the map** explains the joined path and the two standalone paths. AZNews can stand alone. 4DMap can stand alone. On the joined path, a news item can become a map pin (date, event, and place), or a pin can open the matching news. That join points at the runtime 4DMap engine. This package does not claim the aziel-runtime side is done. AZ-OS does not install 4DMap and does not keep a second map. `azos.news_source` can GET a standing feed. That feed has no score and no place, so pin and open refuse instead of inventing them. Nothing on that join is marked live or merged until a fetched item lands as a map pin. Halt, purge, the ethics form, catalog hooks, the lattice, and the log are under **Advanced**. Light and dark follow the system. Keyboard focus uses a gold ring. The layout fits a narrow phone width.
 
 A program can send `Accept: application/json` on `GET /` for the status record. `GET /api/node` reports the local AZnet client. The Softwares desk on the page is unchanged.
 
@@ -90,7 +90,7 @@ A program can send `Accept: application/json` on `GET /` for the status record. 
 
 Integrity precedes execution.
 
-This package is a prefab of catalog hooks, including TemporalLock timeslates chained to StaticClock. The local program is the ethics-gated remote shell. There is no kernel in this repository, and there is no malware routine.
+This package is a prefab of catalog hooks, including TemporalLock timeslates chained to StaticClock. The local program is the ethics-gated remote shell. The process entry is not a host kernel. There is no bootloader and no malware routine.
 
 | Layer | What it does |
 |---|---|

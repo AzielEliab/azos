@@ -9,8 +9,9 @@ second app, not a copy of the engine, and not an installed prefab.
 The runtime side is a cross-tether. This package does not claim that
 side is done.
 
-``azos.news_source`` is the fetch door. It has no standing feed, so
-the probe stays refused until a real fetched item lands on a pin.
+``azos.news_source`` GETs a standing feed. That feed has no score and
+no place, and this package does not invent them, so the stored probe
+stays refused until a complete fetched item lands on a pin.
 A fixture is not that item. Absent source stays refused.
 A test may inject a transport and a clearly labeled fixture to prove
 the door calls the runtime join. That fixture is not live news.
@@ -70,9 +71,9 @@ PLAIN_STATUS = (
     "That join is the runtime 4DMap engine on the FragGate door. "
     "This package does not claim the aziel-runtime side is done. "
     "AZ-OS does not install 4DMap and does not keep a second map. "
-    "azos.news_source is the fetch door and it has no standing feed, "
-    "so the news source is absent. "
-    "The probe refuses until a fetched item lands. Nothing here is live or merged."
+    "azos.news_source can GET a standing feed. That feed has no score and no place, "
+    "so the news source on this stored probe is absent. "
+    "The probe refuses until a complete fetched item lands. Nothing here is live or merged."
 )
 
 PLAIN_LIVE = (
@@ -99,7 +100,7 @@ def _refusal_plain(action: str, *, doubled: bool) -> str:
     )
     return (
         f"Refused. There is no news source, so AZ-OS will not {asked} or invent one. "
-        "azos.news_source has no standing feed. "
+        "azos.news_source did not return a complete item. "
         "The join still points at the runtime 4DMap engine: a news item can become a map pin "
         "(date, event, and place), or the map can open the matching news. "
         "4DMap is not installed here. This is not live and not merged. "
