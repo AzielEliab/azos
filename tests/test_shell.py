@@ -118,9 +118,11 @@ def test_shell_status_and_session_are_sentences(runtime: Runtime) -> None:
     assert record["internet_base"]["base"] is True
     assert record["alt_internet_live"] is False
     assert record["packet_path_live"] is False
-    assert "still missing" in status["stdout"]
-    assert "The packet path is not live." in status["stdout"]
-    assert "WARN-5 stands." in status["stdout"]
+    assert "alt_internet_live is false" in status["stdout"]
+    assert "packet_path_live is false" in status["stdout"]
+    assert "Still missing: a packet that leaves this machine and arrives on a different machine id." in status["stdout"]
+    assert "Cap-7 and .aziel stay names" in status["stdout"]
+    assert "A second device stays false" in status["stdout"]
     assert record["mail_send"] is False
     assert record["one_click_install_live"] is False
     assert record["mesh_node_live"] is False

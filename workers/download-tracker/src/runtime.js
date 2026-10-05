@@ -241,7 +241,7 @@ AZnet is the sidenet. **AZ Browser** is the browser surface for AZnet. \`azos no
 
 ## News and the map
 
-AZ-OS has a joined path and two standalone paths. AZNews can stand alone. 4DMap can stand alone. On the joined path, AZ-OS points at the runtime 4DMap engine (\`slug=4dmap\`, ops \`news_pin\` and \`news_open\`). A news item can become a map pin (date, event, and place), or a pin can open the matching news. This is not a second app and not a copy of the engine. This package does not claim the aziel-runtime side is done. 4DMap is not marked installed. \`azos.news_source\` can GET a standing feed. That feed has no score and no place, so the news source stays absent and AZNews and 4DMap stay not joined until a complete fetched item lands. A fixture is not that item and does not flip the live flag. The userspace base is present. That is a base, not a boot. The kernel base is absent. This has not booted. This is not installed as an operating system. Internet base is present. Not live. The packet path is not live. The packet path does not run. The alternative internet is not live. An alternative internet does not run. Device-to-device packet carriers stay NOT-READY. WARN-5 stands. The path sentence names what is still missing. Mail is not sent from here. One-click install is not live. This is not a live mesh node. A process receipt, a loopback bind, and a userspace file are not a host kernel. AZ Interface is a separate shell. It is not this kernel and not this boot. \`azos news\`, \`azos map\`, and the local page at http://127.0.0.1:8800/ say this in plain language.
+AZ-OS has a joined path and two standalone paths. AZNews can stand alone. 4DMap can stand alone. On the joined path, AZ-OS points at the runtime 4DMap engine (\`slug=4dmap\`, ops \`news_pin\` and \`news_open\`). A news item can become a map pin (date, event, and place), or a pin can open the matching news. This is not a second app and not a copy of the engine. This package does not claim the aziel-runtime side is done. 4DMap is not marked installed. \`azos.news_source\` can GET a standing feed. That feed has no score and no place, so the news source stays absent and AZNews and 4DMap stay not joined until a complete fetched item lands. A fixture is not that item and does not flip the live flag. The userspace base is present. That is a base, not a boot. The kernel base is absent. This has not booted. This is not installed as an operating system. An alternative internet is not live (alt_internet_live is false). A packet path is not live (packet_path_live is false). This isolate cannot see host hardware (worker_hardware is false). Still missing: a packet that leaves this machine and arrives on a different machine id. A same-machine mesh frame does not count. Cap-7 and .aziel stay names, not a public registrar and not ICANN or BGP. WireGuard, OpenVPN, an L3 exit pool, kernel UDP, and TUN/TAP stay SLOT. Public mail send, the kernel, and boot stay not live. The public door stays FG-STUB. Isolation is single-node security-awareness. Phoenix is a local wait and re-seal. That is not a loopback fence. Mail is not sent from here. One-click install is not live. This is not a live mesh node. A process receipt, a loopback bind, and a userspace file are not a host kernel. AZ Interface is a separate shell. It is not this kernel and not this boot. \`azos news\`, \`azos map\`, and the local page at http://127.0.0.1:8800/ say this in plain language.
 
 Counted download (gzip HTTP 200, no 302): https://azos-download-tracker.vibelock.workers.dev/download?asset=azos-0.3.0.tar.gz
 GitHub: https://github.com/AzielEliab/azos
@@ -289,17 +289,12 @@ Source:
   ${SOURCE_URL}
 `;
 
-function internetSentence(d, net) {
-  const earned = d.alt_internet_live === true && d.packet_path_live === true && net.live === true;
-  if (earned) {
-    return "Internet base is present. Live. The packet path is live. An alternative internet is live.";
-  }
-  return "Internet base is present. Not live. The packet path is not live. The packet path does not run. The alternative internet is not live. An alternative internet does not run. Device-to-device packet carriers stay NOT-READY. WARN-5 stands. A packet that leaves this worker and arrives on a different machine is still missing.";
+function internetSentence() {
+  return "An alternative internet is not live (alt_internet_live is false). A packet path is not live (packet_path_live is false). This isolate cannot see host hardware (worker_hardware is false). Still missing: a packet that leaves this machine and arrives on a different machine id. A same-machine mesh frame does not count. Cap-7 and .aziel stay names, not a public registrar and not ICANN or BGP. WireGuard, OpenVPN, an L3 exit pool, kernel UDP, and TUN/TAP stay SLOT. Public mail send, the kernel, and boot stay not live. The public door stays FG-STUB. Isolation is single-node security-awareness. Phoenix is a local wait and re-seal. That is not a loopback fence.";
 }
 
 function plainLimits(src) {
   const d = src || {};
-  const net = d.internet_base && typeof d.internet_base === "object" ? d.internet_base : {};
   const said = (flag, yes, no) => (flag === true ? yes : no);
   const userspace = d.userspace_base === true
     ? "The userspace base is present. That is a base, not a boot."
@@ -311,7 +306,7 @@ function plainLimits(src) {
     said(d.installed, "This is installed as an operating system.", "This is not installed as an operating system."),
     said(d.os_yet, "This is an operating system.", "This is not an operating system yet."),
     userspace,
-    internetSentence(d, net),
+    internetSentence(),
     said(d.mail_send, "Mail can be sent from here.", "Mail is not sent from here."),
     said(d.one_click_install_live, "One-click install is live.", "One-click install is not live."),
     said(d.mesh_node_live, "This is a live mesh node.", "This is not a live mesh node."),

@@ -202,12 +202,23 @@ def _check_doors() -> Check:
         return _fail("doors", "internet")
     if internet.get("foreign_arrival") is True or internet.get("second_device") is True:
         return _fail("doors", "internet")
-    if "still missing" not in plain:
+    if "alt_internet_live is false" not in plain or "packet_path_live is false" not in plain:
         return _fail("doors", "internet sentence")
-    if "The packet path is not live." not in plain or "An alternative internet does not run." not in plain:
+    if "Still missing: a packet that leaves this machine and arrives on a different machine id." not in plain:
         return _fail("doors", "internet sentence")
-    if "WARN-5 stands." not in plain:
+    if "Cap-7 and .aziel stay names" not in plain or "A second device stays false" not in plain:
         return _fail("doors", "internet sentence")
+    if "A same-machine mesh frame does not count." not in plain:
+        return _fail("doors", "internet sentence")
+    from azos.carriers import host_hardware_visible
+
+    if host_hardware_visible():
+        if "cannot see host hardware" in plain:
+            return _fail("doors", "internet sentence")
+    elif "This isolate cannot see host hardware (worker_hardware is false)." not in plain:
+        return _fail("doors", "internet sentence")
+    elif "QNM-RADIO-ABSENT" in plain:
+        return _fail("doors", "invented radio")
     return _ok("doors", "userspace base, not a boot")
 
 

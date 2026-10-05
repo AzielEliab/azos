@@ -83,13 +83,13 @@ def test_scope_flags_follow_the_doors(tmp_path: Path) -> None:
     assert internet["aziel_is_path"] is False
     assert internet["mock"] is False
     assert internet["carrier_order"] == ["lan", "wifi", "bluetooth", "rf", "photon"]
-    assert "still missing" in internet["plain"]
-    assert "The packet path is not live." in internet["plain"]
-    assert "The packet path does not run." in internet["plain"]
-    assert "The alternative internet is not live." in internet["plain"]
-    assert "An alternative internet does not run." in internet["plain"]
-    assert "WARN-5 stands." in internet["plain"]
-    assert "Internet base is present. Not live." in internet["plain"]
+    assert "alt_internet_live is false" in internet["plain"]
+    assert "packet_path_live is false" in internet["plain"]
+    assert "Still missing: a packet that leaves this machine and arrives on a different machine id." in internet["plain"]
+    assert "A same-machine mesh frame does not count." in internet["plain"]
+    assert "Cap-7 and .aziel stay names" in internet["plain"]
+    assert "A second device stays false" in internet["plain"]
+    assert "Public mail send, the kernel, and boot stay not live." in internet["plain"]
     carry = internet.get("carry")
     if isinstance(carry, dict) and carry.get("bytes_match") is True:
         assert carry["local_host"] == carry["remote_host"]
@@ -97,9 +97,8 @@ def test_scope_flags_follow_the_doors(tmp_path: Path) -> None:
         assert carry["packet_live"] is False
         assert carry["interface"] != "lo"
         assert carry["sent_sha256"] == carry["received_sha256"]
-        assert internet["plain"].endswith(
-            "A frame moved on this machine. A second device is still missing. Both ends share one machine id."
-        )
+        assert "is present on this machine and is not a second device." in internet["plain"]
+        assert "A second device stays false while both ends share that id." in internet["plain"]
     assert proof["doors"]["mail_send"]["public_mta"] is False
     assert proof["doors"]["mail_send"]["sent"] is False
     assert proof["doors"]["mail_send"]["code"] == "MAIL-SEND-REFUSED"

@@ -18,7 +18,7 @@ import socket
 import threading
 import zlib
 from pathlib import Path
-from typing import Any, Mapping, Sequence
+from typing import Any, Mapping
 
 CARRIER_ORDER: tuple[str, ...] = ("lan", "wifi", "bluetooth", "rf", "photon")
 CARRIER_NAMES: dict[str, str] = {
@@ -29,26 +29,25 @@ CARRIER_NAMES: dict[str, str] = {
     "photon": "photon",
 }
 
-SHARED_NOT_LIVE = (
-    "Internet base is present. Not live. "
-    "The packet path is not live. "
-    "The packet path does not run. "
-    "The alternative internet is not live. "
-    "An alternative internet does not run. "
-    "Device-to-device packet carriers stay NOT-READY. "
-    "WARN-5 stands."
+HEAD = (
+    "An alternative internet is not live (alt_internet_live is false). "
+    "A packet path is not live (packet_path_live is false)."
 )
-LIVE_SENTENCE = (
-    "Internet base is present. Live. "
-    "The packet path is live. "
-    "An alternative internet is live."
+TAIL = " ".join(
+    (
+        "Still missing: a packet that leaves this machine and arrives on a different machine id.",
+        "A same-machine mesh frame does not count.",
+        "Cap-7 and .aziel stay names, not a public registrar and not ICANN or BGP.",
+        "WireGuard, OpenVPN, an L3 exit pool, kernel UDP, and TUN/TAP stay SLOT.",
+        "Public mail send, the kernel, and boot stay not live.",
+        "The public door stays FG-STUB.",
+        "Isolation is single-node security-awareness.",
+        "Phoenix is a local wait and re-seal.",
+        "That is not a loopback fence.",
+    )
 )
-HARDWARE_MISSING = (
-    "LAN, Wi-Fi, Bluetooth, RF, and photon hardware are still missing."
-)
-WORKER_MISSING = (
-    "A packet that leaves this worker and arrives on a different machine is still missing."
-)
+ISOLATE_CLAUSE = "This isolate cannot see host hardware (worker_hardware is false)."
+ISOLATE_SENTENCE = f"{HEAD} {ISOLATE_CLAUSE} {TAIL}"
 
 RADIO_ABSENT = "QNM-RADIO-ABSENT"
 PACKET_CARRIED = "PACKET-CARRIED"
@@ -476,31 +475,309 @@ def _carrier_row(kind: str, present: bool, *, code: str | None = None, frame_ok:
     }
 
 
-def missing_clause(report: Mapping[str, Any]) -> str:
-    """Name the gap that still keeps the live flags false."""
-    if report.get("mock_refused") is True:
-        return "A mock path is not a live path. A real packet on a different machine is still missing."
-    carry = report.get("carry") if isinstance(report.get("carry"), Mapping) else {}
-    local = carry.get("local_host") if carry else report.get("local_host")
-    remote = carry.get("remote_host") if carry else report.get("remote_host")
-    if carry and carry.get("bytes_match") is True and local and local == remote:
-        return "A frame moved on this machine. A second device is still missing. Both ends share one machine id."
-    if report.get("code") == HOST_ABSENT:
-        return "A machine id is still missing."
-    rows = report.get("carriers") if isinstance(report.get("carriers"), Sequence) else ()
-    for row in rows:
-        if not isinstance(row, Mapping) or row.get("state") != "HW-PRESENT":
+def host_hardware_visible() -> bool:
+    """Host sysfs is visible. A worker isolate does not have this directory."""
+    return Path("/sys/class/net").is_dir()
+
+
+def _read_text(path: Path) -> str:
+    try:
+        return path.read_text(encoding="utf-8").strip()
+    except OSError:
+        return ""
+
+
+def iface_up(name: str) -> bool:
+    net = Path("/sys/class/net")
+    if _read_text(net / name / "operstate") != "up":
+        return False
+    carrier = net / name / "carrier"
+    if not carrier.exists():
+        return True
+    return _read_text(carrier) in {"1", ""}
+
+
+def default_route_iface() -> str | None:
+    """Default route with a gateway, else any default route. Loopback is not LAN."""
+    try:
+        lines = Path("/proc/net/route").read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return None
+    fallback: str | None = None
+    for line in lines[1:]:
+        cols = line.split()
+        if len(cols) < 4:
             continue
-        if row.get("id") == "lan":
-            return "A packet that leaves this machine and arrives on a different machine is still missing."
-        return f"{row.get('name')} hardware is present. A round trip on that hardware is still missing."
-    return HARDWARE_MISSING
+        try:
+            flags = int(cols[3], 16)
+        except ValueError:
+            continue
+        if (flags & 1) == 0 or cols[1] != "00000000":
+            continue
+        name = cols[0]
+        if not name or name == "lo":
+            continue
+        if len(cols) > 2 and cols[2] and cols[2] != "00000000":
+            return name
+        if fallback is None:
+            fallback = name
+    return fallback
 
 
-def sentence_for(report: Mapping[str, Any]) -> str:
-    if report.get("foreign_arrival") is True:
-        return LIVE_SENTENCE
-    return SHARED_NOT_LIVE + " " + missing_clause(report)
+def probe_lan() -> dict[str, Any]:
+    """Prefer the up default-route interface. A down bridge is not the LAN path."""
+    net = Path("/sys/class/net")
+    try:
+        if not net.is_dir():
+            return {"present": False, "kind": None, "address": None, "up": False}
+        names = [name for name in os.listdir(net) if name and name not in {"lo", ".", ".."}]
+        preferred = default_route_iface()
+        if preferred and preferred != "lo" and preferred in names and iface_up(preferred):
+            address = _ipv4(preferred)
+            if address:
+                return {"present": True, "kind": preferred, "address": address, "up": True}
+        for name in names:
+            if not iface_up(name):
+                continue
+            address = _ipv4(name)
+            if address:
+                return {"present": True, "kind": name, "address": address, "up": True}
+        if names:
+            name = names[0]
+            return {"present": True, "kind": name, "address": _ipv4(name), "up": False}
+    except OSError:
+        pass
+    return {"present": False, "kind": None, "address": None, "up": False}
+
+
+def probe_wifi() -> dict[str, Any]:
+    if _dir_filled(Path("/sys/class/ieee80211")):
+        return {"present": True, "kind": "ieee80211"}
+    try:
+        if any(_wireless(name) for name in os.listdir("/sys/class/net")):
+            return {"present": True, "kind": "ieee80211"}
+    except OSError:
+        pass
+    return {"present": False, "kind": None}
+
+
+def probe_bluetooth() -> dict[str, Any]:
+    if _dir_filled(Path("/sys/class/bluetooth")):
+        return {"present": True, "kind": "bluetooth"}
+    return {"present": False, "kind": None}
+
+
+def probe_rf_hw() -> dict[str, Any]:
+    if (
+        Path("/dev/swradio0").exists()
+        or _dir_filled(Path("/sys/class/sdr"))
+        or _dir_filled(Path("/sys/bus/usb/drivers/dvb_usb_rtl28xxu"))
+    ):
+        return {"present": True, "kind": "sdr"}
+    return {"present": False, "kind": None}
+
+
+def probe_modem() -> dict[str, Any]:
+    if _dir_filled(Path("/sys/class/wwan")) or Path("/dev/cdc-wdm0").exists():
+        return {"present": True, "kind": "modem"}
+    try:
+        if not Path("/sys/class/net").is_dir():
+            return {"present": False, "kind": None}
+        for name in os.listdir("/sys/class/net"):
+            if _wwan(name):
+                return {"present": True, "kind": name}
+    except OSError:
+        pass
+    return {"present": False, "kind": None}
+
+
+def probe_flash_camera() -> dict[str, Any]:
+    """Photon is a camera or a flash. Local qnsd is not this probe."""
+    if Path("/dev/video0").exists():
+        return {"present": True, "kind": "camera"}
+    leds = Path("/sys/class/leds")
+    try:
+        if not leds.is_dir():
+            return {"present": False, "kind": None}
+        for name in os.listdir(leds):
+            if "flash" in name.lower() or "torch" in name.lower():
+                return {"present": True, "kind": name}
+    except OSError:
+        pass
+    return {"present": False, "kind": None}
+
+
+def track2_carrier_probe() -> dict[str, Any]:
+    """Hardware presence is not a live packet hop. Absence is QNM-RADIO-ABSENT."""
+    rf_hw = probe_rf_hw()
+    rf = rf_hw if rf_hw["present"] else probe_modem()
+    rows = (
+        ("lan", probe_lan()),
+        ("wifi", probe_wifi()),
+        ("bluetooth", probe_bluetooth()),
+        ("rf", rf),
+        ("photon", probe_flash_camera()),
+    )
+    carriers: dict[str, dict[str, Any]] = {}
+    for cid, probe in rows:
+        down = probe["present"] is True and probe.get("up") is False
+        if probe["present"] and not down:
+            carriers[cid] = {
+                "id": cid,
+                "state": "HW-PRESENT",
+                "hardware": probe["kind"],
+                "address": probe.get("address") or None,
+                "up": True,
+                "code": None,
+                "packet_live": False,
+                "mock": False,
+            }
+        elif down:
+            carriers[cid] = {
+                "id": cid,
+                "state": "REFUSE",
+                "hardware": probe["kind"],
+                "address": probe.get("address") or None,
+                "up": False,
+                "code": RADIO_ABSENT,
+                "packet_live": False,
+                "mock": False,
+            }
+        else:
+            carriers[cid] = {
+                "id": cid,
+                "state": "REFUSE",
+                "hardware": False,
+                "address": None,
+                "up": False,
+                "code": RADIO_ABSENT,
+                "packet_live": False,
+                "mock": False,
+            }
+    return {
+        "order": list(CARRIER_ORDER),
+        "carriers": carriers,
+        "packet_live": False,
+        "alt_internet_live": False,
+        "mock": False,
+    }
+
+
+def _carrier_clause(cid: str, row: Mapping[str, Any] | None) -> str:
+    code = (row or {}).get("code") or RADIO_ABSENT
+    if not row or row.get("state") == "REFUSE":
+        if cid == "lan" and row and row.get("up") is False and row.get("hardware"):
+            return f"LAN interface {row.get('hardware')} is down ({code})."
+        if cid == "lan":
+            return f"LAN hardware is absent ({code})."
+        if cid == "wifi":
+            return f"Wi-Fi hardware is absent ({code})."
+        if cid == "bluetooth":
+            return f"Bluetooth hardware is absent ({code})."
+        if cid == "rf":
+            return f"RF hardware is absent ({code})."
+        return f"Photon camera or flash is absent ({code})."
+    if cid == "lan":
+        where = f" at {row['address']}" if row.get("address") else ""
+        name = row.get("hardware") or "unnamed"
+        return f"LAN interface {name}{where} is present on this machine and is not a second device."
+    hardware = f" {row['hardware']}" if row.get("hardware") else ""
+    if cid == "wifi":
+        return f"Wi-Fi hardware{hardware} is present on this machine and is not a second device."
+    if cid == "bluetooth":
+        return f"Bluetooth hardware{hardware} is present on this machine and is not a second device."
+    if cid == "rf":
+        return f"RF hardware{hardware} is present on this machine and is not a second device."
+    return f"Photon camera or flash hardware{hardware} is present on this machine and is not a second device."
+
+
+def _machine_clause(machine: str | None) -> str:
+    if machine:
+        return (
+            f"This machine id is {machine}. "
+            "A second device stays false while both ends share that id."
+        )
+    return (
+        "This machine id is absent (MESH-HOST-ABSENT). "
+        "A second device stays false without two different ids."
+    )
+
+
+def _fact(
+    sentence: str,
+    *,
+    visible: bool,
+    machine: str | None,
+    missing: list[str],
+) -> dict[str, Any]:
+    return {
+        "alt_internet_live": False,
+        "packet_path_live": False,
+        "second_device": False,
+        "machine_id": machine,
+        "missing": missing,
+        "not_live_sentence": sentence,
+        "missing_line": sentence,
+        "path_slots": {
+            "wireguard": "SLOT",
+            "openvpn": "SLOT",
+            "l3": "SLOT",
+            "kernel_udp": "SLOT",
+            "tun_tap": "SLOT",
+        },
+        "public_door": "FG-STUB",
+        "public_mail_send_live": False,
+        "kernel_live": False,
+        "boot_live": False,
+        "cap7_name_only": True,
+        "public_icann": False,
+        "bgp": False,
+        "worker_hardware": False,
+        "host_hardware_visible": visible,
+        "mock": False,
+        "internet_base": {"live": False, "installed": False, "base": True},
+    }
+
+
+def current_alt_internet_fact() -> dict[str, Any]:
+    """Standing fact. Does not send a packet. Does not accept a caller watch.
+
+    The three live flags stay false. When this process cannot see host
+    hardware, the sentence says that and does not invent absent radios.
+    """
+    if not host_hardware_visible():
+        return _fact(
+            ISOLATE_SENTENCE,
+            visible=False,
+            machine=None,
+            missing=[
+                "host hardware (worker_hardware is false)",
+                "a packet that leaves this machine and arrives on a different machine id",
+            ],
+        )
+    try:
+        probe = track2_carrier_probe()
+    except OSError:
+        probe = None
+    carriers = probe["carriers"] if isinstance(probe, Mapping) else {}
+    mid = machine_id()
+    clauses = [_carrier_clause(cid, carriers.get(cid) if isinstance(carriers, Mapping) else None) for cid in CARRIER_ORDER]
+    missing = ["a packet that leaves this machine and arrives on a different machine id"]
+    for cid in CARRIER_ORDER:
+        row = carriers.get(cid) if isinstance(carriers, Mapping) else None
+        if not isinstance(row, Mapping) or row.get("state") == "REFUSE":
+            code = row.get("code") if isinstance(row, Mapping) else None
+            missing.append(f"{cid} ({code or RADIO_ABSENT})")
+    if not mid:
+        missing.append("machine id (MESH-HOST-ABSENT)")
+    sentence = f"{HEAD} {' '.join(clauses)} {_machine_clause(mid)} {TAIL}"
+    return _fact(sentence, visible=True, machine=mid, missing=missing)
+
+
+def sentence_for(report: Mapping[str, Any] | None = None) -> str:
+    """The operating-system sentence. A caller report cannot make it live."""
+    del report
+    return str(current_alt_internet_fact()["not_live_sentence"])
 
 
 def _base(earned: bool) -> dict[str, Any]:
@@ -608,12 +885,9 @@ def carry_path(
             "frame_ok": frame_checks(kind),
         })
 
-    earned = bool(trip and trip.get("foreign_arrival") is True and used)
-    body = _base(earned)
-    if earned and trip is not None:
-        body["second_device"] = True
-        body["code"] = PACKET_CARRIED
-    elif trip and trip.get("bytes_match") is True:
+    # A same-machine frame is not a second device. These flags stay false.
+    body = _base(False)
+    if trip and trip.get("bytes_match") is True:
         body["code"] = PACKET_CARRIED
     elif trip and trip.get("code"):
         body["code"] = trip["code"]
@@ -634,15 +908,14 @@ def carry_path(
             "interface": None if used is None else used["name"],
         }
     )
-    if not earned:
-        body["second_device"] = False
-        body["packet_path_live"] = False
-        body["alt_internet_live"] = False
-        body["live"] = False
-        body["foreign_arrival"] = False
-        body["ok"] = False
-        body["refused"] = True
-        body["internet_base"] = {"live": False, "installed": False, "base": True}
+    body["second_device"] = False
+    body["packet_path_live"] = False
+    body["alt_internet_live"] = False
+    body["live"] = False
+    body["foreign_arrival"] = False
+    body["ok"] = False
+    body["refused"] = True
+    body["internet_base"] = {"live": False, "installed": False, "base": True}
     body["plain"] = sentence_for(body)
     return body
 

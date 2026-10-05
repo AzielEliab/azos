@@ -174,15 +174,9 @@ def plain_limits(facts: Mapping[str, object] | None = None) -> str:
         userspace = USERSPACE_YES
     else:
         userspace = "The userspace base is absent."
-    from azos.carriers import report, sentence_for
+    from azos.carriers import current_alt_internet_fact
 
-    path = report()
-    claimed = (
-        path.get("foreign_arrival") is True
-        and src.get("alt_internet_live") is True
-        and src.get("packet_path_live") is True
-    )
-    internet_sentence = path.get("plain") if claimed else sentence_for({**path, "foreign_arrival": False})
+    internet_sentence = current_alt_internet_fact()["not_live_sentence"]
     return " ".join(
         (
             said("kernel", "There is a kernel.", "There is no kernel."),
