@@ -139,6 +139,12 @@ def test_worker_runtime_exposes_ethics_shell() -> None:
     assert "os_yet: false" in runtime
     assert "userspace_base: true" in runtime
     assert "alt_internet_live: false" in runtime
+    assert "packet_path_live: false" in runtime
+    assert "alt_internet_live is false" in runtime
+    assert "packet_path_live is false" in runtime
+    assert "This isolate cannot see host hardware (worker_hardware is false)." in runtime
+    assert "Still missing: a packet that leaves this machine and arrives on a different machine id." in runtime
+    assert "Cap-7 and .aziel stay names" in runtime
     assert "mail_send: false" in runtime
     prefab_slugs = runtime.split("const slugs = [", 1)[1].split("];", 1)[0]
     assert "4dmap" not in prefab_slugs

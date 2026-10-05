@@ -10,14 +10,15 @@ from azos.doors import prove, require_flag, scope_follows
 from azos.ethics import plain_limits, scope_dict
 from azos.newsmap import ABSENT_CODE, seal_join
 
-HOSTED_LIMITS = (
-    "There is no kernel. The kernel base is absent. This has not booted. "
-    "This is not installed as an operating system. This is not an operating system yet. "
-    "The userspace base is present. That is a base, not a boot. "
-    "The internet base is not live and not installed. An alternative internet is not live. "
-    "Mail is not sent from here. One-click install is not live. This is not a live mesh node. "
-    "Existing doors stay in place. App shells are not started."
-)
+def hosted_limits(internet: str) -> str:
+    return (
+        "There is no kernel. The kernel base is absent. This has not booted. "
+        "This is not installed as an operating system. This is not an operating system yet. "
+        "The userspace base is present. That is a base, not a boot. "
+        f"{internet} "
+        "Mail is not sent from here. One-click install is not live. This is not a live mesh node. "
+        "Existing doors stay in place. App shells are not started."
+    )
 
 
 def test_scope_flags_follow_the_doors(tmp_path: Path) -> None:
@@ -26,8 +27,9 @@ def test_scope_flags_follow_the_doors(tmp_path: Path) -> None:
     proof = prove(tmp_path)
     scope_follows(proof)
     scope = scope_dict()
-    assert plain_limits() == HOSTED_LIMITS
-    assert scope["limits_plain"] == HOSTED_LIMITS
+    internet_plain = proof["doors"]["internet"]["plain"]
+    assert plain_limits() == hosted_limits(internet_plain)
+    assert scope["limits_plain"] == hosted_limits(internet_plain)
     assert scope["kernel"] is False
     assert scope["kernel_base"] is False
     assert scope["booted"] is False
@@ -38,7 +40,9 @@ def test_scope_flags_follow_the_doors(tmp_path: Path) -> None:
     assert scope["one_click_install_live"] is False
     assert scope["internet_base"]["live"] is False
     assert scope["internet_base"]["installed"] is False
+    assert scope["internet_base"]["base"] is True
     assert scope["alt_internet_live"] is False
+    assert scope["packet_path_live"] is False
     assert scope["userspace_base"] is True
     assert proof["flags"]["userspace_base"] is True
     assert proof["doors"]["userspace_base"]["ok"] is True
@@ -63,9 +67,38 @@ def test_scope_flags_follow_the_doors(tmp_path: Path) -> None:
     assert proof["doors"]["one_click_install_live"]["remote_curl"] is False
     assert proof["doors"]["one_click_install_live"]["pip_ran"] is False
     assert proof["doors"]["one_click_install_live"]["code"] == "ONE-CLICK-NOT-LIVE"
-    assert proof["doors"]["internet"]["live"] is False
-    assert proof["doors"]["internet"]["installed"] is False
-    assert proof["doors"]["internet"]["code"] == "INTERNET-NOT-LIVE"
+    internet = proof["doors"]["internet"]
+    assert internet["live"] is False
+    assert internet["installed"] is False
+    assert internet["base"] is True
+    assert internet["packet_path_live"] is False
+    assert internet["alt_internet_live"] is False
+    assert internet["foreign_arrival"] is False
+    assert internet["second_device"] is False
+    assert internet["booted"] is False
+    assert internet["kernel"] is False
+    assert internet["cap7"] == "Cap-7"
+    assert internet["aziel"] == ".aziel"
+    assert internet["cap7_is_path"] is False
+    assert internet["aziel_is_path"] is False
+    assert internet["mock"] is False
+    assert internet["carrier_order"] == ["lan", "wifi", "bluetooth", "rf", "photon"]
+    assert "alt_internet_live is false" in internet["plain"]
+    assert "packet_path_live is false" in internet["plain"]
+    assert "Still missing: a packet that leaves this machine and arrives on a different machine id." in internet["plain"]
+    assert "A same-machine mesh frame does not count." in internet["plain"]
+    assert "Cap-7 and .aziel stay names" in internet["plain"]
+    assert "A second device stays false" in internet["plain"]
+    assert "Public mail send, the kernel, and boot stay not live." in internet["plain"]
+    carry = internet.get("carry")
+    if isinstance(carry, dict) and carry.get("bytes_match") is True:
+        assert carry["local_host"] == carry["remote_host"]
+        assert carry["local_host"]
+        assert carry["packet_live"] is False
+        assert carry["interface"] != "lo"
+        assert carry["sent_sha256"] == carry["received_sha256"]
+        assert "is present on this machine and is not a second device." in internet["plain"]
+        assert "A second device stays false while both ends share that id." in internet["plain"]
     assert proof["doors"]["mail_send"]["public_mta"] is False
     assert proof["doors"]["mail_send"]["sent"] is False
     assert proof["doors"]["mail_send"]["code"] == "MAIL-SEND-REFUSED"

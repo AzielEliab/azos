@@ -321,7 +321,7 @@ export function renderHomepage(stats) {
       <p class="banner">THIS IS NOT: a kernel, bootloader, hypervisor, replacement OS, VPN, worm, malware, unrestricted host bash, or SSH. Halt stops overlay authority. It does not kill the caller OS.</p>
       <p class="banner limit">THIS WORKER is the public homepage + counted download + read-only hosted ops (status, invite, health, skill, prefab, lattice snapshot). Session, exec, and lattice bind persist in product-Worker KV and need full AZ-OS (<code>azos ui</code> / <code>azos shell</code>). The HTTP proxy is not the full OS.</p>
       <p class="banner" id="news-map">AZNews and 4DMap are listed. They are not joined and not live. No fetched news item has landed as a map pin. AZNews can stand alone. 4DMap can stand alone. A news item could become a map pin (date, event, and place), or a pin could open the matching news, only after a real item is fetched. This page does not install 4DMap and does not serve articles. This page does not claim the aziel-runtime side is done. The news source is absent. Nothing here is live or merged.</p>
-      <p class="banner" id="limits-plain">There is no kernel. The kernel base is absent. This has not booted. This is not installed as an operating system. This is not an operating system yet. The userspace base is present. That is a base, not a boot. The internet base is not live and not installed. An alternative internet is not live. Mail is not sent from here. One-click install is not live. This is not a live mesh node. Existing doors stay in place. App shells are not started.</p>
+      <p class="banner" id="limits-plain">There is no kernel. The kernel base is absent. This has not booted. This is not installed as an operating system. This is not an operating system yet. The userspace base is present. That is a base, not a boot. An alternative internet is not live (alt_internet_live is false). A packet path is not live (packet_path_live is false). This isolate cannot see host hardware (worker_hardware is false). Still missing: a packet that leaves this machine and arrives on a different machine id. A same-machine mesh frame does not count. Cap-7 and .aziel stay names, not a public registrar and not ICANN or BGP. WireGuard, OpenVPN, an L3 exit pool, kernel UDP, and TUN/TAP stay SLOT. Public mail send, the kernel, and boot stay not live. The public door stays FG-STUB. Isolation is single-node security-awareness. Phoenix is a local wait and re-seal. That is not a loopback fence. Mail is not sent from here. One-click install is not live. This is not a live mesh node. Existing doors stay in place. App shells are not started.</p>
     </div>
 
     <div id="meshStrip" aria-label="Suite Live Nodes">
@@ -386,7 +386,7 @@ export function renderHomepage(stats) {
             <div class="field"><b>Host commands</b><span>This page does not run commands on the host computer.</span></div>
             <div class="field"><b>Halt</b><span>Halt stops new AZ-OS commands. It does not shut down the computer.</span></div>
           </div>
-          <p id="st-limits" style="margin-top:.8rem">There is no kernel. The kernel base is absent. This has not booted. This is not installed as an operating system. This is not an operating system yet. The userspace base is present. That is a base, not a boot. The internet base is not live and not installed. An alternative internet is not live. Mail is not sent from here. One-click install is not live. This page is not a live mesh node. Existing doors stay in place. App shells are not started.</p>
+          <p id="st-limits" style="margin-top:.8rem">There is no kernel. The kernel base is absent. This has not booted. This is not installed as an operating system. This is not an operating system yet. The userspace base is present. That is a base, not a boot. An alternative internet is not live (alt_internet_live is false). A packet path is not live (packet_path_live is false). This isolate cannot see host hardware (worker_hardware is false). Still missing: a packet that leaves this machine and arrives on a different machine id. A same-machine mesh frame does not count. Cap-7 and .aziel stay names, not a public registrar and not ICANN or BGP. WireGuard, OpenVPN, an L3 exit pool, kernel UDP, and TUN/TAP stay SLOT. Public mail send, the kernel, and boot stay not live. The public door stays FG-STUB. Isolation is single-node security-awareness. Phoenix is a local wait and re-seal. That is not a loopback fence. Mail is not sent from here. One-click install is not live. This page is not a live mesh node. Existing doors stay in place. App shells are not started.</p>
           <p class="note" id="st-note" style="margin-top:.8rem"></p>
           <h3 style="font-size:.95rem;color:var(--gold);margin:1rem 0 .4rem">Principles</h3>
           <ol id="st-principles" style="margin:0;padding-left:1.15rem">${principles}</ol>
@@ -543,12 +543,9 @@ export function renderHomepage(stats) {
       function said(flag, yes, no) { return flag === true ? yes : no; }
       function plainLimits(d) {
         var src = d || {};
-        var net = src.internet_base && typeof src.internet_base === "object" ? src.internet_base : {};
         var userspace = src.userspace_base === true
           ? "The userspace base is present. That is a base, not a boot."
           : "The userspace base is absent.";
-        var netLive = net.live === true ? "live" : "not live";
-        var netInstalled = net.installed === true ? "installed" : "not installed";
         return [
           said(src.kernel, "There is a kernel.", "There is no kernel."),
           said(src.kernel_base, "The kernel base is present.", "The kernel base is absent."),
@@ -556,8 +553,7 @@ export function renderHomepage(stats) {
           said(src.installed, "This is installed as an operating system.", "This is not installed as an operating system."),
           said(src.os_yet, "This is an operating system.", "This is not an operating system yet."),
           userspace,
-          "The internet base is " + netLive + " and " + netInstalled + ".",
-          said(src.alt_internet_live, "An alternative internet is live.", "An alternative internet is not live."),
+          "An alternative internet is not live (alt_internet_live is false). A packet path is not live (packet_path_live is false). This isolate cannot see host hardware (worker_hardware is false). Still missing: a packet that leaves this machine and arrives on a different machine id. A same-machine mesh frame does not count. Cap-7 and .aziel stay names, not a public registrar and not ICANN or BGP. WireGuard, OpenVPN, an L3 exit pool, kernel UDP, and TUN/TAP stay SLOT. Public mail send, the kernel, and boot stay not live. The public door stays FG-STUB. Isolation is single-node security-awareness. Phoenix is a local wait and re-seal. That is not a loopback fence.",
           said(src.mail_send, "Mail can be sent from here.", "Mail is not sent from here."),
           said(src.one_click_install_live, "One-click install is live.", "One-click install is not live."),
           said(src.mesh_node_live, "This is a live mesh node.", "This is not a live mesh node."),
