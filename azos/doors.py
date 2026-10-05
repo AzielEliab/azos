@@ -81,7 +81,8 @@ def internet_door() -> dict[str, Any]:
     The base can be present while the live flags stay false. Cap-7 and
     .aziel stay names. A same-machine frame does not flip the flags.
     """
-    if guest_log_is_boot("AZOS-BOOTED") or guest_log_is_path("AZOS-BOOTED"):
+    guest = "AZOS-BOOTED\nAZOS-INSTALLED\nMAIL-SENT\nMESH-NODE-LIVE\nPHOENIX-RESEALED"
+    if guest_log_is_boot(guest) or guest_log_is_path(guest):
         raise AssertionError("a guest log line was treated as a boot or a live path")
     found = report()
     found["installed"] = False

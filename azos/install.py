@@ -17,6 +17,10 @@ from typing import Any
 _PACKAGE = Path(__file__).resolve().parent
 _SCRIPT = _PACKAGE.parent / "install.sh"
 _SKIP = frozenset({"__pycache__"})
+PLACE_MARKER = (
+    "Package placed. Userspace base copied into this directory. "
+    "This is not an OS install.\n"
+)
 
 
 def _files() -> list[Path]:
@@ -58,11 +62,12 @@ def place(dest: Path | str) -> dict[str, Any]:
     }
     receipt_path = root / "receipt.json"
     receipt_path.write_text(json.dumps(receipt, indent=2) + "\n", encoding="utf-8")
-    marker.write_text("Installed AZ-OS.\n", encoding="utf-8")
+    marker.write_text(PLACE_MARKER, encoding="utf-8")
     try:
         loaded = json.loads(receipt_path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
         loaded = {}
+    written = marker.read_text(encoding="utf-8")
     ok = (
         isinstance(loaded, dict)
         and loaded.get("placed") is True
@@ -70,7 +75,8 @@ def place(dest: Path | str) -> dict[str, Any]:
         and loaded.get("host_os") is False
         and int(loaded.get("files") or 0) == len(copied)
         and not mismatch
-        and marker.read_text(encoding="utf-8") == "Installed AZ-OS.\n"
+        and written == PLACE_MARKER
+        and "Installed AZ-OS." not in written
         and (target / "__init__.py").is_file()
         and (target / "fourdmap.py").is_file()
     )

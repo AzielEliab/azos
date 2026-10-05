@@ -121,7 +121,7 @@ Counted download: https://azos-download-tracker.vibelock.workers.dev/
 
 No Zenodo DOI is claimed. `/v1` on the Worker does not increment downloads.
 
-Suite mesh: https://azos-download-tracker.vibelock.workers.dev/v1/mesh — read-only proxy, default off. QNS-CD-1.0 is a cite. GET does not enable it.
+Suite mesh: https://azos-download-tracker.vibelock.workers.dev/v1/mesh — proxy that forwards the runtime document and does not rewrite its mode flags. AZ-OS health keeps mesh_node_live false. The local fallback is default off. QNS-CD-1.0 is a cite. GET does not install a mesh node.
 
 Papers: [docs/whitepaper.md](docs/whitepaper.md). Contributing: [CONTRIBUTING.md](CONTRIBUTING.md).
 

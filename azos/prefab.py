@@ -1,4 +1,4 @@
-"""Prefab AZ-OS: every catalog product ships as an installed app.
+"""Prefab AZ-OS: every catalog product is a hook record, not an OS install.
 
 Hooks are local metadata + Worker URLs. Prefab does not download other
 repos at runtime. Author: Aziel Eliab.
@@ -48,7 +48,7 @@ def _worker_host(slug: str) -> str:
 
 
 def prefab_apps() -> list[dict[str, Any]]:
-    """All catalog products, marked installed on the prefab desktop."""
+    """Catalog hook records. ``hooked`` is a pointer, not an OS install."""
     apps: list[dict[str, Any]] = []
     for slug, name, one_line, op in _APPS:
         host = _worker_host(slug)
@@ -57,8 +57,9 @@ def prefab_apps() -> list[dict[str, Any]]:
                 "slug": slug,
                 "name": name,
                 "one_line": one_line,
-                "installed": True,
+                "installed": False,
                 "hooked": True,
+                "hook_record": True,
                 "author": AUTHOR,
                 "op": op,
                 "worker": host,
@@ -79,9 +80,15 @@ def prefab_snapshot() -> dict[str, Any]:
         "prefab": True,
         "author": AUTHOR,
         "catalog": CATALOG,
-        "installed": len(apps),
+        "installed": False,
+        "os_installed": False,
+        "hook_count": len(apps),
         "apps": apps,
-        "note": "Prefab AZ-OS ships every catalog product as an installed app hook. It does not silently copy other repos onto disk.",
+        "note": (
+            "Prefab AZ-OS lists every catalog product as a hook record. "
+            "This is not installed as an operating system. "
+            "It does not silently copy other repos onto disk."
+        ),
     }
 
 

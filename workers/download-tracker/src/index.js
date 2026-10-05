@@ -533,7 +533,7 @@ export default {
         "Download: " + HOST + "/download",
         "OpenAPI: " + HOST + "/openapi.json",
         "Cite: " + HOST + "/cite.json",
-        "Suite mesh: " + HOST + "/v1/mesh (PROXY; default OFF; QNM-BUILD-1.0; QNS-CD-1.0 hub cite; no public qnsd proxy)",
+        "Suite mesh: " + HOST + "/v1/mesh (PROXY; forwards the runtime document; AZ-OS mesh_node_live stays false; local fallback default OFF; QNM-BUILD-1.0; QNS-CD-1.0 hub cite; no public qnsd proxy)",
         "Title: AZ-OS — Aziel Eliab",
         "License: Apache-2.0",
         "",
