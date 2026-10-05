@@ -1,25 +1,27 @@
-# AZ-OS — iPhone & Android
+# AZ-OS human app
 
-Invite card (principles + download URL). Halt / revoke labels for an in-memory token. Integrity precedes execution.
+A person can open this Flutter app on Android, iPhone, and desktop (Linux, macOS, and Windows). It reads the same sentences as the public worker at https://azos-download-tracker.vibelock.workers.dev/. Those sentences keep the same not-live facts as aziel-runtime and AZ Interface.
 
-Offline. No analytics. Dark matte / gold.
+The userspace base is present. That is a base, not a boot.
+
+Offline. No analytics. Dark matte / gold. The first time a new user taps a control, a short popup says what that control does.
 
 Application id: `com.azieeliab.azos`
 
-## Open in Android Studio / Xcode
+## Projects
 
-The `android/` and `ios/` folders here are skeleton READMEs because
-this tree was written without the Flutter SDK on PATH.
+- `android/` is the Gradle project. Open it in Android Studio.
+- `ios/` is the Xcode project. On a Mac, open `ios/Runner.xcworkspace`. This repository does not contain an iPhone build or an install.
+- `linux/`, `macos/`, and `windows/` are the desktop runners.
 
 ```bash
 cd mobile
-flutter create --org com.azieeliab --project-name azos .
 flutter pub get
+flutter test
 flutter run
 ```
 
-Then open `android/` in Android Studio, or `ios/Runner.xcworkspace` in
-Xcode.
+There is no store listing and no one-click installer. Opening the app does not install an operating system and does not boot the host.
 
 ## Honest scope
 
@@ -27,7 +29,7 @@ Ethics-coded remote shell. NOT a kernel, bootloader, hypervisor, worm, malware, 
 
 ## Desktop package (counted download)
 
-This phone app does not replace the desktop package.
+This app does not replace the desktop package.
 
 # → https://azos-download-tracker.vibelock.workers.dev/ ←
 

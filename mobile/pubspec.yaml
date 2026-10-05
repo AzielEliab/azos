@@ -1,5 +1,5 @@
 name: azos
-description: Control surface: invite, halt, revoke labels. Integrity precedes execution. Not a kernel.
+description: "Human app for the same not-live sentences. Integrity precedes execution. Not a kernel."
 publish_to: "none"
 version: 0.1.0+1
 
@@ -9,7 +9,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  crypto: ^3.0.3
+  shared_preferences: ^2.5.3
 
 dev_dependencies:
   flutter_test:
