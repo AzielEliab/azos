@@ -137,7 +137,7 @@ curl -sS -A 'Mozilla/5.0' -X POST https://azos-download-tracker.vibelock.workers
 
 ### Phone sources
 
-Flutter sources are in [`mobile/`](mobile/). Application id `com.azieeliab.azos`. The `android/` and `ios/` folders are skeleton notes until `flutter create .` is run.
+Flutter sources are in [`mobile/`](mobile/). Application id `com.azieeliab.azos`. Android, iPhone, and desktop (Linux, macOS, Windows) projects are in that folder. The iPhone project is the Xcode project; this repository does not claim an iPhone build or an install. There is no store listing and no one-click installer for the app.
 
 ### Tests
 
@@ -152,6 +152,6 @@ python -m pytest -q
 azos/               library and local app (azos/node.py is the AZnet client)
 tests/              pytest
 docs/whitepaper.md  papers
-mobile/             Flutter sources
+mobile/             Flutter app (Android, iPhone, and desktop)
 workers/download-tracker/   counted download Worker
 ```
