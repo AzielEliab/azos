@@ -139,6 +139,11 @@ def test_worker_runtime_exposes_ethics_shell() -> None:
     assert "os_yet: false" in runtime
     assert "userspace_base: true" in runtime
     assert "alt_internet_live: false" in runtime
+    assert "packet_path_live: false" in runtime
+    assert "The packet path is not live." in runtime
+    assert "An alternative internet does not run." in runtime
+    assert "WARN-5 stands." in runtime
+    assert "A packet that leaves this worker and arrives on a different machine is still missing." in runtime
     assert "mail_send: false" in runtime
     prefab_slugs = runtime.split("const slugs = [", 1)[1].split("];", 1)[0]
     assert "4dmap" not in prefab_slugs

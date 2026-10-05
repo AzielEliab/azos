@@ -196,6 +196,18 @@ def _check_doors() -> Check:
         return _fail("doors", "4dmap")
     if proof["doors"]["booted"].get("booted") is True:
         return _fail("doors", "booted")
+    internet = proof["doors"]["internet"]
+    plain = str(internet.get("plain") or "")
+    if internet.get("packet_path_live") is not False or internet.get("alt_internet_live") is not False:
+        return _fail("doors", "internet")
+    if internet.get("foreign_arrival") is True or internet.get("second_device") is True:
+        return _fail("doors", "internet")
+    if "still missing" not in plain:
+        return _fail("doors", "internet sentence")
+    if "The packet path is not live." not in plain or "An alternative internet does not run." not in plain:
+        return _fail("doors", "internet sentence")
+    if "WARN-5 stands." not in plain:
+        return _fail("doors", "internet sentence")
     return _ok("doors", "userspace base, not a boot")
 
 

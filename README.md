@@ -90,7 +90,7 @@ A program can send `Accept: application/json` on `GET /` for the status record. 
 
 Integrity precedes execution.
 
-This package is a prefab of catalog hooks, including TemporalLock timeslates chained to StaticClock. The local program is the ethics-gated remote shell. There is no kernel in this repository, and there is no malware routine. The userspace base is present. That is a base, not a boot. A process receipt, a loopback bind, and a userspace file are not a host kernel. AZ Interface is a separate shell. It is not this kernel and not this boot.
+This package is a prefab of catalog hooks, including TemporalLock timeslates chained to StaticClock. The local program is the ethics-gated remote shell. There is no kernel in this repository, and there is no malware routine. The userspace base is present. That is a base, not a boot. Internet base is present. Not live. The packet path is not live. The packet path does not run. The alternative internet is not live. An alternative internet does not run. Device-to-device packet carriers stay NOT-READY. WARN-5 stands. The path sentence names what is still missing. A process receipt, a loopback bind, and a userspace file are not a host kernel. AZ Interface is a separate shell. It is not this kernel and not this boot.
 
 | Layer | What it does |
 |---|---|

@@ -13,6 +13,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Mapping
 
+from azos.carriers import guest_log_is_boot, guest_log_is_path, report
 from azos.ethics import SCOPE, USERSPACE_YES
 
 
@@ -75,15 +76,30 @@ def installed_door() -> dict[str, Any]:
 
 
 def internet_door() -> dict[str, Any]:
-    """The internet base is not live. A health GET is not that base."""
-    return {
-        "ok": False,
-        "refused": True,
-        "live": False,
-        "installed": False,
-        "code": "INTERNET-NOT-LIVE",
-        "plain": "The internet base is not live and not installed.",
-    }
+    """Run the carrier path. A health GET is not this door.
+
+    The base can be present while the live flags stay false. Cap-7 and
+    .aziel stay names. A same-machine frame does not flip the flags.
+    """
+    if guest_log_is_boot("AZOS-BOOTED") or guest_log_is_path("AZOS-BOOTED"):
+        raise AssertionError("a guest log line was treated as a boot or a live path")
+    found = report()
+    found["installed"] = False
+    found["booted"] = False
+    found["kernel"] = False
+    found["kernel_base"] = False
+    if found.get("foreign_arrival") is not True:
+        found["ok"] = False
+        found["refused"] = True
+        found["live"] = False
+        found["packet_path_live"] = False
+        found["alt_internet_live"] = False
+        found["second_device"] = False
+        net = found.get("internet_base")
+        if isinstance(net, dict):
+            net["live"] = False
+            net["installed"] = False
+    return found
 
 
 def mail_door() -> dict[str, Any]:
@@ -208,6 +224,19 @@ def prove(root: Path) -> dict[str, Any]:
         raise AssertionError("a receipt was treated as a boot")
     if flags["mesh_node_live"] is True and doors["mesh_node_live"].get("public_bind") is not True:
         raise AssertionError("a loopback bind was treated as a live mesh node")
+    internet = doors["internet"]
+    if internet.get("foreign_arrival") is not True:
+        for key in ("live", "packet_path_live", "alt_internet_live"):
+            if internet.get(key) is True or flags.get("internet") is True:
+                raise AssertionError("flag is true while the path still refuses")
+        if internet.get("second_device") is True:
+            raise AssertionError("a second device was marked on this machine")
+    local_host = internet.get("local_host")
+    remote_host = internet.get("remote_host")
+    if local_host and local_host == remote_host and internet.get("second_device") is True:
+        raise AssertionError("a second device was marked while both ends share one machine id")
+    if internet.get("booted") is True or internet.get("kernel") is True or internet.get("installed") is True:
+        raise AssertionError("the internet path booted the host")
     return {"doors": doors, "flags": flags}
 
 
@@ -233,16 +262,24 @@ def scope_follows(proof: Mapping[str, Any]) -> None:
         raise AssertionError("kernel base does not match the runtime")
     if SCOPE["os_yet"] is not False:
         raise AssertionError("os_yet does not match the runtime")
-    if SCOPE["alt_internet_live"] is not False:
-        raise AssertionError("alt internet does not match the runtime")
     internet = SCOPE["internet_base"]
     if not isinstance(internet, Mapping):
         raise AssertionError("internet base missing")
     door = proof["doors"]["internet"]
+    if SCOPE["alt_internet_live"] is not (door.get("alt_internet_live") is True):
+        raise AssertionError("alt internet does not follow its door")
+    if SCOPE["packet_path_live"] is not (door.get("packet_path_live") is True):
+        raise AssertionError("packet path does not follow its door")
+    if door.get("foreign_arrival") is not True and (
+        SCOPE["alt_internet_live"] is True or SCOPE["packet_path_live"] is True or internet.get("live") is True
+    ):
+        raise AssertionError("flag is true while the path still refuses")
     if (internet.get("live") is True) != (door.get("live") is True):
         raise AssertionError("internet live does not follow its door")
     if (internet.get("installed") is True) != (door.get("installed") is True):
         raise AssertionError("internet installed does not follow its door")
+    if internet.get("base") is not True or door.get("base") is not True:
+        raise AssertionError("internet base is not present")
     if internet.get("live") is True or internet.get("installed") is True:
         require_flag(True, door)
     if flags["internet"] is True:

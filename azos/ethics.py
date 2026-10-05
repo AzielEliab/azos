@@ -136,8 +136,9 @@ SCOPE: Mapping[str, object] = {
     "installed": False,
     "os_yet": False,
     "userspace_base": True,
-    "internet_base": {"live": False, "installed": False},
+    "internet_base": {"live": False, "installed": False, "base": True},
     "alt_internet_live": False,
+    "packet_path_live": False,
     "mail_send": False,
     "one_click_install_live": False,
     "mesh_node_live": False,
@@ -165,8 +166,6 @@ def _copy_scope_value(value: object) -> object:
 def plain_limits(facts: Mapping[str, object] | None = None) -> str:
     """Short sentences for a person. True stays true. False stays false."""
     src: Mapping[str, object] = facts if facts is not None else SCOPE
-    internet = src.get("internet_base")
-    net = internet if isinstance(internet, Mapping) else {}
 
     def said(flag: str, yes: str, no: str) -> str:
         return yes if src.get(flag) is True else no
@@ -175,8 +174,15 @@ def plain_limits(facts: Mapping[str, object] | None = None) -> str:
         userspace = USERSPACE_YES
     else:
         userspace = "The userspace base is absent."
-    net_live = "live" if net.get("live") is True else "not live"
-    net_installed = "installed" if net.get("installed") is True else "not installed"
+    from azos.carriers import report, sentence_for
+
+    path = report()
+    claimed = (
+        path.get("foreign_arrival") is True
+        and src.get("alt_internet_live") is True
+        and src.get("packet_path_live") is True
+    )
+    internet_sentence = path.get("plain") if claimed else sentence_for({**path, "foreign_arrival": False})
     return " ".join(
         (
             said("kernel", "There is a kernel.", "There is no kernel."),
@@ -189,12 +195,7 @@ def plain_limits(facts: Mapping[str, object] | None = None) -> str:
             ),
             said("os_yet", "This is an operating system.", "This is not an operating system yet."),
             userspace,
-            f"The internet base is {net_live} and {net_installed}.",
-            said(
-                "alt_internet_live",
-                "An alternative internet is live.",
-                "An alternative internet is not live.",
-            ),
+            str(internet_sentence),
             said("mail_send", "Mail can be sent from here.", "Mail is not sent from here."),
             said(
                 "one_click_install_live",
