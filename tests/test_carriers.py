@@ -47,7 +47,11 @@ def test_a_real_lan_frame_stays_on_this_machine() -> None:
         return
     carry = report["carry"]
     assert carry["bytes_match"] is True
-    assert carry["code"] == "PACKET-CARRIED"
+    assert carry["code"] == "SAME-MACHINE-REFUSED"
+    assert carry["code"] != "PACKET-CARRIED"
+    assert "PACKET-CARRIED" not in carry["code"]
+    assert "not a live packet path" in carry["plain"]
+    assert "not a second device" in carry["plain"]
     assert carry["local_host"] == carry["remote_host"]
     assert carry["source_ip"] == carry["address"]
     assert carry["interface"] != "lo"
@@ -113,8 +117,116 @@ def test_mock_is_not_a_live_path() -> None:
 
 
 def test_guest_log_does_not_boot_or_open_a_path() -> None:
+    guest = "\n".join(
+        (
+            "AZOS-BOOTED",
+            "AZOS-INSTALLED",
+            "MAIL-SENT",
+            "MESH-NODE-LIVE",
+            "PHOENIX-RESEALED",
+            "packet_path_live true",
+            "second_device true",
+        )
+    )
+    assert guest_log_is_boot(guest) is False
+    assert guest_log_is_path(guest) is False
     assert guest_log_is_boot("AZOS-BOOTED\nAZOS-INSTALLED") is False
     assert guest_log_is_path("AZOS-BOOTED") is False
+
+
+def _published_text(value: object) -> str:
+    if isinstance(value, str):
+        return value
+    if isinstance(value, dict):
+        return "\n".join(_published_text(item) for item in value.values())
+    if isinstance(value, list):
+        return "\n".join(_published_text(item) for item in value)
+    return ""
+
+
+def test_guest_boot_line_does_not_imply_host_boot_install_mail_or_mesh() -> None:
+    guest = "\n".join(
+        (
+            "AZOS-BOOTED",
+            "AZOS-INSTALLED",
+            "MAIL-SENT",
+            "mesh_node_live true",
+            "PHOENIX-RESEALED",
+            "host phoenix live",
+        )
+    )
+    report = carry_path(mock=True, guest_log=guest)
+    for key in (
+        "alt_internet_live",
+        "packet_path_live",
+        "second_device",
+        "foreign_arrival",
+        "live",
+        "booted",
+        "kernel",
+        "installed",
+        "os_yet",
+        "mail_send",
+        "mesh_node_live",
+        "one_click_install_live",
+    ):
+        assert report[key] is False
+    assert report["internet_base"]["live"] is False
+    assert report["internet_base"]["installed"] is False
+    published = _published_text(report)
+    assert "AZOS-BOOTED" not in published
+    assert "AZOS-INSTALLED" not in published
+    assert "PHOENIX-RESEALED" not in published
+    assert "Phoenix is a local wait and re-seal." in report["plain"]
+    assert "host phoenix" not in report["plain"].lower()
+
+
+def test_same_machine_frame_is_not_painted_as_a_live_path(monkeypatch) -> None:
+    host = "ab" * 16
+
+    def fake(address: str, local: str) -> dict:
+        return {
+            "ok": True,
+            "code": "PACKET-CARRIED",
+            "address": address,
+            "source_ip": address,
+            "bytes_match": True,
+            "local_host": local,
+            "remote_host": local,
+            "second_device": True,
+            "foreign_arrival": True,
+            "packet_live": True,
+            "packet_path_live": True,
+            "alt_internet_live": True,
+            "mock": False,
+        }
+
+    monkeypatch.setattr("azos.carriers.exchange_mesh", fake)
+    monkeypatch.setattr("azos.carriers.machine_id", lambda: host)
+    report = carry_path(interfaces=[{"name": "en-test", "address": "203.0.113.10"}])
+    assert report["code"] == "SAME-MACHINE-REFUSED"
+    assert report["carry"]["code"] == "SAME-MACHINE-REFUSED"
+    assert "PACKET-CARRIED" not in _published_text(report)
+    for key in (
+        "alt_internet_live",
+        "packet_path_live",
+        "second_device",
+        "foreign_arrival",
+        "live",
+        "booted",
+        "installed",
+        "kernel",
+        "mail_send",
+        "mesh_node_live",
+    ):
+        assert report[key] is False
+    assert report["carry"]["packet_live"] is False
+    assert report["carry"]["second_device"] is False
+    assert report["carry"]["foreign_arrival"] is False
+    assert report["carry"]["packet_path_live"] is False
+    assert "not a live packet path" in report["carry"]["plain"]
+    assert "not a second device" in report["carry"]["plain"]
+    assert report["local_host"] == report["remote_host"] == host
 
 
 def test_same_machine_id_is_not_a_second_device() -> None:

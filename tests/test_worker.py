@@ -173,6 +173,20 @@ def test_join_flag_script_rejects_a_live_label() -> None:
     assert "join flags ok" in completed.stdout
 
 
+def test_prefab_flag_script_rejects_an_install_override() -> None:
+    import subprocess
+
+    script = ROOT / "workers" / "download-tracker" / "scripts" / "verify-prefab-flags.mjs"
+    completed = subprocess.run(
+        ["node", str(script)],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert completed.returncode == 0, completed.stderr + completed.stdout
+    assert "prefab flags ok" in completed.stdout
+
+
 def test_worker_kv_binding_present() -> None:
     toml = TOML.read_text(encoding="utf-8")
     assert 'binding = "DOWNLOADS"' in toml

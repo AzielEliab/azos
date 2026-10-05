@@ -326,12 +326,12 @@ export function renderHomepage(stats) {
 
     <div id="meshStrip" aria-label="Suite Live Nodes">
       <div class="live"><b id="meshLiveCount">0</b> Live Nodes</div>
-      <div id="meshLine">The suite mesh is off. This page is not a live mesh node. The cite is QNM-BUILD-1.0 and QNS-CD-1.0. Not an anonymity network.</div>
+      <div id="meshLine">This page is not a live mesh node. mesh_node_live stays false. The suite mesh proxy has not been read yet. The cite is QNM-BUILD-1.0 and QNS-CD-1.0. Not an anonymity network.</div>
       <div class="rollup">live <b id="qnmLive">0</b> · locked <b id="qnmLocked">0</b> · isolated <b id="qnmIsolated">0</b></div>
-      <div>No Node Gate. No public qnsd proxy. No auto-heal. Author Aziel Eliab only. This page does not start a mesh node.</div>
+      <div>No Node Gate. No public qnsd proxy. No auto-heal. Those words are this page, not the proxied mode flags. Author Aziel Eliab only. This page does not start a mesh node.</div>
       <div>
         <input id="meshBearer" type="text" maxlength="80" placeholder="bearer (required to enable)" aria-label="mesh bearer">
-        <button id="meshEnable" type="button" title="Enable suite mesh. Declared bearer required. Default off.">Enable</button>
+        <button id="meshEnable" type="button" title="Forward enable to the runtime. Declared bearer required. This page is not a live mesh node.">Enable</button>
         <button id="meshDisable" type="button" title="Disable suite mesh (always allowed)">Disable</button>
         <button id="meshJoin" type="button" title="Join as azos. Refused while mesh is OFF. No auto-join.">Join</button>
         <button id="meshLeave" type="button" title="Leave this node. No auto-heal.">Leave</button>
@@ -482,7 +482,7 @@ export function renderHomepage(stats) {
       <ul>
         <li>Counted download: <a href="/download?asset=${DEFAULT_ASSET}">/download</a> (gzip, HTTP 200, no 302)</li>
         <li>One-click install: <a href="/install.sh">/install.sh</a></li>
-        <li>Suite Live Nodes (QNM-BUILD-1.0 + QNS-CD-1.0 hub cite, default OFF, no Node Gate, no public qnsd proxy): <a href="/v1/mesh">/v1/mesh</a></li>
+        <li>Suite Live Nodes (QNM-BUILD-1.0 + QNS-CD-1.0 hub cite; proxy forwards the runtime document; AZ-OS mesh_node_live stays false; no Node Gate on this page; no public qnsd proxy): <a href="/v1/mesh">/v1/mesh</a></li>
         <li>AzielTether survival mesh (prefer-central × peer sync; boards stay mesh-free): <a href="https://github.com/AzielEliab/azieltether">GitHub</a> · <a href="https://azieltether-download-tracker.vibelock.workers.dev/">Worker</a></li>
       </ul>
     </footer>
@@ -734,9 +734,9 @@ export function renderHomepage(stats) {
           $("qnmIsolated").textContent = String(isolated);
           var line = $("meshLine");
           var qns = (j.qns_cd && j.qns_cd.spec) || j.qns_cd_spec || "QNS-CD-1.0";
-          if (on) line.textContent = "The suite mesh reports that it is on. The live count is " + live + ". This page is not a live mesh node. The cite is QNM-BUILD-1.0 and " + qns + ". Not an anonymity network.";
-          else if (j.status === "unavailable" || (j.ok === false && j.error)) line.textContent = "The suite mesh is off because it could not be read. This page is not a live mesh node. The cite is QNM-BUILD-1.0 and " + qns + ". Not an anonymity network.";
-          else line.textContent = "The suite mesh is off. This page is not a live mesh node. The cite is QNM-BUILD-1.0 and " + qns + ". Not an anonymity network.";
+          if (on) line.textContent = "The suite mesh proxy returned an on document. The live count is " + live + ". This page is not a live mesh node. mesh_node_live stays false. Mode flags in that document are the runtime's. The cite is QNM-BUILD-1.0 and " + qns + ".";
+          else if (j.status === "unavailable" || (j.ok === false && j.error)) line.textContent = "The suite mesh proxy could not be read. This page is not a live mesh node. mesh_node_live stays false. The cite is QNM-BUILD-1.0 and " + qns + ".";
+          else line.textContent = "The suite mesh proxy returned an off document. This page is not a live mesh node. mesh_node_live stays false. The cite is QNM-BUILD-1.0 and " + qns + ".";
           var products = j.products_present || j.products || [];
           var names = Array.isArray(products) ? products.map(function (p) { return typeof p === "string" ? p : (p && (p.product || p.slug)) || ""; }).filter(Boolean) : [];
           var nodes = Array.isArray(j.nodes) ? j.nodes : [];

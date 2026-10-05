@@ -111,7 +111,7 @@ function aiHowTo(base) {
       "GET /download still serves the gzip tarball and increments the counter.",
       "/v1, /openapi.json, and /ai do not increment DOWNLOADS.",
       "AZ-OS is a true remote shell gated by coded ethics. Status is read-only.",
-      "Suite mesh /v1/mesh/* PROXY via AZIEL_RUNTIME. Default OFF. QNM-BUILD-1.0 live|locked|isolated. QNS-CD-1.0 photon QNS1 hub cite (qnm-node qnsd; no public proxy). No Node Gate.",
+      "Suite mesh /v1/mesh/* PROXY via AZIEL_RUNTIME. Forwards the runtime document and does not rewrite its mode flags. AZ-OS mesh_node_live stays false. Local fallback default OFF. QNM-BUILD-1.0 live|locked|isolated. QNS-CD-1.0 photon QNS1 hub cite (qnm-node qnsd; no public proxy). No Node Gate.",
       "Public identity: Aziel Eliab only.",
     ],
   };
@@ -160,7 +160,7 @@ const SAFE_ACTIONS = ["list_modules", "echo", "status", "purge_session", "shell"
 
 const SKILL = `---
 name: AZ-OS
-description: Use when calling the AZ-OS ethics-coded remote shell (hosted /v1 or local package). Dual surface: Worker /v1 + catalog MCP. This Worker /v1/mesh/* PROXY to aziel-runtime via AZIEL_RUNTIME. Suite mesh default OFF. QNM-BUILD-1.0 live|locked|isolated. QNS-CD-1.0 photon QNS1 hub cite (qnm-node qnsd; no public proxy). No Node Gate. No auto-heal. Not anonymity. Sessions and commands are principle-bound. Author Aziel Eliab.
+description: Use when calling the AZ-OS ethics-coded remote shell (hosted /v1 or local package). Dual surface: Worker /v1 + catalog MCP. This Worker /v1/mesh/* PROXY to aziel-runtime via AZIEL_RUNTIME. The proxy forwards the runtime document and does not rewrite its mode flags. AZ-OS mesh_node_live stays false. Local fallback default OFF. QNM-BUILD-1.0 live|locked|isolated. QNS-CD-1.0 photon QNS1 hub cite (qnm-node qnsd; no public proxy). No Node Gate. No auto-heal. Not anonymity. Sessions and commands are principle-bound. Author Aziel Eliab.
 ---
 
 # AZ-OS
@@ -188,13 +188,13 @@ Always send \`User-Agent: Mozilla/5.0\`. Cloudflare Workers may 403 an empty age
 - Catalog OpenAPI: https://aziel-runtime.vibelock.workers.dev/openapi.json
 - MCP: \`POST https://aziel-runtime.vibelock.workers.dev/mcp\`
 - Live skill (this markdown): \`GET https://azos-download-tracker.vibelock.workers.dev/v1/skill\`
-- Suite mesh: \`GET https://azos-download-tracker.vibelock.workers.dev/v1/mesh\` (PROXY; default OFF; QNS-CD-1.0 hub cite)
+- Suite mesh: \`GET https://azos-download-tracker.vibelock.workers.dev/v1/mesh\` (PROXY; forwards the runtime document; AZ-OS mesh_node_live stays false; local fallback default OFF; QNS-CD-1.0 hub cite)
 
 Ops (do **not** increment downloads or views):
 
 - \`GET /v1/health\` — liveness + scope
 - \`GET /v1/skill\` — this file
-- \`GET /v1/mesh\` — PROXY suite mesh status. Default OFF. QNM live|locked|isolated. QNS-CD-1.0 photon QNS1 hub cite (local qnsd in qnm-node; runtime cites in aziel-runtime). Never enables. No public qnsd proxy.
+- \`GET /v1/mesh\` — PROXY suite mesh status. Forwards the runtime document and does not rewrite its mode flags. AZ-OS mesh_node_live stays false. Local fallback default OFF. QNM live|locked|isolated. QNS-CD-1.0 photon QNS1 hub cite (local qnsd in qnm-node; runtime cites in aziel-runtime). Does not install a mesh node. No public qnsd proxy.
 - \`GET /v1/mesh/nodes\` — PROXY Live Nodes roster (5-minute presence). Payload includes the QNS-CD-1.0 cross-map.
 - \`POST /v1/mesh/{enable,disable,join,heartbeat,leave,broadcast}\` — PROXY. Bearer required to enable. No auto-heal. Anon-broadcast is not a publish path.
 - \`POST /v1/status\` — read-only status / principles (no exec)
@@ -203,7 +203,7 @@ Ops (do **not** increment downloads or views):
 - \`POST /v1/close\` — close a session
 - Product POSTs listed in OpenAPI (\`invite\`, \`halt\`, \`revoke\`)
 
-Works with ChatGPT (GPT Actions / OpenAI), Grok (xAI), Venice, Claude (Anthropic), Cursor (MCP), Glama (MCP), Perplexity, Microsoft Copilot / Bing, Google Gemini / Vertex, Mistral, Meta AI, Apple Intelligence surfaces, Amazon Q tooling, DuckAssist, You.com, Cohere, and other MCP/OpenAPI-capable assistants. Import OpenAPI as a custom tool, use GPT Actions, HTTP tools, or MCP. Catalog MCP \`mesh_*\` + FragGate \`slug=mesh\`. Suite mesh default OFF. QNM-BUILD-1.0 live|locked|isolated. QNS-CD-1.0 photon QNS1 hub cite (qnm-node qnsd; no public proxy). No Node Gate. No auto-heal. Not anonymity. Author: Aziel Eliab only.
+Works with ChatGPT (GPT Actions / OpenAI), Grok (xAI), Venice, Claude (Anthropic), Cursor (MCP), Glama (MCP), Perplexity, Microsoft Copilot / Bing, Google Gemini / Vertex, Mistral, Meta AI, Apple Intelligence surfaces, Amazon Q tooling, DuckAssist, You.com, Cohere, and other MCP/OpenAPI-capable assistants. Import OpenAPI as a custom tool, use GPT Actions, HTTP tools, or MCP. Catalog MCP \`mesh_*\` + FragGate \`slug=mesh\`. The mesh proxy forwards the runtime document. AZ-OS mesh_node_live stays false. Local fallback default OFF. QNM-BUILD-1.0 live|locked|isolated. QNS-CD-1.0 photon QNS1 hub cite (qnm-node qnsd; no public proxy). No Node Gate. No auto-heal. Not anonymity. Author: Aziel Eliab only.
 
 ## Example
 
@@ -315,7 +315,24 @@ function plainLimits(src) {
   ].join(" ");
 }
 
-function scopeMeta(obj) {
+const LOCKED_FALSE = [
+  "kernel",
+  "kernel_base",
+  "booted",
+  "installed",
+  "os_yet",
+  "alt_internet_live",
+  "packet_path_live",
+  "second_device",
+  "mail_send",
+  "mesh_node_live",
+  "one_click_install_live",
+  "doors_replaced",
+  "app_shells_started",
+];
+
+export function scopeMeta(obj) {
+  const extra = obj && typeof obj === "object" && !Array.isArray(obj) ? obj : {};
   const body = {
     motto: MOTTO,
     author: AUTHOR,
@@ -332,6 +349,7 @@ function scopeMeta(obj) {
     internet_base: { live: false, installed: false, base: true },
     alt_internet_live: false,
     packet_path_live: false,
+    second_device: false,
     mail_send: false,
     one_click_install_live: false,
     mesh_node_live: false,
@@ -351,10 +369,36 @@ function scopeMeta(obj) {
     sandbox: "session-vfs",
     principles: PRINCIPLES,
     gates: GATES,
-    ...obj,
+    ...extra,
   };
+  for (const key of LOCKED_FALSE) body[key] = false;
+  body.userspace_base = true;
+  const net = body.internet_base;
+  const base = net && typeof net === "object" && !Array.isArray(net) ? { ...net } : {};
+  base.live = false;
+  base.installed = false;
+  base.base = true;
+  body.internet_base = base;
   body.limits_plain = plainLimits(body);
   return body;
+}
+
+export function prefabCatalog() {
+  const slugs = ["azos","temporallock","staticclock","shadowlock","foldlock","azai","godlock","vibelock","veillock","spectrallock","miragegrid","codelock","decisiongate","chronolock","azclce","ark","azbot","aziel-corpus","employeelock","whistlelock","trajectorylock","forgereceipts","glossafilter","postking","zsolver"];
+  return {
+    ok: true,
+    prefab: true,
+    hook_count: slugs.length,
+    apps: slugs.map((slug) => ({
+      slug,
+      installed: false,
+      hooked: true,
+      hook_record: true,
+      author: AUTHOR,
+      catalog: "https://aziel-runtime.vibelock.workers.dev/p/" + slug,
+    })),
+    note: "Prefab AZ-OS lists catalog products as hook records. This is not installed as an operating system.",
+  };
 }
 
 function randomHex(nBytes) {
@@ -677,7 +721,7 @@ function openapiDoc() {
         "HTTPS JSON, ARC tokens after five gates, hosted KV vfs. " +
         "Not a kernel, not SSH, not unrestricted host bash. " +
         "Hosted halt stops the overlay session, not the caller OS. " +
-        "Suite mesh /v1/mesh/* PROXY to aziel-runtime (AZIEL_RUNTIME). Default OFF. QNM-BUILD-1.0 live|locked|isolated. QNS-CD-1.0 photon QNS1 hub cite (qnm-node qnsd; no public proxy). No Node Gate. No auto-heal. Not anonymity. Aziel Eliab only.",
+        "Suite mesh /v1/mesh/* PROXY to aziel-runtime (AZIEL_RUNTIME). Forwards the runtime document and does not rewrite its mode flags. AZ-OS mesh_node_live stays false. Local fallback default OFF. QNM-BUILD-1.0 live|locked|isolated. QNS-CD-1.0 photon QNS1 hub cite (qnm-node qnsd; no public proxy). No Node Gate. No auto-heal. Not anonymity. Aziel Eliab only.",
     },
     servers: [{ url: BASE }],
     paths: {
@@ -758,7 +802,7 @@ function openapiDoc() {
       "/v1/prefab": {
         get: {
           operationId: "azosPrefab",
-          summary: "Installed catalog apps on prefab AZ-OS",
+          summary: "Catalog hook records on prefab AZ-OS. Not an operating-system install.",
           responses: { "200": { description: "Prefab apps" } },
         },
       },
@@ -853,20 +897,7 @@ export async function handleRuntime(request, url, env) {
     return runtimeJson(scopeMeta(mapStatus()));
   }
   if (path === "/v1/prefab" && request.method === "GET") {
-    const slugs = ["azos","temporallock","staticclock","shadowlock","foldlock","azai","godlock","vibelock","veillock","spectrallock","miragegrid","codelock","decisiongate","chronolock","azclce","ark","azbot","aziel-corpus","employeelock","whistlelock","trajectorylock","forgereceipts","glossafilter","postking","zsolver"];
-    return runtimeJson(scopeMeta({
-      ok: true,
-      prefab: true,
-      installed: slugs.length,
-      apps: slugs.map((slug) => ({
-        slug,
-        installed: true,
-        hooked: true,
-        author: AUTHOR,
-        catalog: "https://aziel-runtime.vibelock.workers.dev/p/" + slug,
-      })),
-      note: "Prefab AZ-OS ships every catalog product as an installed app hook.",
-    }));
+    return runtimeJson(scopeMeta(prefabCatalog()));
   }
   if (path === "/v1/lattice" && request.method === "GET") {
     let stored = null;

@@ -95,6 +95,14 @@ def test_scope_flags_follow_the_doors(tmp_path: Path) -> None:
         assert carry["local_host"] == carry["remote_host"]
         assert carry["local_host"]
         assert carry["packet_live"] is False
+        assert carry["code"] == "SAME-MACHINE-REFUSED"
+        assert internet["code"] == "SAME-MACHINE-REFUSED"
+        assert "PACKET-CARRIED" not in str(carry.get("code"))
+        assert "PACKET-CARRIED" not in str(internet.get("code"))
+        assert carry["second_device"] is False
+        assert carry["packet_path_live"] is False
+        assert "not a live packet path" in carry["plain"]
+        assert "not a second device" in carry["plain"]
         assert carry["interface"] != "lo"
         assert carry["sent_sha256"] == carry["received_sha256"]
         assert "is present on this machine and is not a second device." in internet["plain"]
@@ -150,6 +158,14 @@ def test_local_artifacts_do_not_become_a_host_kernel(tmp_path: Path) -> None:
     assert copied["installed"] is False
     assert copied["os_yet"] is False
     assert copied["fourdmap_installed"] is False
+    from azos.install import PLACE_MARKER
+
+    marker = (tmp_path / "copied" / "INSTALLED").read_text(encoding="utf-8")
+    assert marker == PLACE_MARKER
+    assert "Installed AZ-OS." not in marker
+    assert "Package placed." in marker
+    assert "Userspace base" in marker
+    assert "not an OS install" in marker
     clicked = one_click(tmp_path / "clicked")
     assert clicked["placed"] is True
     assert clicked["ok"] is False

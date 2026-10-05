@@ -43,9 +43,12 @@ feed. Other checks stay on this machine.
 10. New behavior needs a test that fails without the change.
 11. Stay honest about scope: protocols, auth, sandbox.
 12. **Door vs local op.** `/v1/mesh/*` PROXY to aziel-runtime. Local ops are `/v1/{op}` only.
-    Suite mesh default OFF; QNM rollup live|locked|isolated; QNS-CD-1.0
+    The /v1/mesh proxy forwards the runtime document and does not rewrite
+    its mode flags. AZ-OS health keeps mesh_node_live false. The local
+    fallback is default OFF; QNM rollup live|locked|isolated; QNS-CD-1.0
     hub cite (photon QNS1; local qnsd in qnm-node; no public proxy);
-    no Node Gate; no auto-heal; not anonymity.
+    no Node Gate; no auto-heal; not anonymity. Those fallback words are
+    not the proxied mode flags.
 13. **Offline node is a local AZnet client.** `azos node` stores hash refs
     under `.azos/node/`. It does not host payloads, open a tunnel, enable
     the suite mesh, or replace FragGate. `probe` is GET health only.
