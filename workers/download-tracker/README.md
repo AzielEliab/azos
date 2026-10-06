@@ -36,3 +36,13 @@ Invariant: `views === views_human + views_bot` and
 Legacy strategy (b): existing KV totals are never reset. Pre-split remainder
 is shown as bot on read (`views_bot = views - views_human`). Author: Aziel Eliab only.
 
+
+## Runtime cross-tether (AZRT-AZOS-TETHER-1.0)
+
+`POST /v1/tether/tip` receives signed dual-lattice tips from aziel-runtime. The tracker checks the Ed25519 signature against the pinned runtime public key (`RUNTIME_TETHER_PUBKEY` in `wrangler.toml`), recomputes every row's primary and secondary hash, checks the link to the tip it already stored (genesis on first contact), and refuses an offline double. Only then does it write the new tip to KV. Any failure refuses and nothing is stored.
+
+`GET /v1/tether` lists the stored tips. `azos_updated` is true only for tips this tracker verified against the pinned key.
+
+The runtime does not exec into AZ-OS. The runtime FragGate `azos` `exec`, `shell`, and `lattice` refusal stays (REMAIN-OFF item 8). This is not the TemporalLock `/v1/lattice` route. Not mesh membership, not a second device, not a public ledger.
+
+Test: `node scripts/verify-tether.mjs` (uses `scripts/fixtures/azos-tether-vector.json`, copied from aziel-runtime `fixtures/azos-tether-vector.json`, signed with a public test-only seed).

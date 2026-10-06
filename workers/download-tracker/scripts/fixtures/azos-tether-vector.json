@@ -1,0 +1,91 @@
+{
+  "spec": "AZRT-AZOS-TETHER-1.0",
+  "note": "Test vector signed with a public test-only seed (0x11 * 32). Not the production key. The AZ-OS repo copies this file and must verify and store it.",
+  "test_public_key": "0EqyMnQrtKs6E2i9RhXk5tAiSrcaAWuvhSCjMsl3hzc",
+  "packets": [
+    {
+      "spec": "AZRT-AZOS-TETHER-1.0",
+      "kind": "azrt-lattice-tip",
+      "lattice_spec": "AZRT-DUAL-LATTICE-1.0",
+      "source": "aziel-runtime",
+      "chain": "evidence",
+      "rows": [
+        {
+          "seq": 0,
+          "document_hash": "e2b5f951d4eefccc7ac0a7b210e465efc4ac94da5bbdc74e26f14ade09902e22",
+          "primary": "e1a0c62c61944fb5e2420d3f1489f80dec94d9a8dd430b7895d317eada0104c4",
+          "primary_prev": "0000000000000000000000000000000000000000000000000000000000000000",
+          "secondary": "0590289114b489ebb41580056f040a26bb294c8a8096bc8e2b96e7b308fb385a",
+          "secondary_prev": "0000000000000000000000000000000000000000000000000000000000000000",
+          "offline": false,
+          "username": null,
+          "lattices": [
+            "primary",
+            "secondary"
+          ]
+        },
+        {
+          "seq": 1,
+          "document_hash": "45c2628ece20e664f8d82b16956fb22bdedd43aafac25d5f81f54ec226aec067",
+          "primary": "ab82f042bb5437eb2f9eda7df94235da3d92c1eb077cb692161b188ca9bdefbf",
+          "primary_prev": "e1a0c62c61944fb5e2420d3f1489f80dec94d9a8dd430b7895d317eada0104c4",
+          "secondary": "5a288e8e0646b54cfeac961b167503d947da8d17a9a81d034913b8233471cb13",
+          "secondary_prev": "0590289114b489ebb41580056f040a26bb294c8a8096bc8e2b96e7b308fb385a",
+          "offline": true,
+          "username": "azuser",
+          "lattices": [
+            "primary",
+            "secondary"
+          ]
+        }
+      ],
+      "tips": {
+        "primary": "ab82f042bb5437eb2f9eda7df94235da3d92c1eb077cb692161b188ca9bdefbf",
+        "secondary": "5a288e8e0646b54cfeac961b167503d947da8d17a9a81d034913b8233471cb13"
+      },
+      "git_sha": "0000000000000000000000000000000000000000",
+      "t": "2026-10-05T00:00:03.000Z",
+      "public_key": "0EqyMnQrtKs6E2i9RhXk5tAiSrcaAWuvhSCjMsl3hzc",
+      "author": "Aziel Eliab",
+      "packet_hash": "e70755859171f722aa8794def4cbe3016d534f33fbd3384fa083a859a10f1f48",
+      "sig": "A_FTX90p1la0lZFHBLeNZDeSq9y3SHiJqJ5mTgezcGIYwgN-krRGkB0We9ioPWc1xZiLJGfkqxj5GP1HKx6GCg"
+    },
+    {
+      "spec": "AZRT-AZOS-TETHER-1.0",
+      "kind": "azrt-lattice-tip",
+      "lattice_spec": "AZRT-DUAL-LATTICE-1.0",
+      "source": "aziel-runtime",
+      "chain": "evidence",
+      "rows": [
+        {
+          "seq": 2,
+          "document_hash": "a2ff93bce673d37a60a59e47403ec74f6a75bd10341fe08b38e68324a56feeda",
+          "primary": "d2e025fc9e6009f9f2fe8c01c21f38b2b6d4869b1446debd070fddcdf770168b",
+          "primary_prev": "ab82f042bb5437eb2f9eda7df94235da3d92c1eb077cb692161b188ca9bdefbf",
+          "secondary": "f2212513e243229aa286de238b8355d2b0834b9e1c0c7b8ed368e82eb7b135b8",
+          "secondary_prev": "5a288e8e0646b54cfeac961b167503d947da8d17a9a81d034913b8233471cb13",
+          "offline": false,
+          "username": null,
+          "lattices": [
+            "primary",
+            "secondary"
+          ]
+        }
+      ],
+      "tips": {
+        "primary": "d2e025fc9e6009f9f2fe8c01c21f38b2b6d4869b1446debd070fddcdf770168b",
+        "secondary": "f2212513e243229aa286de238b8355d2b0834b9e1c0c7b8ed368e82eb7b135b8"
+      },
+      "git_sha": "0000000000000000000000000000000000000000",
+      "t": "2026-10-05T00:00:04.000Z",
+      "public_key": "0EqyMnQrtKs6E2i9RhXk5tAiSrcaAWuvhSCjMsl3hzc",
+      "author": "Aziel Eliab",
+      "packet_hash": "5f05aa1b03c6e6581e9502f803e03647f760c71d9bd35af2bf7abc25c8082377",
+      "sig": "hbqvnO69TNNoLgMhPNSBxC5AEwyEuow7OlCX-gFc3vlivOuMAjYV4xUadB3FosxtRiZWUZOQUYHxvj34A_suAw"
+    }
+  ],
+  "final_tips": {
+    "primary": "d2e025fc9e6009f9f2fe8c01c21f38b2b6d4869b1446debd070fddcdf770168b",
+    "secondary": "f2212513e243229aa286de238b8355d2b0834b9e1c0c7b8ed368e82eb7b135b8"
+  }
+}
