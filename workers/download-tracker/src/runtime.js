@@ -11,6 +11,7 @@
 import { meshOpenApiPaths, meshPointer } from "./mesh.js";
 import { aznewsStatus, joinStatus, mapStatus } from "./newsmap.js";
 import { receiveTether, tetherState } from "./tether.js";
+import { handleNewsmap } from "./newsmap-door.js";
 function runtimeCors() {
   return {
     "Access-Control-Allow-Origin": "*",
@@ -810,21 +811,29 @@ function openapiDoc() {
       "/v1/newsmap": {
         get: {
           operationId: "azosNewsMap",
-          summary: "Joined AZNews and 4DMap probe. Standalone paths exist in full AZ-OS. 4DMap is not installed. No standing feed. Runtime side is not claimed done.",
+          summary: "Joined AZNews and 4DMap status, read from the runtime 4DMap engine through FragGate (news_status). 4DMap is not installed here. No standing feed. Flags pass through.",
           responses: { "200": { description: "Join status. Source absent until a fetched item is pinned. Not live by default." } },
+        },
+      },
+      "/v1/newsmap/{op}": {
+        post: {
+          operationId: "azosNewsMapOp",
+          summary: "Call one AZNews or 4DMap op on the runtime 4DMap engine through FragGate. op: status, pin, open (joined); sources, ingest, weather (AZNews standalone); plot, library_pin, lattice_tip (4DMap standalone). Flags pass through and are never raised here.",
+          parameters: [{ name: "op", in: "path", required: true, schema: { type: "string", enum: ["status", "pin", "open", "sources", "ingest", "weather", "plot", "library_pin", "lattice_tip"] } }],
+          responses: { "200": { description: "Runtime answer with live, merged, joined passed through" }, "404": { description: "Unknown op" } },
         },
       },
       "/v1/aznews": {
         get: {
           operationId: "azosNewsStandalone",
-          summary: "Standalone AZNews. No standing feed. Not live.",
+          summary: "Standalone AZNews, read from the runtime (news_sources). No standing feed here. Not live unless the runtime says so.",
           responses: { "200": { description: "AZNews can stand alone. Not live." } },
         },
       },
       "/v1/map": {
         get: {
           operationId: "azosMapStandalone",
-          summary: "Standalone 4DMap. Not installed.",
+          summary: "Standalone 4DMap, read from the runtime (plot). Not installed here.",
           responses: { "200": { description: "4DMap can stand alone. Not installed." } },
         },
       },
@@ -902,14 +911,14 @@ export async function handleRuntime(request, url, env) {
   if (path === "/v1/health" && request.method === "GET") {
     return runtimeJson(scopeMeta({ ok: true, product: PRODUCT, version: VERSION }));
   }
-  if (path === "/v1/newsmap" && request.method === "GET") {
-    return runtimeJson(scopeMeta(joinStatus(null)));
-  }
-  if (path === "/v1/aznews" && request.method === "GET") {
-    return runtimeJson(scopeMeta(aznewsStatus()));
-  }
-  if (path === "/v1/map" && request.method === "GET") {
-    return runtimeJson(scopeMeta(mapStatus()));
+  if (path === "/v1/newsmap" || path === "/v1/aznews" || path === "/v1/map" || path.startsWith("/v1/newsmap/")) {
+    // Joined, AZNews-standalone, and 4DMap-standalone paths read the runtime 4DMap
+    // engine through FragGate. azos_local keeps this Worker's own static refusal.
+    const nm = await handleNewsmap(request, url, env, "azos");
+    if (nm) {
+      const local = path === "/v1/newsmap" ? joinStatus(null) : path === "/v1/aznews" ? aznewsStatus() : path === "/v1/map" ? mapStatus() : null;
+      return runtimeJson(scopeMeta({ ...nm.body, azos_local: local }), nm.status);
+    }
   }
   if (path === "/v1/tether" && request.method === "GET") {
     return runtimeJson(scopeMeta(await tetherState(env)));
@@ -990,7 +999,7 @@ export async function handleRuntime(request, url, env) {
         "GET /v1/health", "GET /v1/skill", "GET /v1/mesh",
         "POST /v1/status", "POST /v1/invite",
         "POST /v1/session", "POST /v1/exec", "POST /v1/close",
-        "GET /v1/prefab", "GET /v1/newsmap", "GET /v1/aznews", "GET /v1/map",
+        "GET /v1/prefab", "GET /v1/newsmap", "GET /v1/aznews", "GET /v1/map", "POST /v1/newsmap/{op}",
         "GET /v1/lattice", "POST /v1/lattice",
         "POST /v1/halt", "POST /v1/revoke",
         "GET /openapi.json", "GET /ai",
