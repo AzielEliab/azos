@@ -10,6 +10,7 @@
  */
 import { meshOpenApiPaths, meshPointer } from "./mesh.js";
 import { aznewsStatus, joinStatus, mapStatus } from "./newsmap.js";
+import { receiveTether, tetherState } from "./tether.js";
 function runtimeCors() {
   return {
     "Access-Control-Allow-Origin": "*",
@@ -827,6 +828,20 @@ function openapiDoc() {
           responses: { "200": { description: "4DMap can stand alone. Not installed." } },
         },
       },
+      "/v1/tether": {
+        get: {
+          summary: "Runtime cross-tether: dual-lattice tips this tracker verified and stored",
+          description: "AZRT-AZOS-TETHER-1.0. aziel-runtime sends signed tips. AZ-OS verifies the Ed25519 signature against the pinned runtime key, recomputes the primary and secondary chains, and stores. The runtime does not exec into AZ-OS. azos_updated is true only for verified stored tips.",
+          responses: { "200": { description: "Stored tips per chain" } },
+        },
+      },
+      "/v1/tether/tip": {
+        post: {
+          summary: "Receive one signed dual-lattice tip packet from aziel-runtime",
+          description: "Refuses with nothing stored on: unpinned or wrong key, bad signature, a row that does not recompute, a broken link to the stored tip, or an offline double.",
+          responses: { "200": { description: "stored and verified" }, "400": { description: "refused" }, "403": { description: "key or signature refused" }, "409": { description: "link or offline double refused" } },
+        },
+      },
       "/v1/lattice": {
         get: {
           operationId: "azosLattice",
@@ -895,6 +910,13 @@ export async function handleRuntime(request, url, env) {
   }
   if (path === "/v1/map" && request.method === "GET") {
     return runtimeJson(scopeMeta(mapStatus()));
+  }
+  if (path === "/v1/tether" && request.method === "GET") {
+    return runtimeJson(scopeMeta(await tetherState(env)));
+  }
+  if (path === "/v1/tether/tip" && request.method === "POST") {
+    const out = await receiveTether(request, env);
+    return runtimeJson(scopeMeta(out.body), out.status);
   }
   if (path === "/v1/prefab" && request.method === "GET") {
     return runtimeJson(scopeMeta(prefabCatalog()));

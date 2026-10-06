@@ -16,6 +16,9 @@ run_worker_first = ["/", "/download", "/download/*", "/stats", "/event", "/go", 
 
 [vars]
 AZIEL_RUNTIME_ORIGIN = "https://aziel-runtime.vibelock.workers.dev"
+# AZRT-AZOS-TETHER-1.0: Ed25519 public key of aziel-runtime (public, not a secret).
+# POST /v1/tether/tip stores a lattice tip only when its signature verifies against this key.
+RUNTIME_TETHER_PUBKEY = "C9Psex_Bf8uG_nCwIeiskejJaBYUSYn7lHkPm4qV6Ik"
 
 [[services]]
 binding = "AZIEL_RUNTIME"
