@@ -8,6 +8,11 @@
  *                     POST /v1/newsmap/ingest → news_ingest (stores a story with no pin)
  *   4DMap standalone  GET /v1/map             → plot
  *                     POST /v1/newsmap/library_pin, /lattice_tip
+ *   AZNews live store GET /v1/newsmap/feed, /sky, /pins, /globe, /verify, /receipts
+ *                     POST /v1/newsmap/pin_open {pin_id}, /item {item_id}
+ *                     (runtime AzNewsStore: real RSS headlines, Open-Meteo weather,
+ *                     computed sky, colored pins, last-10 list; globe page at
+ *                     NEWSMAP_RUNTIME_ORIGIN + "/aznews")
  * This Worker keeps no second map, no engine copy, and no news store. Flags are
  * read from the runtime answer and are never raised here: a refusal keeps live,
  * merged, and joined false. AZNEWS-SOURCE-ABSENT passes through as-is.
@@ -26,12 +31,29 @@ export const NEWSMAP_OPS = Object.freeze({
   plot: { op: "plot", path: "4dmap-standalone" },
   library_pin: { op: "library_pin", path: "4dmap-standalone" },
   lattice_tip: { op: "lattice_tip", path: "4dmap-standalone" },
+  feed: { op: "news_feed", path: "aznews-live" },
+  item: { op: "news_item", path: "aznews-live" },
+  sky: { op: "news_sky", path: "aznews-live" },
+  pins: { op: "news_pins", path: "aznews-live" },
+  pin_open: { op: "news_pin_open", path: "aznews-live" },
+  globe: { op: "news_globe", path: "aznews-live" },
+  verify: { op: "news_verify", path: "aznews-live" },
+  receipts: { op: "news_receipts", path: "aznews-live" },
 });
+
+/** The runtime AZNews globe page (real news, weather, sky, colored pins, last-10, color key). */
+export const NEWSMAP_GLOBE_URL = NEWSMAP_RUNTIME_ORIGIN + "/aznews";
 
 const GET_ROUTES = Object.freeze({
   "/v1/newsmap": "status",
   "/v1/aznews": "sources",
   "/v1/map": "plot",
+  "/v1/newsmap/feed": "feed",
+  "/v1/newsmap/sky": "sky",
+  "/v1/newsmap/pins": "pins",
+  "/v1/newsmap/globe": "globe",
+  "/v1/newsmap/verify": "verify",
+  "/v1/newsmap/receipts": "receipts",
 });
 
 const MAX_BODY = 65536;
@@ -66,7 +88,7 @@ function plainOf(path, view) {
   if (view.refused) {
     return base + " The runtime refused this call (" + (view.code || "refused") + "). Nothing is live or merged.";
   }
-  if (view.live) return base + " The runtime reports a fetched news item on a pin, so the join is live there. 4DMap is not installed here.";
+  if (view.live) return base + " The runtime reports a fetched news item on a pin, so the join is live there. 4DMap is not installed here. Globe: " + NEWSMAP_GLOBE_URL + ".";
   return base + " The runtime reports no fetched news item on a pin, so nothing is live or merged.";
 }
 
@@ -105,7 +127,9 @@ export function newsmapView(host, key, runtime) {
       joined: { present: true, ops: ["news_pin", "news_open"], route: "POST /v1/newsmap/pin | /v1/newsmap/open" },
       aznews_standalone: { present: true, ops: ["news_ingest", "news_sources"], route: "POST /v1/newsmap/ingest, GET /v1/aznews" },
       fourdmap_standalone: { present: true, ops: ["plot", "library_pin", "lattice_tip"], route: "GET /v1/map, POST /v1/newsmap/library_pin" },
+      aznews_live: { present: true, ops: ["news_feed", "news_item", "news_sky", "news_pins", "news_pin_open", "news_globe", "news_verify", "news_receipts"], route: "GET /v1/newsmap/feed|sky|pins|globe|verify|receipts, POST /v1/newsmap/pin_open|item" },
     },
+    globe_url: NEWSMAP_GLOBE_URL,
     runtime_status: runtime ? runtime.status : null,
     runtime: result,
     author: "Aziel Eliab",
@@ -127,6 +151,9 @@ export async function handleNewsmap(request, url, env, host) {
   let payload = {};
   if ((request.method === "GET" || request.method === "HEAD") && GET_ROUTES[path]) {
     key = GET_ROUTES[path];
+    const lim = Number(url.searchParams.get("limit"));
+    if (Number.isFinite(lim) && lim > 0) payload.limit = Math.min(200, Math.floor(lim));
+    if (NEWSMAP_OPS[key].path === "aznews-live") payload.via = String(host || "door").slice(0, 40);
   } else if (request.method === "POST" && path.startsWith("/v1/newsmap/")) {
     key = path.slice("/v1/newsmap/".length);
     if (!Object.prototype.hasOwnProperty.call(NEWSMAP_OPS, key)) {
