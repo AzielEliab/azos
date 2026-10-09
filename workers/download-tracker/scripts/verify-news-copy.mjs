@@ -112,6 +112,15 @@ const opened = await copyRead(repo, "pin_open", { pin_id: pins.pins.find((p) => 
 assert.equal(opened.linked, true);
 assert.equal(opened.item.item_id, "n-5");
 console.log("ok news copy: refusals, genesis start, ingest, standalone reads");
+{
+  // A copy that ends right after an item, before its pins: that item is pending, not a failed join.
+  const edge = memCopyRepo();
+  assert.equal((await copyIngest(edge, await packetOf(0, 5), { pinned: pub })).body.ok, true);
+  const r = await copyRead(edge, "status", {});
+  assert.equal(r.join_check.linked, 1);
+  assert.equal(r.join_check.pending_at_edge, 1);
+  assert.equal(r.joined, true);
+}
 
 // A stored row changed afterwards: the read re-check catches it and standalone is false.
 {
