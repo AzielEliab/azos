@@ -59,6 +59,7 @@ const GET_ROUTES = Object.freeze({
   "/v1/newsmap/globe": "globe",
   "/v1/newsmap/verify": "verify",
   "/v1/newsmap/receipts": "receipts",
+  "/v1/newsmap/weather": "weather",
 });
 
 const MAX_BODY = 65536;
@@ -196,9 +197,71 @@ export function newsmapView(host, key, runtime, check = null) {
 
 export function assertNewsmapHonest(view) {
   if (view.refused && (view.live || view.merged || view.joined)) throw new Error("a refused newsmap call is marked live, merged, or joined");
-  if ((view.live || view.merged || view.joined) && !(view.door_join_check && view.door_join_check.ok === true)) throw new Error("newsmap flags raised without this door's own join check");
+  const doorOk = Boolean(view.door_join_check && view.door_join_check.ok === true);
+  const copyOk = view.store_copy === true && view.standalone === true && Boolean(view.join_check && view.join_check.joined === true) && !view.live && !view.merged;
+  if ((view.live || view.merged || view.joined) && !doorOk && !copyOk) throw new Error("newsmap flags raised without this door's own join check");
+  if (view.standalone === true && view.store_copy !== true) throw new Error("standalone claimed without serving from the local copy");
   if (view.installed || view.engine_installed || view.second_map || view.second_door) throw new Error("newsmap claims an install, a second map, or a second door");
   return view;
+}
+
+/**
+ * What counts as a "look" (NEWSMAP-LOOK-1.0). A view receipt is minted only for a real
+ * view: a human page on this host that shows the items asks with ?view=1 (GET) or
+ * {"view": true} (POST). Every other public read through this door, JSON or not, is
+ * sent to the runtime with dry_run: true and mints nothing. ?dry_run=1 always wins.
+ * The door's own join round trip is always dry_run.
+ */
+export const LOOK_RULE =
+  "A view receipt is minted only for a real view: a human page on this host that displays the items asks with ?view=1 (GET) or {\"view\": true} (POST). " +
+  "Every other public read through this door is forwarded with dry_run: true and mints nothing; ?dry_run=1 always wins. The door's own join check is always dry_run.";
+const READ_PATHS = new Set(["joined", "aznews-live"]);
+const READ_ONLY_OPS = new Set(["news_status", "news_sources", "news_weather", "plot", "lattice_tip"]);
+
+let localCopyReader = null;
+/** AZ-OS registers its own verified copy reader here (azinterface does not). */
+export function registerLocalCopy(fn) {
+  localCopyReader = typeof fn === "function" ? fn : null;
+}
+const COPY_OPS = Object.freeze({ status: "status", sources: "status", plot: "plot", feed: "feed", sky: "sky", pins: "pins", globe: "globe", verify: "verify", receipts: "receipts", item: "item", pin_open: "pin_open", weather: "weather" });
+
+function truthy(v) {
+  return v === true || v === 1 || v === "1" || v === "true" || v === "yes";
+}
+
+function unreachable(runtime) {
+  return !runtime || !runtime.body || typeof runtime.body !== "object" || (Number(runtime.status) >= 500 && !runtime.body.result);
+}
+
+async function fromCopy(env, host, key, payload, why) {
+  const out = await localCopyReader(env, COPY_OPS[key], payload);
+  const b = out && typeof out === "object" ? out : { ok: false, code: "NEWS-COPY-UNAVAILABLE" };
+  const view = {
+    ...b,
+    host,
+    path: NEWSMAP_OPS[key].path,
+    op: NEWSMAP_OPS[key].op,
+    door: "AZ-OS own verified copy (AZOS-NEWS-COPY-1.0), synced from the runtime by the signed tether",
+    served_because: why,
+    store_copy: true,
+    second_door: false,
+    second_map: false,
+    engine_copy: false,
+    installed: false,
+    engine_installed: false,
+    live: false,
+    merged: false,
+    joined: b.joined === true,
+    standalone: b.standalone === true,
+    lattice_live: false,
+    look_rule: LOOK_RULE,
+    receipts_minted: 0,
+    author: "Aziel Eliab",
+  };
+  view.plain = view.standalone
+    ? "The runtime was not used (" + why + "). This answer comes from AZ-OS's own copy of the AZNews store, re-checked just now against the signed tether tip " + (b.copy && b.copy.tip_seq) + ". It is a copy, so live is false."
+    : "The runtime was not used (" + why + ") and AZ-OS's own copy did not verify (" + ((b.copy_verify && b.copy_verify.reason) || b.code || "no copy") + "), so standalone is false.";
+  return assertNewsmapHonest(view);
 }
 
 /** Route one request. Returns { status, body } or null when the path is not a newsmap path. */
@@ -206,11 +269,18 @@ export async function handleNewsmap(request, url, env, host) {
   const path = url.pathname.replace(/\/+$/, "") || "/";
   let key = null;
   let payload = {};
+  let look = false;
+  let forceDry = false;
+  let wantLocal = false;
   if ((request.method === "GET" || request.method === "HEAD") && GET_ROUTES[path]) {
     key = GET_ROUTES[path];
-    const lim = Number(url.searchParams.get("limit"));
+    const q = url.searchParams;
+    const lim = Number(q.get("limit"));
     if (Number.isFinite(lim) && lim > 0) payload.limit = Math.min(200, Math.floor(lim));
-    if (NEWSMAP_OPS[key].path === "aznews-live") payload.via = String(host || "door").slice(0, 40);
+    for (const k of ["type", "era", "outlet"]) if (q.get(k)) payload[k] = String(q.get(k)).slice(0, 80);
+    look = truthy(q.get("view"));
+    forceDry = truthy(q.get("dry_run"));
+    wantLocal = q.get("source") === "local";
   } else if (request.method === "POST" && path.startsWith("/v1/newsmap/")) {
     key = path.slice("/v1/newsmap/".length);
     if (!Object.prototype.hasOwnProperty.call(NEWSMAP_OPS, key)) {
@@ -226,14 +296,37 @@ export async function handleNewsmap(request, url, env, host) {
       }
     }
     if (!payload || typeof payload !== "object" || Array.isArray(payload)) payload = {};
+    look = payload.view === true;
+    forceDry = truthy(payload.dry_run);
+    wantLocal = payload.source === "local";
+    delete payload.view;
+    delete payload.source;
   } else {
     return null;
   }
+  const spec = NEWSMAP_OPS[key];
+  const isRead = READ_PATHS.has(spec.path) || READ_ONLY_OPS.has(spec.op);
+  if (isRead) {
+    delete payload.dry_run;
+    if (!look || forceDry) payload.dry_run = true;
+    if (look && !forceDry) payload.via = String(host || "door").slice(0, 40);
+    else delete payload.via;
+  }
+  if (wantLocal) {
+    if (!localCopyReader || !COPY_OPS[key]) return { status: 200, body: { ok: false, refused: true, code: "NEWSMAP-NO-LOCAL-COPY", host, standalone: false, live: false, joined: false, merged: false, installed: false, plain: "This host keeps no local copy of the AZNews store, so it cannot serve standalone." } };
+    return { status: 200, body: await fromCopy(env, host, key, payload, "source=local was asked") };
+  }
   let runtime = null;
   try {
-    runtime = await callRuntime(env, NEWSMAP_OPS[key].op, payload);
+    runtime = await callRuntime(env, spec.op, payload);
   } catch {
     runtime = null;
+  }
+  let copyMiss = null;
+  if (unreachable(runtime) && localCopyReader && COPY_OPS[key]) {
+    const c = await fromCopy(env, host, key, payload, "the runtime was unreachable");
+    if (c.ok !== false) return { status: 200, body: c };
+    copyMiss = { code: c.code || "NEWS-COPY-UNAVAILABLE", standalone: false };
   }
   // Check the join here only when the runtime claims a flag (two dry_run reads).
   const r = resultOf(runtime);
@@ -242,5 +335,12 @@ export async function handleNewsmap(request, url, env, host) {
   if (src && CLAIM_KEYS.some((k) => src[k] === true)) {
     check = await doorJoinCheck((op, p) => callRuntime(env, op, p));
   }
-  return { status: 200, body: newsmapView(host, key, runtime, check) };
+  const view = newsmapView(host, key, runtime, check);
+  view.source = "runtime";
+  if (copyMiss) view.local_copy = copyMiss;
+  view.standalone = false;
+  view.standalone_reason = "Served by the runtime through FragGate, not from a local copy.";
+  view.look = isRead ? (payload.dry_run === true ? "not a look: forwarded with dry_run, no receipt minted" : "a look: ?view=1 from a page on this host") : "not a read op";
+  view.look_rule = LOOK_RULE;
+  return { status: 200, body: view };
 }

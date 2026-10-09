@@ -1,5 +1,25 @@
 import { handleMeshApi } from "./mesh.js";
 import { handleRuntime } from "./runtime.js";
+import { AzosNewsCopy, handleNewsCopyRoute, newsCopyCall } from "./news-copy.js";
+import { registerLocalCopy } from "./newsmap-door.js";
+
+// AZ-OS standalone AZNews: the door may serve from this Worker's own verified copy.
+registerLocalCopy(async (env, op, payload) => (await newsCopyCall(env, { op, payload })).body);
+export { AzosNewsCopy };
+
+const NEWS_COPY_OPENAPI = Object.freeze({
+  "/v1/tether/aznews": {
+    get: { operationId: "azosNewsCopyState", summary: "AZ-OS's own AZNews copy (AZOS-NEWS-COPY-1.0): stored tip seq, signed tips, rows, from_genesis, lag at last sync.", responses: { "200": { description: "copy state" } } },
+    post: { operationId: "azosNewsCopyIngest", summary: "Signed AZRT-AZOS-NEWS-1.0 packet from aziel-runtime. Checked (pinned key, Ed25519 signature, every document hash, both lattice links from the stored tip, tips) before anything is kept. Durable Object SQLite only.", responses: { "200": { description: "stored" }, "403": { description: "key or signature refused" }, "409": { description: "link, hash, or double refused" } } },
+  },
+  "/v1/aznews/copy": {
+    get: { operationId: "azosNewsCopyExport", summary: "Export verified copy rows after a seq (for the local azos CLI copy).", parameters: [{ name: "after", in: "query", schema: { type: "integer" } }, { name: "limit", in: "query", schema: { type: "integer", maximum: 500 } }], responses: { "200": { description: "rows with documents and lattice hashes" } } },
+  },
+  "/v1/newsmap/weather": { get: { operationId: "azosNewsMap_weather", summary: "Open-Meteo weather from the runtime store (or the copy when the runtime is unreachable).", responses: { "200": { description: "weather" } } } },
+  "x-newsmap-query": {
+    description: "Every /v1/newsmap/*, /v1/aznews and /v1/map GET accepts: source=local (serve from AZ-OS's own verified copy; standalone:true only when it re-verifies), view=1 (a real look by a page that shows the items; the only case that mints a view receipt), dry_run=1 (never mint).",
+  },
+});
 import {
   HOST,
   GITHUB_REPO,
@@ -431,10 +451,28 @@ export default {
     }
 
 
+    // AZRT-AZOS-NEWS-1.0 signed copy in (POST /v1/tether/aznews), its state, and the export for the local CLI.
+    const copy = await handleNewsCopyRoute(request, url, env);
+    if (copy) {
+      return new Response(JSON.stringify(copy.body, null, 2), { status: copy.status, headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store", ...corsHeaders() } });
+    }
+
     const mesh = await handleMeshApi(request, url, env);
     if (mesh) return mesh;
 
     const runtime = await handleRuntime(request, url, env);
+    if (runtime && url.pathname === "/openapi.json" && request.method === "GET" && runtime.status === 200) {
+      // Serve-time fragment: the AZOS-NEWS-COPY-1.0 routes, merged into the spec from runtime.js.
+      try {
+        const spec = await runtime.clone().json();
+        spec.paths = { ...(spec.paths || {}), ...NEWS_COPY_OPENAPI };
+        const headers = new Headers(runtime.headers);
+        headers.delete("content-length");
+        return new Response(JSON.stringify(spec, null, 2), { status: 200, headers });
+      } catch {
+        return runtime;
+      }
+    }
     if (runtime) return runtime;
 
 
