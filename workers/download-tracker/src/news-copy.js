@@ -271,17 +271,26 @@ function colorKey(pins) {
 }
 
 /** Local join on the copy: newest items -> their pins name the item's hash; pull receipt points back. */
-async function localJoin(repo, minSeq) {
-  const items = await repo.newest("news", 10, minSeq);
-  if (!items.length) return { joined: false, checked: 0, linked: 0, reason: "no items in the copy window" };
-  const pins = await repo.newest("pin", 400, items[items.length - 1].seq);
+export const EDGE_ROWS = 4;
+
+async function localJoin(repo, minSeq, tipSeq) {
+  const all = await repo.newest("news", 10 + 2, minSeq);
+  if (!all.length) return { joined: false, checked: 0, linked: 0, pending_at_edge: 0, reason: "no items in the copy window" };
+  const pins = await repo.newest("pin", 400, all[all.length - 1].seq);
   let linked = 0;
-  for (const it of items) {
+  let checked = 0;
+  let pending = 0;
+  for (const it of all) {
+    if (checked >= 10) break;
     const mine = pins.filter((p) => p.doc && p.doc.report_seq === it.seq && p.doc.report_document_hash === it.lattice.document_hash);
+    // An item in the last EDGE_ROWS rows whose pins have not arrived yet is pending (its pins
+    // follow it in the same runtime batch and come in the next packet), not a failed join.
+    if (!mine.length && it.seq > tipSeq - EDGE_ROWS) { pending += 1; continue; }
+    checked += 1;
     const rc = mine.length && mine[0].doc.pull_receipt_seq ? await repo.get(mine[0].doc.pull_receipt_seq) : null;
     if (mine.length && rc && rc.doc && rc.doc.report_seq === it.seq) linked += 1;
   }
-  return { joined: linked === items.length, checked: items.length, linked, reason: linked === items.length ? null : (items.length - linked) + " item(s) did not round-trip in the copy" };
+  return { joined: checked > 0 && linked === checked, checked, linked, pending_at_edge: pending, reason: checked > 0 && linked === checked ? null : checked === 0 ? "no complete item in the copy yet" : (checked - linked) + " item(s) did not round-trip in the copy" };
 }
 
 /** Serve one read from the copy. Returns the body (with standalone and the verify evidence). */
@@ -342,7 +351,7 @@ export async function copyRead(repo, op, payload = {}) {
     return { ok: false, code: "NEWS-COPY-UNKNOWN-OP", ...base };
   }
   const check = await verifyWindow(repo, st, from);
-  const join = await localJoin(repo, minSeq);
+  const join = await localJoin(repo, minSeq, st.tip_seq);
   return {
     ...base,
     ...body,
