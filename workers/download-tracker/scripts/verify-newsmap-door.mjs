@@ -93,12 +93,22 @@ assert.equal(out.body.installed, false);
 
 // AZNews standalone and 4DMap standalone paths.
 env = { AZIEL_RUNTIME: fakeRuntime((b) => ({ ok: true, op: b.op })) };
-for (const [path, op, kind] of [["/v1/aznews", "news_sources", "aznews-standalone"], ["/v1/map", "plot", "4dmap-standalone"]]) {
+for (const [path, op, kind] of [["/v1/aznews", "news_sources", "aznews-standalone"]]) {
   out = await handleNewsmap(req(path), new URL("https://h.example" + path), env, HOST);
   assert.equal(calls.at(-1).body.op, op);
   assert.equal(out.body.path, kind);
   assert.equal(out.body.ok, true);
   assert.equal(out.body.live, false);
+}
+{
+  // GET /v1/map is 4DMap on its own; with no local copy registered it reads the runtime 4DMap store.
+  const seen = [];
+  const rt = { fetch: async (r) => { seen.push(r.url); return new Response(JSON.stringify({ ok: true, spec: "4DMAP-STORE-1.0", pins: [] })); } };
+  const m = await handleNewsmap(req("/v1/map"), new URL("https://h.example/v1/map"), { AZIEL_RUNTIME: rt }, HOST);
+  assert.match(seen[0], /\/v1\/4dmap\/pins\?layers=corpus%2Creference$/);
+  assert.equal(m.body.source, "runtime");
+  assert.equal(m.body.standalone, false);
+  assert.equal(m.body.live, false);
 }
 for (const [key, spec] of Object.entries(NEWSMAP_OPS)) {
   out = await handleNewsmap(req("/v1/newsmap/" + key, "POST", {}), new URL("https://h.example/v1/newsmap/" + key), env, HOST);
@@ -140,7 +150,9 @@ assert.equal(v.engine_installed, false);
 // Through the Worker entry point.
 env = { AZIEL_RUNTIME: fakeRuntime(absent), AZIEL_RUNTIME_ORIGIN: "https://aziel-runtime.vibelock.workers.dev" };
 for (const path of ["/v1/newsmap", "/v1/aznews", "/v1/map"]) {
-  const res = await worker.fetch(req(path), env, { waitUntil() {} });
+  // /v1/map with no copy bound here reads GET /v1/4dmap/pins on the runtime (no JSON body).
+  const e = path === "/v1/map" ? { ...env, AZIEL_RUNTIME: { fetch: async () => new Response(JSON.stringify({ ok: true, pins: [] })) } } : env;
+  const res = await worker.fetch(req(path), e, { waitUntil() {} });
   assert.equal(res.status, 200, path);
   const body = await res.json();
   assert.equal(body.host, HOST);

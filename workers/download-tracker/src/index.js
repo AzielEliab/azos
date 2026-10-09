@@ -1,10 +1,10 @@
 import { handleMeshApi } from "./mesh.js";
 import { handleRuntime } from "./runtime.js";
-import { AzosNewsCopy, handleNewsCopyRoute, newsCopyCall } from "./news-copy.js";
+import { AzosNewsCopy, handleNewsCopyRoute, newsCopyCall, localMapRead } from "./news-copy.js";
 import { registerLocalCopy } from "./newsmap-door.js";
 
 // AZ-OS standalone AZNews: the door may serve from this Worker's own verified copy.
-registerLocalCopy(async (env, op, payload) => (await newsCopyCall(env, { op, payload })).body);
+registerLocalCopy(async (env, op, payload) => (op === "map" ? localMapRead(env, payload) : (await newsCopyCall(env, { op, payload })).body));
 export { AzosNewsCopy };
 
 const NEWS_COPY_OPENAPI = Object.freeze({
@@ -15,9 +15,19 @@ const NEWS_COPY_OPENAPI = Object.freeze({
   "/v1/aznews/copy": {
     get: { operationId: "azosNewsCopyExport", summary: "Export verified copy rows after a seq (for the local azos CLI copy).", parameters: [{ name: "after", in: "query", schema: { type: "integer" } }, { name: "limit", in: "query", schema: { type: "integer", maximum: 500 } }], responses: { "200": { description: "rows with documents and lattice hashes" } } },
   },
+  "/v1/tether/4dmap": {
+    get: { operationId: "azos4dmapCopyState", summary: "AZ-OS's own 4DMap copy: stored tip seq, signed tips, rows, from_genesis.", responses: { "200": { description: "copy state" } } },
+    post: { operationId: "azos4dmapCopyIngest", summary: "Signed AZRT-MAP-COPY-1.0 packet from the runtime 4DMap store (4DMAP-STORE-1.0). Same checks as the AZNews copy; its own Durable Object (SQLite).", responses: { "200": { description: "stored" }, "403": { description: "key or signature refused" }, "409": { description: "link, hash, or chain refused" } } },
+  },
+  "/v1/4dmap/copy": {
+    get: { operationId: "azos4dmapCopyExport", summary: "Export verified 4DMap copy rows after a seq.", parameters: [{ name: "after", in: "query", schema: { type: "integer" } }, { name: "limit", in: "query", schema: { type: "integer", maximum: 500 } }], responses: { "200": { description: "rows with documents and lattice hashes" } } },
+  },
+  "/v1/map": {
+    get: { operationId: "azos4dmapStandalone", summary: "4DMap on its own: map pins (corpus + reference layers) from AZ-OS's own verified 4DMap copy. Needs no AZNews. ?layers=news adds AZNews pins from the AZNews copy. ?source=runtime reads the runtime store. Falls back to the runtime only when the copy is empty or fails its check.", parameters: [{ name: "layers", in: "query", schema: { type: "string", example: "corpus,reference,news" } }, { name: "source", in: "query", schema: { type: "string", enum: ["local", "runtime"] } }, { name: "limit", in: "query", schema: { type: "integer", maximum: 2000 } }], responses: { "200": { description: "pins, last10, colors, layer_report, standalone, map_copy (copy_verify)" } } },
+  },
   "/v1/newsmap/weather": { get: { operationId: "azosNewsMap_weather", summary: "Open-Meteo weather from the runtime store (or the copy when the runtime is unreachable).", responses: { "200": { description: "weather" } } } },
   "x-newsmap-query": {
-    description: "Every /v1/newsmap/*, /v1/aznews and /v1/map GET accepts: source=local (serve from AZ-OS's own verified copy; standalone:true only when it re-verifies), view=1 (a real look by a page that shows the items; the only case that mints a view receipt), dry_run=1 (never mint).",
+    description: "Every /v1/newsmap/* and /v1/aznews GET accepts: source=local (serve from AZ-OS's own verified copy; standalone:true only when it re-verifies), view=1 (a real look by a page that shows the items; the only case that mints a view receipt), dry_run=1 (never mint).",
   },
 });
 import {
