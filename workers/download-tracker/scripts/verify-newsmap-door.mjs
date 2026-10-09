@@ -53,15 +53,43 @@ assert.equal(out.body.live, false);
 assert.equal(out.body.merged, false);
 assert.equal(out.body.joined, false);
 
-// Pass-through only: a runtime that reports a landed pin is shown as live, never more.
+// A runtime claim alone is not relayed: the door's own round trip fails here (no stored item), so flags stay false.
 env = { AZIEL_RUNTIME: fakeRuntime({ ok: true, op: "news_pin", live: true, joined: true, merged: false, source_present: true, outlets_live: 1 }) };
 out = await handleNewsmap(req("/v1/newsmap/pin", "POST", { item: { url: "https://example.org/a" } }), new URL("https://h.example/v1/newsmap/pin"), env, HOST);
-assert.equal(calls.at(-1).body.op, "news_pin");
-assert.deepEqual(calls.at(-1).body.payload, { item: { url: "https://example.org/a" } });
-assert.equal(out.body.live, true);
-assert.equal(out.body.joined, true);
+assert.equal(calls.at(-2).body.op, "news_pin");
+assert.deepEqual(calls.at(-2).body.payload, { item: { url: "https://example.org/a" } });
+assert.deepEqual(calls.at(-1).body.payload, { dry_run: true });
+assert.equal(out.body.live, false);
+assert.equal(out.body.joined, false);
 assert.equal(out.body.merged, false);
+assert.equal(out.body.runtime_claims.joined, true);
+assert.equal(out.body.door_join_check.ok, false);
 assert.equal(out.body.installed, false);
+
+// The door's own round trip (news_pin -> news_open -> same item) passes: joined shows; merged needs lattice_live too.
+{
+  const store = (b) => {
+    if (b.op === "news_status") return { ok: true, live: true, joined: true, merged: true, lattice_live: true, outlets_live: 30 };
+    if (b.op === "news_pin") return { ok: true, item: { item_id: "n-1" }, pins: [{ pin_id: "pin-2" }, { pin_id: "pin-3" }], pull_receipt_seq: 4 };
+    if (b.op === "news_open") return { ok: true, linked: b.payload.pin_id === "pin-2", item: { item_id: "n-1" } };
+    return { ok: true };
+  };
+  env = { AZIEL_RUNTIME: fakeRuntime(store) };
+  out = await handleNewsmap(req("/v1/newsmap"), new URL("https://h.example/v1/newsmap"), env, HOST);
+  assert.equal(calls.at(-1).body.op, "news_open");
+  assert.equal(calls.at(-1).body.payload.dry_run, true);
+  assert.equal(out.body.door_join_check.ok, true);
+  assert.equal(out.body.joined, true);
+  assert.equal(out.body.merged, true);
+  assert.equal(out.body.live, true);
+  assert.equal(out.body.installed, false);
+  // A pin that opens a different item fails the door check.
+  env = { AZIEL_RUNTIME: fakeRuntime((b) => (b.op === "news_open" ? { ok: true, linked: true, item: { item_id: "n-9" } } : store(b))) };
+  out = await handleNewsmap(req("/v1/newsmap"), new URL("https://h.example/v1/newsmap"), env, HOST);
+  assert.equal(out.body.joined, false);
+  assert.equal(out.body.merged, false);
+  assert.match(out.body.join_reason, /different item/);
+}
 
 // AZNews standalone and 4DMap standalone paths.
 env = { AZIEL_RUNTIME: fakeRuntime((b) => ({ ok: true, op: b.op })) };
