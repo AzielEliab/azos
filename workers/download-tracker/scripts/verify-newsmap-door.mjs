@@ -23,8 +23,8 @@ const req = (path, method = "GET", body) =>
   new Request("https://h.example" + path, { method, body: body === undefined ? undefined : typeof body === "string" ? body : JSON.stringify(body), headers: { "content-type": "application/json" } });
 
 // Every op name the Worker exposes maps to a runtime 4dmap op.
-assert.deepEqual(Object.values(NEWSMAP_OPS).map((s) => s.op).sort(), ["lattice_tip", "library_pin", "news_ingest", "news_open", "news_pin", "news_sources", "news_status", "news_weather", "plot"]);
-assert.deepEqual([...new Set(Object.values(NEWSMAP_OPS).map((s) => s.path))].sort(), ["4dmap-standalone", "aznews-standalone", "joined"]);
+assert.deepEqual(Object.values(NEWSMAP_OPS).map((s) => s.op).sort(), ["lattice_tip", "library_pin", "news_feed", "news_globe", "news_ingest", "news_item", "news_open", "news_pin", "news_pin_open", "news_pins", "news_receipts", "news_sky", "news_sources", "news_status", "news_verify", "news_weather", "plot"]);
+assert.deepEqual([...new Set(Object.values(NEWSMAP_OPS).map((s) => s.path))].sort(), ["4dmap-standalone", "aznews-live", "aznews-standalone", "joined"]);
 
 // Joined status: live runtime shape today (source absent) stays refused, not live, not merged.
 let env = { AZIEL_RUNTIME: fakeRuntime(absent) };
@@ -76,6 +76,16 @@ for (const [key, spec] of Object.entries(NEWSMAP_OPS)) {
   out = await handleNewsmap(req("/v1/newsmap/" + key, "POST", {}), new URL("https://h.example/v1/newsmap/" + key), env, HOST);
   assert.equal(calls.at(-1).body.op, spec.op, key);
   assert.equal(out.body.path, spec.path);
+}
+
+// AZNews live store paths (runtime AzNewsStore through the same door).
+for (const [path, op] of [["/v1/newsmap/feed", "news_feed"], ["/v1/newsmap/sky", "news_sky"], ["/v1/newsmap/pins", "news_pins"], ["/v1/newsmap/globe", "news_globe"], ["/v1/newsmap/verify", "news_verify"], ["/v1/newsmap/receipts", "news_receipts"]]) {
+  out = await handleNewsmap(req(path + "?limit=500"), new URL("https://h.example" + path + "?limit=500"), env, HOST);
+  assert.equal(calls.at(-1).body.op, op, path);
+  assert.equal(calls.at(-1).body.payload.limit, 200, "limit is capped");
+  assert.equal(out.body.path, "aznews-live");
+  assert.match(out.body.globe_url, /\/aznews$/);
+  assert.equal(out.body.installed, false);
 }
 
 // Refusals made here.
