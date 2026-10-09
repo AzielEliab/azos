@@ -138,7 +138,7 @@ console.log("ok news copy: refusals, genesis start, ingest, standalone reads");
 registerLocalCopy(async (_env, op, payload) => copyRead(repo, op, payload));
 const req = (path, method = "GET", body) => new Request("https://h.example" + path, { method, body: body === undefined ? undefined : JSON.stringify(body), headers: { "content-type": "application/json" } });
 const down = { AZIEL_RUNTIME: { fetch: async () => { throw new Error("runtime unreachable"); } } };
-for (const [path, key] of [["/v1/aznews", "sources"], ["/v1/map", "plot"], ["/v1/newsmap", "status"], ["/v1/newsmap/feed", "feed"], ["/v1/newsmap/pins", "pins"], ["/v1/newsmap/globe", "globe"], ["/v1/newsmap/sky", "sky"]]) {
+for (const [path, key] of [["/v1/aznews", "sources"], ["/v1/newsmap", "status"], ["/v1/newsmap/feed", "feed"], ["/v1/newsmap/pins", "pins"], ["/v1/newsmap/globe", "globe"], ["/v1/newsmap/sky", "sky"]]) {
   const o = await handleNewsmap(req(path), new URL("https://h.example" + path), down, "azos");
   assert.equal(o.body.standalone, true, path);
   assert.equal(o.body.source, "azos-local-copy", path);

@@ -9,7 +9,7 @@
  * /v1/mesh/* PROXY to aziel-runtime via AZIEL_RUNTIME (handled in index.js before this catch-all).
  */
 import { meshOpenApiPaths, meshPointer } from "./mesh.js";
-import { aznewsStatus, joinStatus, mapStatus } from "./newsmap.js";
+import { joinStatus } from "./newsmap.js";
 import { receiveTether, tetherState } from "./tether.js";
 import { handleNewsmap } from "./newsmap-door.js";
 function runtimeCors() {
@@ -812,7 +812,7 @@ function openapiDoc() {
         get: {
           operationId: "azosNewsMap",
           summary: "Joined AZNews and 4DMap status, read from the runtime AzNewsStore through FragGate (news_status). When the runtime claims a flag, this Worker runs its own round trip (NEWSMAP-DOOR-JOIN-1.0: news_pin -> news_open -> same item, dry_run). live/joined/merged are that local result; runtime_claims shows the runtime's own. 4DMap is not installed here. No store copy.",
-          responses: { "200": { description: "Join status with door_join_check, runtime_claims, and azos_local (same flags as top level)." } },
+          responses: { "200": { description: "Join status with door_join_check, runtime_claims, and door_check (the pass-through door's own round-trip flags; not the local copy)." } },
         },
       },
       "/v1/newsmap/{op}": {
@@ -920,29 +920,29 @@ export async function handleRuntime(request, url, env) {
     return runtimeJson(scopeMeta({ ok: true, product: PRODUCT, version: VERSION }));
   }
   if (path === "/v1/newsmap" || path === "/v1/aznews" || path === "/v1/map" || path.startsWith("/v1/newsmap/")) {
-    // Joined, AZNews-standalone, and 4DMap-standalone paths read the runtime 4DMap
-    // engine through FragGate. azos_local keeps this Worker's own static refusal.
+    // /v1/map is 4DMap on its own, from this Worker's own verified 4DMap copy (newsmap-door handleMap).
+    // The other paths read the runtime store through FragGate, or this Worker's own AZNews copy
+    // when the runtime is unreachable or ?source=local is asked.
     const nm = await handleNewsmap(request, url, env, "azos");
     if (nm) {
-      // azos_local is this Worker's own reading: it keeps no store, reads the runtime
-      // store through FragGate, and its flags are the door's own round-trip result
-      // (never the runtime's claim). python_probe is the offline azos.news_source probe.
-      const local = path === "/v1/newsmap"
-        ? {
-            scope: "this AZ-OS Worker",
-            store_copy: false,
-            reads_runtime_store: true,
-            live: nm.body.live === true,
-            joined: nm.body.joined === true,
-            merged: nm.body.merged === true,
-            lattice_live: nm.body.lattice_live === true,
-            installed: false,
-            engine_installed: false,
-            door_join_check: nm.body.door_join_check || null,
-            python_probe: { ...joinStatus(null), note: "The offline Python azos.news_source has no standing feed; it is not this Worker's flag." },
-          }
-        : path === "/v1/aznews" ? aznewsStatus() : path === "/v1/map" ? mapStatus() : null;
-      return runtimeJson(scopeMeta({ ...nm.body, azos_local: local }), nm.status);
+      if (path === "/v1/map") return runtimeJson(scopeMeta(nm.body), nm.status);
+      // door_check is the pass-through door's own round-trip reading (formerly azos_local).
+      // It is NOT the local copy: the copy's own flags are standalone / copy / copy_verify.
+      const fromCopy = nm.body.store_copy === true;
+      const door_check = {
+        scope: "this AZ-OS Worker's pass-through door (not the local copy)",
+        served_from: fromCopy ? "azos-local-copy" : "runtime",
+        door_round_trip: fromCopy ? "not run: the runtime was not used" : "run on this request when the runtime claimed a flag",
+        live: nm.body.live === true,
+        joined: nm.body.joined === true,
+        merged: nm.body.merged === true,
+        lattice_live: nm.body.lattice_live === true,
+        installed: false,
+        engine_installed: false,
+        door_join_check: nm.body.door_join_check || null,
+        ...(path === "/v1/newsmap" ? { python_probe: { ...joinStatus(null), note: "The offline Python azos.news_source has no standing feed; azos.news_copy serves the CLI copy. Not this Worker's flag." } } : {}),
+      };
+      return runtimeJson(scopeMeta({ ...nm.body, door_check }), nm.status);
     }
   }
   if (path === "/v1/tether" && request.method === "GET") {

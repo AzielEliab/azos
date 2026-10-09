@@ -1,5 +1,11 @@
 /**
- * AZ-OS standalone AZNews copy (AZRT-AZOS-NEWS-1.0, AZOS-NEWS-COPY-1.0).
+ * Local verified copies (AZRT-AZOS-NEWS-1.0 + AZRT-MAP-COPY-1.0, AZOS-NEWS-COPY-1.0).
+ * One file, used as-is by AZ-OS and by AZInterface (env.COPY_HOST names the host).
+ * Two chains, each in its own Durable Object instance (SQLite) of the same class:
+ *   aznews  the AZNews store (items, news pins, receipts, weather, sky)  POST /v1/tether/aznews
+ *   4dmap   the 4DMap pin store (corpus + reference layers, no AZNews)   POST /v1/tether/4dmap
+ * Same checks for both: pinned Ed25519 key, every document hash, both lattice links
+ * from genesis. /v1/map serves the 4dmap copy on its own; ?layers=news adds the news pins.
  *
  * aziel-runtime's AzNewsStore SENDS its ledger rows (news items, 4DMap pins, pull
  * and view receipts, weather, sky), in order from genesis, signed with the runtime
@@ -9,7 +15,7 @@
  * contact), and that the packet tips are the last row. Only then are the rows kept.
  * No KV and no D1 writes.
  *
- * Reads: when the runtime is unreachable (or ?source=local), /v1/aznews, /v1/map and
+ * Reads: when the runtime is unreachable (or ?source=local), /v1/aznews and
  * /v1/newsmap/* serve from this copy. Each read re-verifies the served window against
  * the stored signed tips. standalone is true only when the answer came from this copy
  * AND that check passed. Reads from the copy mint no receipts (the copy is read-only).
@@ -20,8 +26,24 @@ import { GENESIS, canonicalize, sha256Hex, primaryOf, offlineSecondaryOf, online
 
 export const NEWS_TETHER_SPEC = "AZRT-AZOS-NEWS-1.0";
 export const NEWS_TETHER_KIND = "aznews-rows";
+export const MAP_TETHER_SPEC = "AZRT-MAP-COPY-1.0";
+export const MAP_TETHER_KIND = "map-rows";
 export const COPY_SPEC = "AZOS-NEWS-COPY-1.0";
 export const COPY_DO_NAME = "azos-news-copy-v1";
+export const MAP_COPY_DO_NAME = "azos-4dmap-copy-v1";
+/** Each chain: packet spec/kind, its own object name, its own routes. */
+export const CHAINS = Object.freeze({
+  aznews: { chain: "aznews", spec: NEWS_TETHER_SPEC, kind: NEWS_TETHER_KIND, do_name: COPY_DO_NAME, route: "/v1/tether/aznews", export_route: "/v1/aznews/copy" },
+  "4dmap": { chain: "4dmap", spec: MAP_TETHER_SPEC, kind: MAP_TETHER_KIND, do_name: MAP_COPY_DO_NAME, route: "/v1/tether/4dmap", export_route: "/v1/4dmap/copy" },
+});
+const HOST_LABEL = Object.freeze({ azos: "AZ-OS", azinterface: "AZInterface" });
+export function hostOf(env) {
+  const h = String((env && env.COPY_HOST) || "azos");
+  return HOST_LABEL[h] ? h : "azos";
+}
+export function hostLabel(env) {
+  return HOST_LABEL[hostOf(env)];
+}
 export const MAX_PACKET_BYTES = 2_000_000;
 export const MAX_PACKET_ROWS = 400;
 export const DOC_KEEP = 6000;
@@ -68,9 +90,11 @@ export async function checkRow(row, expected, { docHash = true } = {}) {
 }
 
 /** Pure packet check. state = { tip_seq, tips } or null. hasOffline(secondary) -> bool. */
-export async function checkNewsPacket(packet, { pinned, state, hasOffline }) {
+export async function checkNewsPacket(packet, { pinned, state, hasOffline, chain = "aznews" }) {
+  const cc = CHAINS[chain];
   if (!packet || typeof packet !== "object" || Array.isArray(packet)) return refuse("NEWS-COPY-SHAPE", "The body must be one JSON object.");
-  if (packet.spec !== NEWS_TETHER_SPEC || packet.kind !== NEWS_TETHER_KIND || packet.chain !== "aznews") return refuse("NEWS-COPY-SPEC", "Unknown spec, kind, or chain.");
+  if (!cc || packet.spec !== cc.spec || packet.kind !== cc.kind || packet.chain !== cc.chain) return refuse("NEWS-COPY-SPEC", "Unknown spec, kind, or chain for this copy (" + chain + ").");
+  if (state && state.tip_seq && (state.chain || "aznews") !== chain) return refuse("NEWS-COPY-CHAIN", "This copy holds chain " + (state.chain || "aznews") + ".", 409);
   if (!pinned) return refuse("NEWS-COPY-KEY-UNPINNED", "No pinned runtime public key, so nothing can be verified or stored.", 503);
   if (packet.public_key !== pinned) return refuse("NEWS-COPY-KEY-MISMATCH", "The packet key is not the pinned runtime key.", 403);
   if (!(await verifySignature(pinned, packet))) return refuse("NEWS-COPY-SIG", "The Ed25519 signature does not verify against the pinned runtime key.", 403);
@@ -108,7 +132,7 @@ function rowRecord(row) {
     seq: Number(row.seq),
     kind: row.kind,
     at: row.at || null,
-    item_id: row.kind === "news" ? d.item_id || null : null,
+    item_id: row.kind === "news" ? d.item_id || null : row.kind === "map_pin" ? d.source_id || null : null,
     doc: row.doc == null ? null : row.doc,
     lattice: row.lattice,
   };
@@ -178,12 +202,13 @@ export function sqlCopyRepo(storage) {
 
 /* ---------------------------------------------------------------- ingest */
 
-export async function copyIngest(repo, packet, { pinned, now = new Date().toISOString() } = {}) {
+export async function copyIngest(repo, packet, { pinned, now = new Date().toISOString(), chain = "aznews" } = {}) {
   const state = await repo.meta();
-  const checked = await checkNewsPacket(packet, { pinned, state, hasOffline: (s) => repo.hasOffline(s) });
+  const checked = await checkNewsPacket(packet, { pinned, state, hasOffline: (s) => repo.hasOffline(s), chain });
   if (!checked.ok) return checked;
   const next = {
     spec: COPY_SPEC,
+    chain,
     from_genesis: true,
     tip_seq: checked.tips.seq,
     tips: { primary: checked.tips.primary, secondary: checked.tips.secondary },
@@ -207,6 +232,8 @@ export async function copyState(repo, env) {
   return {
     ok: true,
     ...COPY_FACTS,
+    host: hostOf(env),
+    chain: st ? st.chain || "aznews" : null,
     pinned_public_key: pinnedKey(env),
     tip_seq: st ? st.tip_seq : 0,
     tips: st ? st.tips : null,
@@ -264,6 +291,16 @@ function pinView(r) {
   };
 }
 
+function mapPinView(r) {
+  const d = r.doc || {};
+  return {
+    pin_id: "map-" + r.seq, seq: r.seq, added_at: r.at, layer: d.layer, pin_type: d.pin_type, color: d.color, color_hex: d.color_hex,
+    event: d.event, date: d.date, geo: d.geo, source: d.source, source_id: d.source_id, supersedes_seq: d.supersedes_seq || null,
+    permalink: "/newsmap?mode=map&pin=map-" + r.seq,
+    lattice: { primary: r.lattice.primary, secondary: r.lattice.secondary, document_hash: r.lattice.document_hash },
+  };
+}
+
 function colorKey(pins) {
   const key = {};
   for (const p of pins) if (p.pin_type && !key[p.pin_type]) key[p.pin_type] = { color: p.color, hex: p.color_hex };
@@ -294,16 +331,33 @@ async function localJoin(repo, minSeq, tipSeq) {
 }
 
 /** Serve one read from the copy. Returns the body (with standalone and the verify evidence). */
-export async function copyRead(repo, op, payload = {}) {
+export async function copyRead(repo, op, payload = {}, { host = "azos" } = {}) {
   const st = await repo.meta();
-  const base = { ...COPY_FACTS, source: "azos-local-copy", standalone: false, standalone_rule: COPY_RULE, live: false, live_reason: "Served from AZ-OS's copy, not the live runtime feed." };
-  if (!st || !st.tip_seq) return { ok: false, code: "NEWS-COPY-EMPTY", message: "AZ-OS has no verified copy yet.", ...base };
+  const label = HOST_LABEL[host] || "AZ-OS";
+  const chain = st ? st.chain || "aznews" : null;
+  const base = { ...COPY_FACTS, host, chain, source: host + "-local-copy", standalone: false, standalone_rule: COPY_RULE.replace(/AZ-OS/g, label), live: false, live_reason: "Served from " + label + "'s copy, not the live runtime feed." };
+  if (!st || !st.tip_seq) return { ok: false, code: "NEWS-COPY-EMPTY", message: label + " has no verified copy of this chain yet.", ...base };
   const minSeq = Math.max(1, st.tip_seq - READ_WINDOW + 1);
   const lim = (n, d, max) => Math.max(1, Math.min(max, Number(n) || d));
   let body;
   let from = st.tip_seq;
   const low = (rows) => { for (const r of rows) if (r && r.seq < from) from = r.seq; };
-  if (op === "feed") {
+  if (op === "map") {
+    if (chain !== "4dmap") return { ok: false, code: "NEWS-COPY-WRONG-CHAIN", message: "op map reads the 4dmap copy.", ...base };
+    const rows = await repo.newest("map_pin", READ_WINDOW, minSeq);
+    low(rows);
+    const latest = new Map();
+    for (const r of rows) if (r.doc && r.doc.source_id && !latest.has(r.doc.source_id)) latest.set(r.doc.source_id, r);
+    const want = String(payload.layers || "").split(",").map((x) => x.trim()).filter(Boolean);
+    const counts = {};
+    let pins = [];
+    for (const r of latest.values()) {
+      counts[r.doc.layer] = (counts[r.doc.layer] || 0) + 1;
+      if (!want.length || want.includes(r.doc.layer)) pins.push(mapPinView(r));
+    }
+    pins = pins.slice(0, lim(payload.limit, 2000, 2000));
+    body = { ok: true, op, pins, last10: pins.filter((p) => p.layer !== "reference").slice(0, 10), colors: colorKey(pins), layer_counts: counts, needs_aznews: false };
+  } else if (op === "feed") {
     const rows = await repo.newest("news", lim(payload.limit, 20, 50), minSeq); low(rows);
     body = { ok: true, op, items: rows.map(newsView) };
   } else if (op === "pins" || op === "plot") {
@@ -351,12 +405,16 @@ export async function copyRead(repo, op, payload = {}) {
     return { ok: false, code: "NEWS-COPY-UNKNOWN-OP", ...base };
   }
   const check = await verifyWindow(repo, st, from);
+  const copyInfo = { chain, tip_seq: st.tip_seq, tips: st.tips, rows: st.rows, from_genesis: Boolean(st.from_genesis), updated_at: st.updated_at, runtime_store_tip: st.runtime_store_tip, lag_rows_at_sync: st.runtime_store_tip ? Math.max(0, st.runtime_store_tip.seq - st.tip_seq) : null, public_key: st.public_key };
+  if (chain === "4dmap") {
+    return { ...base, ...body, standalone: check.ok === true && Boolean(st.from_genesis), copy: copyInfo, copy_verify: check, joined: false, merged: false, joined_reason: "The 4DMap copy holds map pins only; the AZNews join is reported by the aznews copy." };
+  }
   const join = await localJoin(repo, minSeq, st.tip_seq);
   return {
     ...base,
     ...body,
     standalone: check.ok === true && Boolean(st.from_genesis),
-    copy: { tip_seq: st.tip_seq, tips: st.tips, rows: st.rows, from_genesis: Boolean(st.from_genesis), updated_at: st.updated_at, runtime_store_tip: st.runtime_store_tip, lag_rows_at_sync: st.runtime_store_tip ? Math.max(0, st.runtime_store_tip.seq - st.tip_seq) : null, public_key: st.public_key },
+    copy: copyInfo,
     copy_verify: check,
     joined: check.ok === true && join.joined === true,
     merged: false,
@@ -385,7 +443,8 @@ export class AzosNewsCopy {
     try { body = await request.json(); } catch { body = {}; }
     const run = this.queue.then(async () => {
       const repo = this.repoOf();
-      if (body.op === "ingest") return copyIngest(repo, body.packet, { pinned: pinnedKey(this.env) });
+      const chain = CHAINS[body.chain] ? body.chain : "aznews";
+      if (body.op === "ingest") return copyIngest(repo, body.packet, { pinned: pinnedKey(this.env), chain });
       if (body.op === "state") return { status: 200, body: await copyState(repo, this.env) };
       if (body.op === "export") {
         const st = await repo.meta();
@@ -394,7 +453,7 @@ export class AzosNewsCopy {
         const rows = st && st.tip_seq > after ? await repo.range(after + 1, Math.min(st.tip_seq, after + n)) : [];
         return { status: 200, body: { ok: true, ...COPY_FACTS, tip_seq: st ? st.tip_seq : 0, tips: st ? st.tips : null, from_genesis: Boolean(st && st.from_genesis), after, rows: rows.map((r) => ({ seq: r.seq, kind: r.kind, at: r.at, doc: r.doc, lattice: r.lattice })) } };
       }
-      return { status: 200, body: await copyRead(repo, String(body.op || ""), body.payload || {}) };
+      return { status: 200, body: await copyRead(repo, String(body.op || ""), body.payload || {}, { host: hostOf(this.env) }) };
     });
     this.queue = run.catch(() => null);
     try {
@@ -406,18 +465,24 @@ export class AzosNewsCopy {
   }
 }
 
-function stubOf(env) {
-  const ns = env && env.AZOS_NEWS_COPY;
+/** AZInterface binds the same class as LOCAL_NEWS_COPY; AZ-OS keeps AZOS_NEWS_COPY. */
+export class LocalNewsCopy extends AzosNewsCopy {}
+
+function stubOf(env, chain = "aznews") {
+  const ns = env && (env.LOCAL_NEWS_COPY || env.AZOS_NEWS_COPY);
+  const name = (CHAINS[chain] || CHAINS.aznews).do_name;
   if (!ns) return null;
-  if (typeof ns.getByName === "function") return ns.getByName(COPY_DO_NAME);
-  if (typeof ns.idFromName === "function") return ns.get(ns.idFromName(COPY_DO_NAME));
+  if (typeof ns.getByName === "function") return ns.getByName(name);
+  if (typeof ns.idFromName === "function") return ns.get(ns.idFromName(name));
   return null;
 }
 
-/** Call the copy object. Never throws. Returns { status, body }. */
+/** Call a copy object (msg.chain picks it; default aznews). Never throws. Returns { status, body }. */
 export async function newsCopyCall(env, msg) {
-  const stub = stubOf(env);
-  if (!stub) return { status: 503, body: { ok: false, code: "NEWS-COPY-UNBOUND", message: "This Worker has no AZOS_NEWS_COPY Durable Object binding.", ...COPY_FACTS } };
+  const chain = CHAINS[msg && msg.chain] ? msg.chain : "aznews";
+  msg = { ...msg, chain };
+  const stub = stubOf(env, chain);
+  if (!stub) return { status: 503, body: { ok: false, code: "NEWS-COPY-UNBOUND", message: "This Worker has no local copy Durable Object binding.", ...COPY_FACTS } };
   try {
     const res = await stub.fetch(new Request("https://azos-news-copy.internal/", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(msg) }));
     let body = null;
@@ -428,19 +493,69 @@ export async function newsCopyCall(env, msg) {
   }
 }
 
-/** Routes: GET/POST /v1/tether/aznews, GET /v1/aznews/copy (export for the local CLI). Returns null otherwise. */
+/** Routes per chain: GET/POST /v1/tether/{aznews,4dmap}, GET /v1/{aznews,4dmap}/copy (export). Returns null otherwise. */
 export async function handleNewsCopyRoute(request, url, env) {
   const path = url.pathname.replace(/\/+$/, "");
-  if (path === "/v1/tether/aznews" && request.method === "GET") return newsCopyCall(env, { op: "state" });
-  if (path === "/v1/tether/aznews" && request.method === "POST") {
-    const text = await request.text();
-    if (text.length > MAX_PACKET_BYTES) return refuse("NEWS-COPY-SIZE", "The packet is too large.", 413);
-    let packet;
-    try { packet = JSON.parse(text); } catch { return refuse("NEWS-COPY-JSON", "The body is not JSON."); }
-    return newsCopyCall(env, { op: "ingest", packet });
-  }
-  if (path === "/v1/aznews/copy" && request.method === "GET") {
-    return newsCopyCall(env, { op: "export", after: url.searchParams.get("after"), limit: url.searchParams.get("limit") });
+  for (const cc of Object.values(CHAINS)) {
+    if (path === cc.route && request.method === "GET") return newsCopyCall(env, { op: "state", chain: cc.chain });
+    if (path === cc.route && request.method === "POST") {
+      const text = await request.text();
+      if (text.length > MAX_PACKET_BYTES) return refuse("NEWS-COPY-SIZE", "The packet is too large.", 413);
+      let packet;
+      try { packet = JSON.parse(text); } catch { return refuse("NEWS-COPY-JSON", "The body is not JSON."); }
+      return newsCopyCall(env, { op: "ingest", packet, chain: cc.chain });
+    }
+    if (path === cc.export_route && request.method === "GET") {
+      return newsCopyCall(env, { op: "export", chain: cc.chain, after: url.searchParams.get("after"), limit: url.searchParams.get("limit") });
+    }
   }
   return null;
+}
+
+/** The standalone 4DMap read: map pins from the 4dmap copy; ?layers=news adds the news copy's pins. */
+export const MAP_LAYERS = Object.freeze(["corpus", "reference", "news"]);
+export async function localMapRead(env, payload = {}) {
+  const asked = String(payload.layers || "").split(",").map((x) => x.trim()).filter((x) => MAP_LAYERS.includes(x));
+  const layers = asked.length ? asked : ["corpus", "reference"];
+  const mapLayers = layers.filter((l) => l !== "news");
+  const host = hostOf(env);
+  const m = mapLayers.length ? (await newsCopyCall(env, { op: "map", chain: "4dmap", payload: { layers: mapLayers.join(","), limit: payload.limit } })).body : null;
+  const n = layers.includes("news") ? (await newsCopyCall(env, { op: "pins", chain: "aznews", payload: { limit: 200 } })).body : null;
+  // A layer whose copy did not re-verify is not served (its pins could be edited); it is reported instead.
+  const failed = (b) => (b && b.ok !== false && b.standalone !== true ? { ok: false, code: "NEWS-COPY-VERIFY-FAILED", reason: (b.copy_verify && b.copy_verify.reason) || "copy check failed" } : b);
+  const mv = failed(m);
+  const nv = failed(n);
+  const mapOk = mv ? mv.ok !== false : true;
+  const newsOk = nv ? nv.ok !== false : true;
+  if ((m && !mapOk) || (!m && n && !newsOk)) {
+    // The 4DMap layers are the point of /v1/map: if they cannot be served from a verified copy, the door falls back to the runtime.
+    return { ok: false, code: (mv && mv.code) || (nv && nv.code) || "NEWS-COPY-EMPTY", reason: (mv && mv.reason) || (nv && nv.reason) || null, host, source: host + "-local-copy", standalone: false };
+  }
+  const pins = [...(m && mapOk ? m.pins : []), ...(n && newsOk ? n.pins.map((p) => ({ ...p, layer: "news" })) : [])];
+  // Every layer actually served re-verified (failed layers were not served), so the answer is standalone.
+  const standalone = (m ? mapOk : true) && (n && newsOk ? true : Boolean(m && mapOk));
+  return {
+    ok: true,
+    op: "map",
+    ...COPY_FACTS,
+    host,
+    source: host + "-local-copy",
+    layers,
+    needs_aznews: false,
+    pins,
+    last10: pins.filter((p) => p.layer !== "reference").sort((a, b) => String(b.added_at || "").localeCompare(String(a.added_at || ""))).slice(0, 10),
+    colors: { ...((m && m.colors) || {}), ...((n && n.colors) || {}) },
+    layer_report: {
+      corpus: m && mapOk ? { count: (m.layer_counts && m.layer_counts.corpus) || 0 } : m ? { ok: false, code: m.code } : "not asked",
+      reference: m && mapOk ? { count: (m.layer_counts && m.layer_counts.reference) || 0 } : m ? { ok: false, code: m.code } : "not asked",
+      news: n ? (newsOk ? { count: n.pins.length, standalone: n.standalone === true, joined: n.joined === true } : { ok: false, code: nv.code, reason: nv.reason || null, note: "Not served. The 4DMap layers are served without it." }) : "not asked (add ?layers=news)",
+    },
+    standalone,
+    standalone_rule: "standalone is true only when every layer served came from this host's own copies and each re-verified against its signed tip. " + COPY_RULE.replace(/AZ-OS/g, HOST_LABEL[host]),
+    live: false,
+    joined: false,
+    merged: false,
+    map_copy: m ? { copy: m.copy, copy_verify: m.copy_verify } : null,
+    news_copy: n ? (newsOk ? { copy: n.copy, copy_verify: n.copy_verify, standalone: n.standalone === true } : { ok: false, code: nv.code }) : null,
+  };
 }

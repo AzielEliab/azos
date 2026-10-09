@@ -6,8 +6,10 @@
  *                     POST /v1/newsmap/open   → news_open  (a pin opens the matching news)
  *   AZNews standalone GET /v1/aznews          → news_sources
  *                     POST /v1/newsmap/ingest → news_ingest (stores a story with no pin)
- *   4DMap standalone  GET /v1/map             → plot
- *                     POST /v1/newsmap/library_pin, /lattice_tip
+ *   4DMap standalone  GET /v1/map             → this host's own verified 4DMap copy (corpus +
+ *                                               reference layers, no AZNews); ?layers=news adds the
+ *                                               news pins; ?source=runtime reads GET /v1/4dmap/pins
+ *                     POST /v1/newsmap/plot, /library_pin, /lattice_tip (runtime card lattice)
  *   AZNews live store GET /v1/newsmap/feed, /sky, /pins, /globe, /verify, /receipts
  *                     POST /v1/newsmap/pin_open {pin_id}, /item {item_id}
  *                     (runtime AzNewsStore: real RSS headlines, Open-Meteo weather,
@@ -219,7 +221,7 @@ const READ_PATHS = new Set(["joined", "aznews-live"]);
 const READ_ONLY_OPS = new Set(["news_status", "news_sources", "news_weather", "plot", "lattice_tip"]);
 
 let localCopyReader = null;
-/** AZ-OS registers its own verified copy reader here (azinterface does not). */
+/** AZ-OS and AZInterface each register their own verified copy reader here (ops as COPY_OPS, plus "map"). */
 export function registerLocalCopy(fn) {
   localCopyReader = typeof fn === "function" ? fn : null;
 }
@@ -241,7 +243,7 @@ async function fromCopy(env, host, key, payload, why) {
     host,
     path: NEWSMAP_OPS[key].path,
     op: NEWSMAP_OPS[key].op,
-    door: "AZ-OS own verified copy (AZOS-NEWS-COPY-1.0), synced from the runtime by the signed tether",
+    door: (host === "azinterface" ? "AZInterface" : "AZ-OS") + " own verified copy (AZOS-NEWS-COPY-1.0), synced from the runtime by the signed tether",
     served_because: why,
     store_copy: true,
     second_door: false,
@@ -259,14 +261,67 @@ async function fromCopy(env, host, key, payload, why) {
     author: "Aziel Eliab",
   };
   view.plain = view.standalone
-    ? "The runtime was not used (" + why + "). This answer comes from AZ-OS's own copy of the AZNews store, re-checked just now against the signed tether tip " + (b.copy && b.copy.tip_seq) + ". It is a copy, so live is false."
+    ? "The runtime was not used (" + why + "). This answer comes from " + (host === "azinterface" ? "AZInterface" : "AZ-OS") + "'s own copy of the AZNews store, re-checked just now against the signed tether tip " + (b.copy && b.copy.tip_seq) + ". It is a copy, so live is false."
     : "The runtime was not used (" + why + ") and AZ-OS's own copy did not verify (" + ((b.copy_verify && b.copy_verify.reason) || b.code || "no copy") + "), so standalone is false.";
   return assertNewsmapHonest(view);
+}
+
+export const MAP_RULE =
+  "GET /v1/map is 4DMap on its own: map pins (corpus layer from the Aziel Corpus map, reference layer from the GeoNames gazetteer in the runtime 4dmap engine) " +
+  "from this host's own copy of the runtime 4DMap store (signed AZRT-MAP-COPY-1.0, checked from genesis). It needs no AZNews. ?layers=news adds the AZNews pins " +
+  "(from the local AZNews copy). ?source=runtime reads the runtime store instead. A local copy that is empty or fails its check falls back to the runtime. Reads mint nothing.";
+
+async function runtimeMapPins(env, layers) {
+  const url = runtimeOrigin(env) + "/v1/4dmap/pins?layers=" + encodeURIComponent(layers.filter((l) => l !== "news").join(","));
+  const init = { headers: { accept: "application/json", "user-agent": "Mozilla/5.0 (newsmap-door)" } };
+  const binding = env && env.AZIEL_RUNTIME && typeof env.AZIEL_RUNTIME.fetch === "function" ? env.AZIEL_RUNTIME : null;
+  const res = binding ? await binding.fetch(new Request(url, init)) : await fetch(url, init);
+  let body = null;
+  try { body = await res.json(); } catch { body = null; }
+  return { status: res.status, body };
+}
+
+/** GET /v1/map: standalone 4DMap. */
+async function handleMap(url, env, host) {
+  const q = url.searchParams;
+  const asked = String(q.get("layers") || q.get("layer") || "").split(",").map((x) => x.trim()).filter((x) => ["corpus", "reference", "news"].includes(x));
+  const layers = asked.length ? asked : ["corpus", "reference"];
+  const lim = Number(q.get("limit"));
+  const payload = { layers: layers.join(","), ...(Number.isFinite(lim) && lim > 0 ? { limit: Math.min(2000, Math.floor(lim)) } : {}) };
+  const common = { host, map_rule: MAP_RULE, look: "not a look: map reads mint nothing", receipts_minted: 0, live: false, merged: false, installed: false, engine_installed: false, second_door: false, second_map: false, author: "Aziel Eliab" };
+  let miss = null;
+  if (q.get("source") !== "runtime" && localCopyReader) {
+    let c = null;
+    try { c = await localCopyReader(env, "map", payload); } catch (err) { c = { ok: false, code: "NEWS-COPY-UNAVAILABLE", message: String((err && err.message) || err).slice(0, 120) }; }
+    if (c && c.ok !== false) {
+      return { status: 200, body: { ...c, ...common, joined: false, standalone: c.standalone === true, served_because: q.get("source") === "local" ? "source=local was asked" : "4DMap is served from this host's own copy by default" } };
+    }
+    miss = { code: (c && c.code) || "NEWS-COPY-UNAVAILABLE", standalone: false };
+    if (q.get("source") === "local") return { status: 200, body: { ok: false, refused: true, code: miss.code, ...common, joined: false, standalone: false, plain: "source=local was asked and this host's own 4DMap copy did not answer with verified pins." } };
+  } else if (q.get("source") === "local") {
+    return { status: 200, body: { ok: false, refused: true, code: "NEWSMAP-NO-LOCAL-COPY", ...common, joined: false, standalone: false } };
+  }
+  let rt = null;
+  try { rt = await runtimeMapPins(env, layers); } catch { rt = null; }
+  if (!rt || !rt.body || rt.body.ok === false || Number(rt.status) >= 500) {
+    return { status: 503, body: { ok: false, refused: true, code: "NEWSMAP-MAP-UNAVAILABLE", ...common, joined: false, standalone: false, local_copy: miss, runtime_status: rt ? rt.status : null, plain: "Neither this host's own 4DMap copy nor the runtime 4DMap store answered." } };
+  }
+  const body = { ...rt.body, ...common, source: "runtime", joined: false, standalone: false, standalone_reason: "Served by the runtime 4DMap store, not from a local copy.", local_copy: miss };
+  if (layers.includes("news")) {
+    let n = null;
+    try { n = await callRuntime(env, "news_pins", { limit: 200, dry_run: true }); } catch { n = null; }
+    const r = n && n.body && (n.body.result || n.body);
+    const np = r && Array.isArray(r.pins) ? r.pins.map((p) => ({ ...p, layer: "news" })) : [];
+    body.pins = [...(body.pins || []), ...np];
+    body.layer_report = { ...(body.layers || {}), news: { count: np.length } };
+  }
+  return { status: 200, body };
 }
 
 /** Route one request. Returns { status, body } or null when the path is not a newsmap path. */
 export async function handleNewsmap(request, url, env, host) {
   const path = url.pathname.replace(/\/+$/, "") || "/";
+  if ((request.method === "GET" || request.method === "HEAD") && path === "/v1/map") return handleMap(url, env, host);
   let key = null;
   let payload = {};
   let look = false;
@@ -313,7 +368,7 @@ export async function handleNewsmap(request, url, env, host) {
     else delete payload.via;
   }
   if (wantLocal) {
-    if (!localCopyReader || !COPY_OPS[key]) return { status: 200, body: { ok: false, refused: true, code: "NEWSMAP-NO-LOCAL-COPY", host, standalone: false, live: false, joined: false, merged: false, installed: false, plain: "This host keeps no local copy of the AZNews store, so it cannot serve standalone." } };
+    if (!localCopyReader || !COPY_OPS[key]) return { status: 200, body: { ok: false, refused: true, code: "NEWSMAP-NO-LOCAL-COPY", host, standalone: false, live: false, joined: false, merged: false, installed: false, plain: "This host has no local copy for this op, so it cannot serve it standalone." } };
     return { status: 200, body: await fromCopy(env, host, key, payload, "source=local was asked") };
   }
   let runtime = null;
