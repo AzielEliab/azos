@@ -320,7 +320,8 @@ export function renderHomepage(stats) {
       <p class="banner">THIS IS: prefab AZ-OS — ethics-coded remote shell with catalog software hooked in. Windows-style desktop locally; the sigil / brand mark (rose-star, no words) replaces a vendor logo. TemporalLock × StaticClock integrity lattice. Author Aziel Eliab only.</p>
       <p class="banner">THIS IS NOT: a kernel, bootloader, hypervisor, replacement OS, VPN, worm, malware, unrestricted host bash, or SSH. Halt stops overlay authority. It does not kill the caller OS.</p>
       <p class="banner limit">THIS WORKER is the public homepage + counted download + read-only hosted ops (status, invite, health, skill, prefab, lattice snapshot). Session, exec, and lattice bind persist in product-Worker KV and need full AZ-OS (<code>azos ui</code> / <code>azos shell</code>). The HTTP proxy is not the full OS.</p>
-      <p class="banner" id="news-map">AZNews and 4DMap are listed. They are not joined and not live. No fetched news item has landed as a map pin. AZNews can stand alone. 4DMap can stand alone. A news item could become a map pin (date, event, and place), or a pin could open the matching news, only after a real item is fetched. This page does not install 4DMap and does not serve articles. This page does not claim the aziel-runtime side is done. The news source is absent. Nothing here is live or merged.</p>
+      <p class="banner" id="news-map">AZNews and 4DMap: this page has not read the join yet, so live, joined and merged read false here. It reads the aziel-runtime AzNewsStore through the FragGate door and checks the join itself: it opens the newest stored item's pin and confirms that pin leads back to the same item. Only when that round trip passes and the runtime's own join check agrees does this page show joined. AZNews can stand alone. 4DMap can stand alone. This page does not install 4DMap and keeps no copy of the news.</p>
+      <div class="muted" id="news-map-pins" aria-label="Last 10 AZNews pins"></div>
       <p class="muted" id="news-map-runtime">The aziel-runtime 4DMap store runs AZNews on its own: real headlines from official outlet feeds, Open-Meteo weather, the computed sky, and colored pins with the last 10 added and a color key. AZ-OS keeps no copy and installs nothing. Open it through the runtime FragGate door: <a href="https://aziel-runtime.vibelock.workers.dev/aznews">AZNews globe</a> · <a href="/v1/newsmap/globe">/v1/newsmap/globe</a>.</p>
       <p class="banner" id="limits-plain">There is no kernel. The kernel base is absent. This has not booted. This is not installed as an operating system. This is not an operating system yet. The userspace base is present. That is a base, not a boot. An alternative internet is not live (alt_internet_live is false). A packet path is not live (packet_path_live is false). This isolate cannot see host hardware (worker_hardware is false). Still missing: a packet that leaves this machine and arrives on a different machine id. A same-machine mesh frame does not count. Cap-7 and .aziel stay names, not a public registrar and not ICANN or BGP. WireGuard, OpenVPN, an L3 exit pool, kernel UDP, and TUN/TAP stay SLOT. Public mail send, the kernel, and boot stay not live. The public door stays FG-STUB. Isolation is single-node security-awareness. Phoenix is a local wait and re-seal. That is not a loopback fence. Mail is not sent from here. One-click install is not live. This is not a live mesh node. Existing doors stay in place. App shells are not started.</p>
     </div>
@@ -585,7 +586,7 @@ export function renderHomepage(stats) {
         setText("st-kernel", d.kernel === true ? "There is a kernel." : "There is no kernel.");
         setText("st-limits", plainLimits(d));
         var limits = document.getElementById("limits-plain");
-        if (limits) limits.textContent = plainLimits(d) + " AZNews and 4DMap are listed. They are not joined and not live. No fetched news item has landed as a map pin.";
+        if (limits) limits.textContent = plainLimits(d);
         setText("st-note", "This reading is status only. It does not run a command.");
         var verbs = d.shell_verbs || [];
         var box = document.getElementById("st-verbs");
@@ -805,6 +806,49 @@ export function renderHomepage(stats) {
         refreshMesh();
         setInterval(refreshMesh, 30000);
         document.addEventListener("visibilitychange", function () { if (!document.hidden) refreshMesh(); });
+      })();
+      // AZNews x 4DMap: the banner shows this Worker's own door result (never the runtime's raw claim).
+      (async function newsMap() {
+        try {
+          var nm = (await jfetch("/v1/newsmap")).data || {};
+          var c = nm.door_join_check || null;
+          var rc = nm.runtime_claims || {};
+          var line;
+          if (nm.joined === true) {
+            line = "AZNews and 4DMap are joined" + (nm.merged === true ? " and merged" : ", not merged") + (nm.live === true ? ", and live" : ", not live") + ". This page checked it itself just now: the newest stored item (" + (c && c.item_id) + ") has " + (c && c.pins_on_item) + " pin(s); pin " + (c && c.pin_id) + " opens that same item with a matching report hash. Lattice walk verified: " + (nm.lattice_live === true ? "yes" : "no") + ". 4DMap is not installed here and this page keeps no copy.";
+          } else {
+            line = "AZNews and 4DMap are not shown as joined here (live, joined and merged read false). Reason: " + (nm.join_reason || "the door did not answer") + ". The runtime claims joined " + (rc.joined === true) + ", merged " + (rc.merged === true) + "; this page does not relay a claim it has not checked.";
+          }
+          setText("news-map", line);
+          var pr = (await jfetch("/v1/newsmap/pins?limit=10")).data || {};
+          var r = pr.runtime || {};
+          var last = Array.isArray(r.last10) ? r.last10 : (Array.isArray(r.pins) ? r.pins.slice(0, 10) : []);
+          var box = document.getElementById("news-map-pins");
+          if (box && last.length) {
+            box.textContent = "";
+            var h = document.createElement("p");
+            h.textContent = "Last " + last.length + " pins in the runtime store (read through the door):";
+            box.appendChild(h);
+            var ul = document.createElement("ul");
+            last.forEach(function (p) {
+              var li = document.createElement("li");
+              var dot = document.createElement("span");
+              dot.textContent = "\u25CF ";
+              if (p.color && /^#[0-9a-fA-F]{3,8}$/.test(String(p.color))) dot.style.color = p.color;
+              li.appendChild(dot);
+              var a = document.createElement("a");
+              var link = String(p.permalink || "");
+              a.href = link.indexOf("https://") === 0 ? link : "https://aziel-runtime.vibelock.workers.dev/aznews";
+              a.textContent = String(p.event || p.pin_id || "pin").slice(0, 140);
+              li.appendChild(a);
+              var meta = document.createElement("span");
+              meta.textContent = " (" + (p.pin_type || "pin") + (p.date ? ", " + p.date : "") + ")";
+              li.appendChild(meta);
+              ul.appendChild(li);
+            });
+            box.appendChild(ul);
+          }
+        } catch (e) { /* banner keeps its not-read wording: nothing reads live here */ }
       })();
     })();
   </script>

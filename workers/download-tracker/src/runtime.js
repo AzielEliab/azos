@@ -811,18 +811,26 @@ function openapiDoc() {
       "/v1/newsmap": {
         get: {
           operationId: "azosNewsMap",
-          summary: "Joined AZNews and 4DMap status, read from the runtime 4DMap engine through FragGate (news_status). 4DMap is not installed here. No standing feed. Flags pass through.",
-          responses: { "200": { description: "Join status. Source absent until a fetched item is pinned. Not live by default." } },
+          summary: "Joined AZNews and 4DMap status, read from the runtime AzNewsStore through FragGate (news_status). When the runtime claims a flag, this Worker runs its own round trip (NEWSMAP-DOOR-JOIN-1.0: news_pin -> news_open -> same item, dry_run). live/joined/merged are that local result; runtime_claims shows the runtime's own. 4DMap is not installed here. No store copy.",
+          responses: { "200": { description: "Join status with door_join_check, runtime_claims, and azos_local (same flags as top level)." } },
         },
       },
       "/v1/newsmap/{op}": {
         post: {
           operationId: "azosNewsMapOp",
           summary: "Call one AZNews or 4DMap op on the runtime 4DMap engine through FragGate. op: status, pin, open (joined); sources, ingest, weather (AZNews standalone); plot, library_pin, lattice_tip (4DMap standalone). Flags pass through and are never raised here.",
-          parameters: [{ name: "op", in: "path", required: true, schema: { type: "string", enum: ["status", "pin", "open", "sources", "ingest", "weather", "plot", "library_pin", "lattice_tip"] } }],
-          responses: { "200": { description: "Runtime answer with live, merged, joined passed through" }, "404": { description: "Unknown op" } },
+          parameters: [{ name: "op", in: "path", required: true, schema: { type: "string", enum: ["status", "pin", "open", "sources", "ingest", "weather", "plot", "library_pin", "lattice_tip", "feed", "item", "sky", "pins", "pin_open", "globe", "verify", "receipts"] } }],
+          responses: { "200": { description: "Runtime answer; live/joined/merged only after this Worker's own round trip, runtime_claims apart" }, "404": { description: "Unknown op" } },
         },
       },
+      ...Object.fromEntries([
+        ["feed", "news_feed", "Newest stored real headlines from the runtime AzNewsStore."],
+        ["sky", "news_sky", "Computed sky (tropical sign, IAU constellation, moon phase by illumination and trend, seasons, visible constellations)."],
+        ["pins", "news_pins", "Colored 4DMap pins with the last 10 and the color key."],
+        ["globe", "news_globe", "One read for the globe: status, pins, headlines, weather, sky."],
+        ["verify", "news_verify", "Runtime full checkpointed lattice walk (AZNEWS-WALK-1.0) and join check (AZNEWS-JOIN-1.0)."],
+        ["receipts", "news_receipts", "Newest pull and view receipts."],
+      ].map(([k, op, summary]) => ["/v1/newsmap/" + k, { get: { operationId: "azosNewsMap_" + k, summary: summary + " Through FragGate (" + op + "). No store copy here.", parameters: [{ name: "limit", in: "query", required: false, schema: { type: "integer" } }], responses: { "200": { description: "Runtime answer through the door" } } } }])),
       "/v1/aznews": {
         get: {
           operationId: "azosNewsStandalone",
@@ -916,7 +924,24 @@ export async function handleRuntime(request, url, env) {
     // engine through FragGate. azos_local keeps this Worker's own static refusal.
     const nm = await handleNewsmap(request, url, env, "azos");
     if (nm) {
-      const local = path === "/v1/newsmap" ? joinStatus(null) : path === "/v1/aznews" ? aznewsStatus() : path === "/v1/map" ? mapStatus() : null;
+      // azos_local is this Worker's own reading: it keeps no store, reads the runtime
+      // store through FragGate, and its flags are the door's own round-trip result
+      // (never the runtime's claim). python_probe is the offline azos.news_source probe.
+      const local = path === "/v1/newsmap"
+        ? {
+            scope: "this AZ-OS Worker",
+            store_copy: false,
+            reads_runtime_store: true,
+            live: nm.body.live === true,
+            joined: nm.body.joined === true,
+            merged: nm.body.merged === true,
+            lattice_live: nm.body.lattice_live === true,
+            installed: false,
+            engine_installed: false,
+            door_join_check: nm.body.door_join_check || null,
+            python_probe: { ...joinStatus(null), note: "The offline Python azos.news_source has no standing feed; it is not this Worker's flag." },
+          }
+        : path === "/v1/aznews" ? aznewsStatus() : path === "/v1/map" ? mapStatus() : null;
       return runtimeJson(scopeMeta({ ...nm.body, azos_local: local }), nm.status);
     }
   }
