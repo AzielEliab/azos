@@ -269,10 +269,10 @@ async function fromCopy(env, host, key, payload, why) {
 export const MAP_RULE =
   "GET /v1/map is 4DMap on its own: map pins (corpus layer from the Aziel Corpus map, reference layer from the GeoNames gazetteer in the runtime 4dmap engine) " +
   "from this host's own copy of the runtime 4DMap store (signed AZRT-MAP-COPY-1.0, checked from genesis). It needs no AZNews. ?layers=news adds the AZNews pins " +
-  "(from the local AZNews copy). ?source=runtime reads the runtime store instead. A local copy that is empty or fails its check falls back to the runtime. Reads mint nothing.";
+  "(from the local AZNews copy). Retracted pins (GEO-PIN-QUALITY-1.0, e.g. geoparser_junk) stay on the lattice but are hidden unless ?include_retracted=1. ?links=1 adds the 4DMAP-LINK-1.0 links (news x corpus correspondence, news x reference place). ?source=runtime reads the runtime store instead. A local copy that is empty or fails its check falls back to the runtime. Reads mint nothing.";
 
-async function runtimeMapPins(env, layers) {
-  const url = runtimeOrigin(env) + "/v1/4dmap/pins?layers=" + encodeURIComponent(layers.filter((l) => l !== "news").join(","));
+async function runtimeMapPins(env, layers, extra = {}) {
+  const url = runtimeOrigin(env) + "/v1/4dmap/pins?layers=" + encodeURIComponent(layers.filter((l) => l !== "news").join(",")) + (extra.include_retracted ? "&include_retracted=1" : "") + (extra.links ? "&links=1" : "");
   const init = { headers: { accept: "application/json", "user-agent": "Mozilla/5.0 (newsmap-door)" } };
   const binding = env && env.AZIEL_RUNTIME && typeof env.AZIEL_RUNTIME.fetch === "function" ? env.AZIEL_RUNTIME : null;
   const res = binding ? await binding.fetch(new Request(url, init)) : await fetch(url, init);
@@ -287,7 +287,7 @@ async function handleMap(url, env, host) {
   const asked = String(q.get("layers") || q.get("layer") || "").split(",").map((x) => x.trim()).filter((x) => ["corpus", "reference", "news"].includes(x));
   const layers = asked.length ? asked : ["corpus", "reference"];
   const lim = Number(q.get("limit"));
-  const payload = { layers: layers.join(","), ...(Number.isFinite(lim) && lim > 0 ? { limit: Math.min(2000, Math.floor(lim)) } : {}) };
+  const payload = { layers: layers.join(","), ...(Number.isFinite(lim) && lim > 0 ? { limit: Math.min(2000, Math.floor(lim)) } : {}), ...(q.get("include_retracted") === "1" ? { include_retracted: "1" } : {}), ...(q.get("links") === "1" ? { links: "1" } : {}) };
   const common = { host, map_rule: MAP_RULE, look: "not a look: map reads mint nothing", receipts_minted: 0, live: false, merged: false, installed: false, engine_installed: false, second_door: false, second_map: false, author: "Aziel Eliab" };
   let miss = null;
   if (q.get("source") !== "runtime" && localCopyReader) {
@@ -302,7 +302,7 @@ async function handleMap(url, env, host) {
     return { status: 200, body: { ok: false, refused: true, code: "NEWSMAP-NO-LOCAL-COPY", ...common, joined: false, standalone: false } };
   }
   let rt = null;
-  try { rt = await runtimeMapPins(env, layers); } catch { rt = null; }
+  try { rt = await runtimeMapPins(env, layers, payload); } catch { rt = null; }
   if (!rt || !rt.body || rt.body.ok === false || Number(rt.status) >= 500) {
     return { status: 503, body: { ok: false, refused: true, code: "NEWSMAP-MAP-UNAVAILABLE", ...common, joined: false, standalone: false, local_copy: miss, runtime_status: rt ? rt.status : null, plain: "Neither this host's own 4DMap copy nor the runtime 4DMap store answered." } };
   }

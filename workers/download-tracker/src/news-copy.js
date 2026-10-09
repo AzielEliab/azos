@@ -294,7 +294,7 @@ function pinView(r) {
 function mapPinView(r) {
   const d = r.doc || {};
   return {
-    pin_id: "map-" + r.seq, seq: r.seq, added_at: r.at, layer: d.layer, pin_type: d.pin_type, color: d.color, color_hex: d.color_hex,
+    pin_id: "map-" + r.seq, seq: r.seq, added_at: r.at, retracted: d.retracted || null, retract_reason: d.retract_reason || null, layer: d.layer, pin_type: d.pin_type, color: d.color, color_hex: d.color_hex,
     event: d.event, date: d.date, geo: d.geo, source: d.source, source_id: d.source_id, supersedes_seq: d.supersedes_seq || null,
     permalink: "/newsmap?mode=map&pin=map-" + r.seq,
     lattice: { primary: r.lattice.primary, secondary: r.lattice.secondary, document_hash: r.lattice.document_hash },
@@ -349,14 +349,23 @@ export async function copyRead(repo, op, payload = {}, { host = "azos" } = {}) {
     const latest = new Map();
     for (const r of rows) if (r.doc && r.doc.source_id && !latest.has(r.doc.source_id)) latest.set(r.doc.source_id, r);
     const want = String(payload.layers || "").split(",").map((x) => x.trim()).filter(Boolean);
+    const withRetracted = payload.include_retracted === true || payload.include_retracted === "1";
     const counts = {};
+    let retracted = 0;
     let pins = [];
     for (const r of latest.values()) {
-      counts[r.doc.layer] = (counts[r.doc.layer] || 0) + 1;
-      if (!want.length || want.includes(r.doc.layer)) pins.push(mapPinView(r));
+      // A retracted pin (GEO-PIN-QUALITY-1.0) stays on the lattice; the newest row for its source id says so.
+      if (r.doc.retracted) retracted += 1;
+      else counts[r.doc.layer] = (counts[r.doc.layer] || 0) + 1;
+      if ((!want.length || want.includes(r.doc.layer)) && (withRetracted || !r.doc.retracted)) pins.push(mapPinView(r));
     }
     pins = pins.slice(0, lim(payload.limit, 2000, 2000));
-    body = { ok: true, op, pins, last10: pins.filter((p) => p.layer !== "reference").slice(0, 10), colors: colorKey(pins), layer_counts: counts, needs_aznews: false };
+    body = { ok: true, op, pins, last10: pins.filter((p) => p.layer !== "reference" && !p.retracted).slice(0, 10), colors: colorKey(pins), layer_counts: counts, retracted: { count: retracted, shown: withRetracted }, needs_aznews: false };
+    if (payload.links === true || payload.links === "1") {
+      const links = await repo.newest("map_link", 200, minSeq);
+      low(links);
+      body.links = links.map((l) => ({ link_id: "link-" + l.seq, seq: l.seq, added_at: l.at, link_type: l.doc && l.doc.link_type, level: (l.doc && l.doc.level) || null, color: l.doc && l.doc.color, color_hex: l.doc && l.doc.color_hex, news: l.doc && l.doc.news, map: l.doc && l.doc.map, match: l.doc && l.doc.match, lattice: { primary: l.lattice.primary, document_hash: l.lattice.document_hash } }));
+    }
   } else if (op === "feed") {
     const rows = await repo.newest("news", lim(payload.limit, 20, 50), minSeq); low(rows);
     body = { ok: true, op, items: rows.map(newsView) };
@@ -519,7 +528,7 @@ export async function localMapRead(env, payload = {}) {
   const layers = asked.length ? asked : ["corpus", "reference"];
   const mapLayers = layers.filter((l) => l !== "news");
   const host = hostOf(env);
-  const m = mapLayers.length ? (await newsCopyCall(env, { op: "map", chain: "4dmap", payload: { layers: mapLayers.join(","), limit: payload.limit } })).body : null;
+  const m = mapLayers.length ? (await newsCopyCall(env, { op: "map", chain: "4dmap", payload: { layers: mapLayers.join(","), limit: payload.limit, include_retracted: payload.include_retracted, links: payload.links } })).body : null;
   const n = layers.includes("news") ? (await newsCopyCall(env, { op: "pins", chain: "aznews", payload: { limit: 200 } })).body : null;
   // A layer whose copy did not re-verify is not served (its pins could be edited); it is reported instead.
   const failed = (b) => (b && b.ok !== false && b.standalone !== true ? { ok: false, code: "NEWS-COPY-VERIFY-FAILED", reason: (b.copy_verify && b.copy_verify.reason) || "copy check failed" } : b);
@@ -545,6 +554,8 @@ export async function localMapRead(env, payload = {}) {
     pins,
     last10: pins.filter((p) => p.layer !== "reference").sort((a, b) => String(b.added_at || "").localeCompare(String(a.added_at || ""))).slice(0, 10),
     colors: { ...((m && m.colors) || {}), ...((n && n.colors) || {}) },
+    retracted: m && mapOk ? m.retracted : null,
+    links: m && mapOk && m.links ? m.links : undefined,
     layer_report: {
       corpus: m && mapOk ? { count: (m.layer_counts && m.layer_counts.corpus) || 0 } : m ? { ok: false, code: m.code } : "not asked",
       reference: m && mapOk ? { count: (m.layer_counts && m.layer_counts.reference) || 0 } : m ? { ok: false, code: m.code } : "not asked",

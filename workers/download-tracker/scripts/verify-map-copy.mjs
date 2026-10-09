@@ -90,7 +90,31 @@ assert.equal((await copyRead(mrepo, "map", { layers: "corpus" })).pins.length, 2
 assert.equal(r.last10.every((p) => p.layer === "corpus"), true);
 assert.equal(r.joined, false);
 assert.equal((await copyRead(mrepo, "feed", {})).ok, true, "news ops on the 4dmap copy return nothing, not an error");
-console.log("ok 4dmap copy: refusals, genesis start, newest-per-source, layers");
+// Retraction (append-only) and links on the copy.
+{
+  const m2 = chainLedger();
+  await m2.add("map_pin", pinDoc("corpus", "library-aziel-event", "corpus:J1", "HVAC Valve guide", 78.2, 15.6));
+  await m2.add("map_pin", pinDoc("corpus", "corpus-event", "corpus:R1", "Rosetta", 31.4, 30.417));
+  await m2.add("map_pin", { ...pinDoc("corpus", "library-aziel-event", "corpus:J1", "HVAC Valve guide", 78.2, 15.6), supersedes_seq: 1, retracted: "geoparser_junk", retract_reason: "bare coordinate pair" });
+  await m2.add("map_link", { kind: "4dmap-link", spec: "4DMAP-LINK-1.0", link_type: "correspondence", level: "black", news: { item_id: "n-1" }, map: { pin_seq: 2, source_id: "corpus:R1" }, match: { shared: ["rosetta", "stone", "ankara"] } });
+  const rr = memCopyRepo();
+  assert.equal((await ing(rr, await packetOf(m2, "4dmap", 0, 4))).body.ok, true);
+  const v = await copyRead(rr, "map", {});
+  assert.equal(v.standalone, true);
+  assert.equal(v.pins.length, 1, "retracted pin hidden by default");
+  assert.equal(v.retracted.count, 1);
+  assert.equal(v.layer_counts.corpus, 1);
+  const vr = await copyRead(rr, "map", { include_retracted: "1" });
+  assert.equal(vr.pins.find((p) => p.source_id === "corpus:J1").retracted, "geoparser_junk");
+  assert.equal((await rr.get(1)).doc.event, "HVAC Valve guide", "the original row is kept");
+  const vl = await copyRead(rr, "map", { links: "1" });
+  assert.equal(vl.links.length, 1);
+  assert.equal(vl.links[0].level, "black");
+  // Tampering with the retraction row (un-retracting it in storage) is caught.
+  (await rr.get(3)).doc.retracted = null;
+  assert.equal((await copyRead(rr, "map", {})).standalone, false);
+}
+console.log("ok 4dmap copy: refusals, genesis start, newest-per-source, layers, retractions, links");
 
 // ---- door: fake Durable Object namespace holding the two copies ----
 const nrepo = memCopyRepo();
