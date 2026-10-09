@@ -57,7 +57,7 @@ assert.equal(out.body.joined, false);
 env = { AZIEL_RUNTIME: fakeRuntime({ ok: true, op: "news_pin", live: true, joined: true, merged: false, source_present: true, outlets_live: 1 }) };
 out = await handleNewsmap(req("/v1/newsmap/pin", "POST", { item: { url: "https://example.org/a" } }), new URL("https://h.example/v1/newsmap/pin"), env, HOST);
 assert.equal(calls.at(-2).body.op, "news_pin");
-assert.deepEqual(calls.at(-2).body.payload, { item: { url: "https://example.org/a" } });
+assert.deepEqual(calls.at(-2).body.payload, { item: { url: "https://example.org/a" }, dry_run: true });
 assert.deepEqual(calls.at(-1).body.payload, { dry_run: true });
 assert.equal(out.body.live, false);
 assert.equal(out.body.joined, false);

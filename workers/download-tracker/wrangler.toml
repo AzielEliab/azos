@@ -23,3 +23,13 @@ RUNTIME_TETHER_PUBKEY = "C9Psex_Bf8uG_nCwIeiskejJaBYUSYn7lHkPm4qV6Ik"
 [[services]]
 binding = "AZIEL_RUNTIME"
 service = "aziel-runtime"
+
+# AZOS-NEWS-COPY-1.0: AZ-OS's own verified copy of the runtime AZNews store (signed
+# tether AZRT-AZOS-NEWS-1.0). SQLite Durable Object only; no KV or D1 writes.
+[[durable_objects.bindings]]
+name = "AZOS_NEWS_COPY"
+class_name = "AzosNewsCopy"
+
+[[migrations]]
+tag = "azos-news-copy-v1"
+new_sqlite_classes = ["AzosNewsCopy"]
