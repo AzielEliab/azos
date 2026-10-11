@@ -146,6 +146,8 @@ export function memCopyRepo() {
   return {
     kind: "memory",
     async meta() { return meta.state || null; },
+    async kvGet(k) { return meta["kv:" + k] === undefined ? null : JSON.parse(JSON.stringify(meta["kv:" + k])); },
+    async kvPut(obj) { for (const [k, v] of Object.entries(obj)) meta["kv:" + k] = JSON.parse(JSON.stringify(v)); },
     async hasOffline(sec) { return off.has(sec); },
     async put(recs, state) {
       for (const r of recs) {
@@ -175,6 +177,12 @@ export function sqlCopyRepo(storage) {
   return {
     kind: "durable-object-sqlite",
     async meta() { const r = one("SELECT v FROM meta WHERE k = 'state'"); return r ? JSON.parse(r.v) : null; },
+    async kvGet(k) { const r = one("SELECT v FROM meta WHERE k = ?", "kv:" + k); return r ? JSON.parse(r.v) : null; },
+    async kvPut(obj) {
+      storage.transactionSync(() => {
+        for (const [k, v] of Object.entries(obj)) sql.exec("INSERT INTO meta (k, v) VALUES (?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v", "kv:" + k, JSON.stringify(v));
+      });
+    },
     async hasOffline(sec) { return Boolean(one("SELECT seq FROM rows WHERE offline_secondary = ?", sec)); },
     async put(recs, state) {
       storage.transactionSync(() => {
@@ -200,6 +208,70 @@ export function sqlCopyRepo(storage) {
   };
 }
 
+/* ------------------------------------------------- checkpoints + genesis walk */
+
+/**
+ * AZRT-STORE-CHECKPOINT-1.0 on the copy side. A packet may carry signed checkpoints
+ * { chain, n, to_seq, tips, prev_hash, cp_hash, sig }. Each must verify against the
+ * pinned runtime key, recompute its cp_hash, link to the previous one (n+1, prev_hash,
+ * to_seq + CP_EVERY), and, when this copy holds the row at to_seq, carry that row's tips.
+ * Any failure refuses the whole packet (nothing stored).
+ *
+ * COPY-WALK-1.0: the copy re-walks its own rows from genesis in bounded steps
+ * (WALK_PER_INGEST rows per accepted packet), recomputing both lattice links for every
+ * row (and the document hash while the body is kept), and checks every checkpoint it
+ * passes. verified_via_checkpoints is true when the walk reached the copy tip with no
+ * break and every checkpoint at or below it matched.
+ */
+export const CP_SPEC = "AZRT-STORE-CHECKPOINT-1.0";
+export const CP_EVERY = 1000;
+export const WALK_PER_INGEST = 2500;
+
+export async function checkCheckpointRun(cps, { pinned, prev, rowAt, chain }) {
+  let last = prev || { n: 0, cp_hash: GENESIS, to_seq: 0 };
+  const accepted = [];
+  for (const cp of cps) {
+    if (!cp || cp.spec !== CP_SPEC || cp.chain !== chain) return { ok: false, reason: "checkpoint spec or chain" };
+    if (cp.public_key !== pinned || !(await verifySignature(pinned, cp))) return { ok: false, reason: "checkpoint " + cp.n + " signature does not verify against the pinned key" };
+    const { sig: _s, cp_hash: _h, ...body } = cp;
+    if ((await sha256Hex(canonicalize(body))) !== cp.cp_hash) return { ok: false, reason: "checkpoint " + cp.n + " hash does not recompute" };
+    if (cp.n <= last.n) continue; // already held
+    if (cp.n !== last.n + 1 || cp.prev_hash !== last.cp_hash || cp.to_seq !== last.to_seq + CP_EVERY) return { ok: false, reason: "checkpoint " + cp.n + " does not link to the previous checkpoint" };
+    const row = rowAt ? await rowAt(cp.to_seq) : null;
+    if (row && (row.lattice.primary !== cp.tips.primary || row.lattice.secondary !== cp.tips.secondary)) return { ok: false, reason: "checkpoint " + cp.n + " tips differ from this copy's row " + cp.to_seq };
+    accepted.push(cp);
+    last = { n: cp.n, cp_hash: cp.cp_hash, to_seq: cp.to_seq };
+  }
+  return { ok: true, accepted, last };
+}
+
+export async function copyWalkStep(repo, st, { max = WALK_PER_INGEST } = {}) {
+  const w = (await repo.kvGet("cwalk")) || { spec: "COPY-WALK-1.0", from_genesis: true, next: 1, expect: { primary: GENESIS, secondary: GENESIS }, verified_through: 0, checkpoints_matched: 0, breaks: [] };
+  if (w.breaks.length || !st || w.next > st.tip_seq) return w;
+  const to = Math.min(st.tip_seq, w.next + max - 1);
+  const rows = await repo.range(w.next, to);
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    if (row.seq !== w.next) { w.breaks.push({ seq: w.next, reason: "sequence-gap" }); break; }
+    const why = await checkRow(row, w.expect);
+    if (why) { w.breaks.push({ seq: row.seq, reason: why }); break; }
+    w.expect = { primary: row.lattice.primary, secondary: row.lattice.secondary };
+    if (row.seq % CP_EVERY === 0) {
+      const cp = await repo.kvGet("cp:" + row.seq / CP_EVERY);
+      if (cp) {
+        if (cp.tips.primary !== w.expect.primary || cp.tips.secondary !== w.expect.secondary) { w.breaks.push({ seq: row.seq, reason: "checkpoint " + cp.n + " tips differ" }); break; }
+        w.checkpoints_matched = Math.max(w.checkpoints_matched || 0, cp.n);
+      }
+    }
+    w.verified_through = row.seq;
+    w.next = row.seq + 1;
+  }
+  if (rows.length === 0 && w.next <= to) w.breaks.push({ seq: w.next, reason: "rows missing" });
+  w.checked_at = new Date().toISOString();
+  await repo.kvPut({ cwalk: w });
+  return w;
+}
+
 /* ---------------------------------------------------------------- ingest */
 
 export async function copyIngest(repo, packet, { pinned, now = new Date().toISOString(), chain = "aznews" } = {}) {
@@ -222,7 +294,21 @@ export async function copyIngest(repo, packet, { pinned, now = new Date().toISOS
     packet_t: typeof packet.t === "string" ? packet.t.slice(0, 40) : null,
     public_key: packet.public_key,
   };
+  let cpRes = null;
+  if (Array.isArray(packet.checkpoints) && packet.checkpoints.length) {
+    if (packet.checkpoints.length > 50) return refuse("NEWS-COPY-CP", "Too many checkpoints in one packet.");
+    const byRow = new Map(checked.rows.map((r) => [Number(r.seq), r]));
+    cpRes = await checkCheckpointRun(packet.checkpoints, { pinned, chain, prev: state && state.cp ? state.cp : null, rowAt: async (seq) => byRow.get(seq) || (await repo.get(seq)) });
+    if (!cpRes.ok) return refuse("NEWS-COPY-CP", "Checkpoint refused: " + cpRes.reason + ". Nothing was stored.", 409);
+    next.cp = cpRes.last;
+  } else if (state && state.cp) next.cp = state.cp;
   await repo.put(checked.rows.map(rowRecord), next);
+  if (cpRes && cpRes.accepted.length) {
+    const kv = {};
+    for (const cp of cpRes.accepted) kv["cp:" + cp.n] = cp;
+    await repo.kvPut(kv);
+  }
+  await copyWalkStep(repo, next);
   if (next.tip_seq > DOC_KEEP) await repo.prune(next.tip_seq - DOC_KEEP);
   return { status: 200, body: { ok: true, stored: true, verified: true, tip_seq: next.tip_seq, tips: next.tips, rows_accepted: checked.rows.length, rows: next.rows, ...COPY_FACTS } };
 }
@@ -242,6 +328,17 @@ export async function copyState(repo, env) {
     updated_at: st ? st.updated_at : null,
     runtime_store_tip: st ? st.runtime_store_tip : null,
     lag_rows_at_sync: st && st.runtime_store_tip ? Math.max(0, st.runtime_store_tip.seq - st.tip_seq) : null,
+    cp_n: st && st.cp ? st.cp.n : 0,
+    checkpoint_tip: st && st.cp ? st.cp : null,
+    copy_walk: await (async () => {
+      const w = repo.kvGet ? await repo.kvGet("cwalk") : null;
+      if (!w) return null;
+      return { spec: w.spec, from_genesis: w.from_genesis, verified_through: w.verified_through, checkpoints_matched: w.checkpoints_matched || 0, breaks: w.breaks, checked_at: w.checked_at || null };
+    })(),
+    verified_via_checkpoints: await (async () => {
+      const w = repo.kvGet ? await repo.kvGet("cwalk") : null;
+      return Boolean(st && st.cp && w && !w.breaks.length && w.verified_through === st.tip_seq && st.cp.n >= Math.floor(st.tip_seq / CP_EVERY) - 1);
+    })(),
   };
 }
 
