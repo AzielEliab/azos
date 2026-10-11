@@ -1,3 +1,4 @@
+import { stampHealth } from "./build-stamp.js";
 import { handleMeshApi } from "./mesh.js";
 import { handleRuntime } from "./runtime.js";
 import { AzosNewsCopy, handleNewsCopyRoute, newsCopyCall, localMapRead } from "./news-copy.js";
@@ -426,7 +427,7 @@ async function indexHtml(env) {
   return renderHomepage(await collectStats(env));
 }
 
-export default {
+const inner = {
   async fetch(request, env) {
     const url = new URL(request.url);
 
@@ -600,5 +601,14 @@ export default {
     }
     // /gitbaby-seo-routes
     return json({ error: "not found" }, 404);
+  },
+};
+
+// BUILD-STAMP-1.0: /v1/health carries git_sha + version_id (src/build-stamp.js).
+export default {
+  ...inner,
+  async fetch(request, env, ctx) {
+    const path = new URL(request.url).pathname.replace(/\/+$/, "") || "/";
+    return stampHealth(path, request, await inner.fetch(request, env, ctx), env);
   },
 };

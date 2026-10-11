@@ -33,3 +33,8 @@ class_name = "AzosNewsCopy"
 [[migrations]]
 tag = "azos-news-copy-v1"
 new_sqlite_classes = ["AzosNewsCopy"]
+
+# BUILD-STAMP-1.0: /v1/health reports git_sha and version_id.
+# Deploy with: npx wrangler deploy --keep-vars --var GIT_SHA:$(git rev-parse HEAD)
+[version_metadata]
+binding = "CF_VERSION_METADATA"
