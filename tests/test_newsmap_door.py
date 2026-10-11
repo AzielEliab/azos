@@ -30,3 +30,14 @@ def test_newsmap_door_keeps_install_flags_false() -> None:
     assert "engine_installed: false" in src
     assert "second_map: false" in src
     assert 'name: "4dmap"' in src
+
+
+def test_newsmap_cache_script() -> None:
+    completed = subprocess.run(
+        ["node", str(WORKER / "scripts" / "verify-newsmap-cache.mjs")],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert completed.returncode == 0, completed.stderr + completed.stdout
+    assert "NEWSMAP-CACHE-OK azos" in completed.stdout

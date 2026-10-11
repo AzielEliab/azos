@@ -387,10 +387,17 @@ export async function handleNewsmap(request, url, env, host) {
   const r = resultOf(runtime);
   const src = r && r.status && typeof r.status === "object" ? r.status : r;
   let check = null;
+  let cacheInfo = null;
   if (src && CLAIM_KEYS.some((k) => src[k] === true)) {
-    check = await doorJoinCheck((op, p) => callRuntime(env, op, p));
+    cacheInfo = await doorJoinCheckCached(env, (op, p) => callRuntime(env, op, p));
+    check = cacheInfo.check;
   }
   const view = newsmapView(host, key, runtime, check);
+  if (cacheInfo) {
+    view.join_cached = cacheInfo.cached;
+    view.join_cache_age_s = cacheInfo.age_s;
+    if (cacheInfo.cached) view.plain += " The door's round trip was done " + cacheInfo.age_s + " s ago and reused from this door's short cache (up to 30 s after a pass, 10 s after a fail); the runtime's claim was read fresh on this request.";
+  }
   view.source = "runtime";
   if (copyMiss) view.local_copy = copyMiss;
   view.standalone = false;
@@ -398,4 +405,30 @@ export async function handleNewsmap(request, url, env, host) {
   view.look = isRead ? (payload.dry_run === true ? "not a look: forwarded with dry_run, no receipt minted" : "a look: ?view=1 from a page on this host") : "not a read op";
   view.look_rule = LOOK_RULE;
   return { status: 200, body: view };
+}
+
+/**
+ * NEWSMAP-DOOR-CACHE-1.0 (matches azinterface #38/#39): the door's two-read round trip is
+ * reused per isolate for JOIN_CACHE_LIVE_MS after a pass and JOIN_CACHE_FAIL_MS after a
+ * fail, keyed by the runtime binding (or env). The runtime's own claim is still read on
+ * every request, so flags need a fresh claim AND a recent passing round trip. Fail closed:
+ * a thrown check is not cached as a pass.
+ */
+export const JOIN_CACHE_LIVE_MS = 30_000;
+export const JOIN_CACHE_FAIL_MS = 10_000;
+let joinCaches = new WeakMap();
+export function clearJoinCache() {
+  joinCaches = new WeakMap();
+}
+export async function doorJoinCheckCached(env, call, now = Date.now()) {
+  const holder = (env && env.AZIEL_RUNTIME && typeof env.AZIEL_RUNTIME === "object" ? env.AZIEL_RUNTIME : null) || (env && typeof env === "object" ? env : null);
+  const hit = holder ? joinCaches.get(holder) : null;
+  if (hit) {
+    const age = now - hit.at;
+    const ttl = hit.check && hit.check.ok === true ? JOIN_CACHE_LIVE_MS : JOIN_CACHE_FAIL_MS;
+    if (age >= 0 && age < ttl) return { check: hit.check, cached: true, age_s: Math.floor(age / 1000) };
+  }
+  const check = await doorJoinCheck(call, new Date(now).toISOString());
+  if (holder) joinCaches.set(holder, { at: now, check });
+  return { check, cached: false, age_s: 0 };
 }
