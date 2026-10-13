@@ -949,7 +949,8 @@ export async function handleRuntime(request, url, env) {
     // RUNTIME-SYNC-1.0: read-only mirror of aziel-runtime surfaces; local verified tips compared.
     const { runtimeSync } = await import("./runtime-sync.js");
     const st = await tetherState(env);
-    const out = await runtimeSync({ side: "azos", localChains: (st.chains || []).map((c) => ({ chain: c.chain, primary: c.tips && c.tips.primary, verified: c.verified })) });
+    const svc = env && env.AZIEL_RUNTIME && typeof env.AZIEL_RUNTIME.fetch === "function" ? (u, i) => env.AZIEL_RUNTIME.fetch(new Request(u, i)) : fetch;
+    const out = await runtimeSync({ side: "azos", fetchImpl: svc, localChains: (st.chains || []).map((c) => ({ chain: c.chain, primary: c.tips && c.tips.primary, verified: c.verified })) });
     return runtimeJson(scopeMeta(out), out.ok ? 200 : 502);
   }
   if (path === "/v1/tether" && request.method === "GET") {
