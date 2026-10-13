@@ -1,3 +1,4 @@
+import { HINTS_HTML } from "./hints.js";
 /**
  * AZ-OS product homepage. Human surface — fully developed software.
  * Author: Aziel Eliab. Apache-2.0. Not a kernel. Not a VPN.
@@ -852,6 +853,7 @@ export function renderHomepage(stats) {
       })();
     })();
   </script>
+${HINTS_HTML}
 </body>
 </html>`;
 }
