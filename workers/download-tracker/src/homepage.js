@@ -1,4 +1,5 @@
 import { HINTS_HTML } from "./hints.js";
+import { agentsPanelHtml } from "./agents-view.js";
 /**
  * AZ-OS product homepage. Human surface — fully developed software.
  * Author: Aziel Eliab. Apache-2.0. Not a kernel. Not a VPN.
@@ -374,6 +375,7 @@ export function renderHomepage(stats) {
           <button type="button" role="tab" aria-selected="false" data-tab="lattice">Lattice</button>
           <button type="button" role="tab" aria-selected="false" data-tab="gates">Five gates</button>
           <button type="button" role="tab" aria-selected="false" data-tab="full">Full AZ-OS</button>
+          <button type="button" role="tab" aria-selected="false" data-tab="agents">Agents</button>
           <button type="button" role="tab" aria-selected="false" data-tab="cite">Cite</button>
         </div>
         <p class="busy" id="ws-busy" hidden>Reading Worker…</p>
@@ -464,6 +466,10 @@ export function renderHomepage(stats) {
           <label class="lab">Look up a hooked app</label>
           <select id="app-pick">${prefabHints}</select>
           <p class="note" id="app-blurb" style="margin-top:.5rem"></p>
+        </section>
+
+        <section class="panel" id="tab-agents" role="tabpanel">
+          ${agentsPanelHtml({ api: "/v1/agents/receipts", idPrefix: "ag" })}
         </section>
 
         <section class="panel" id="tab-cite" role="tabpanel">

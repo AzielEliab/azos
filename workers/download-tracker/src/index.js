@@ -620,6 +620,24 @@ export default {
       const out = await peerRefusals(env, { surface: "azos", localTip });
       return new Response(request.method === "HEAD" ? null : JSON.stringify(out.body, null, 2), { status: out.status, headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store", "Access-Control-Allow-Origin": "*" } });
     }
+    if (path === "/v1/agents/receipts" && (request.method === "GET" || request.method === "HEAD" || request.method === "POST")) {
+      // AGENT-SUBNET-1.0 viewer (read-only): public counts with this tracker's tethered agentcomms tip
+      // compared, or a signed agent-view statement forwarded to the runtime over AZIEL_RUNTIME.
+      const { agentsPublic, agentsScoped } = await import("./agents-view.js");
+      let out;
+      if (request.method === "POST") out = await agentsScoped(env, request, { surface: "azos" });
+      else {
+        const { tetherState } = await import("./tether.js");
+        const st = await tetherState(env).catch(() => null);
+        const row = st && Array.isArray(st.chains) ? st.chains.find((c) => c.chain === "agentcomms") : null;
+        const localTip = row && row.tips ? { seq: row.rows, primary: row.tips.primary, secondary: row.tips.secondary, verified: row.verified === true, updated_at: row.updated_at } : null;
+        out = await agentsPublic(env, { surface: "azos", localTip });
+      }
+      const res = new Response(request.method === "HEAD" ? null : JSON.stringify(out.body, null, 2), { status: out.status, headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store", "Access-Control-Allow-Origin": "*" } });
+      if (out.status < 400 || out.body.refusal_receipt) return res; // runtime refusals arrive already sealed
+      const { withPeerRefusalReceipt } = await import("./refusal-peer.js");
+      return withPeerRefusalReceipt(request, res, env, { surface: "azos", ctx });
+    }
     // A tether packet for the refusals chain itself is never re-sealed (no feedback loop).
     let tetherChain = null;
     if (path === "/v1/tether/tip" && request.method === "POST") {
