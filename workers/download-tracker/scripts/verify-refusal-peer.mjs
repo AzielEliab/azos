@@ -21,7 +21,9 @@ assert.equal(r.status, 400); assert.equal(b.ok, false); assert.equal(b.code, "NE
 assert.equal(b.refusal_receipt.sealed, true); assert.equal(b.refusal_receipt.surface, SURFACE);
 assert.match(r.headers.get("x-azrt-refusal-receipt"), /^sealed; chain=refusals; seq=7; h=a{64}$/);
 assert.equal(calls.length, 1); assert.equal(calls[0].url, REFUSAL_PEER_URL);
-assert.deepEqual(Object.keys(calls[0].body).sort(), ["code", "method", "reason", "route", "status", "surface"]);
+assert.deepEqual(Object.keys(calls[0].body).sort(), ["code", "method", "reason", "reason_sha256", "route", "status", "surface"]);
+// RIB-018 follow-up: reason text is never sent, only the sha256 hex of the full reason.
+assert.equal(calls[0].body.reason, null); assert.equal(calls[0].body.reason_sha256, "eea83946a6239e4cf834ab9e1704152b56c798353d6f6583014cbcafc08ef8d6");
 assert.equal(calls[0].body.surface, SURFACE); assert.equal(calls[0].body.route, "/v1/newsmap/x"); n++;
 
 // 2) not sealed: success, 429, auth codes, 401, uncoded, already sealed upstream, refusals tether packet.
@@ -31,7 +33,8 @@ const skip = [
   [req("/x"), refusal(401, { ok: false, code: "SOMETHING" })],
   [req("/v1/tether/tip", "POST"), refusal(403, { ok: false, code: "TETHER-SIG" })],
   [req("/x"), refusal(400, { ok: false, code: "token_required" })],
-  [req("/x"), refusal(404, { error: "not found" })],
+  [req("/x"), refusal(404, { error: "not found" })], // uncoded outside /v1/: not sealed
+  [req("/v1/x"), refusal(500, { error: "boom" })], // uncoded 5xx: not a refusal
   [req("/v1/mesh/install"), refusal(400, { ok: false, code: "ONBOARD-BAD-SLUG", refusal_receipt: view })],
 ];
 for (const [q, s] of skip) {
@@ -43,6 +46,16 @@ const before = calls.length;
 await withPeerRefusalReceipt(req("/v1/tether/tip", "POST"), refusal(409, { ok: false, code: "TETHER-LINK" }), { AZIEL_RUNTIME: bind }, { surface: SURFACE, tetherChain: "refusals" });
 assert.equal(calls.length, before);
 assert.equal(isAuthRefusal(403, "CL-NOT-ISSUER"), true); assert.equal(isAuthRefusal(400, "MESH-UNKNOWN"), false); n++;
+
+// 2b) uncoded 4xx under /v1/: fixed code, body unchanged; caller-echoing reason sent only as a hash.
+let c0 = calls.length;
+r = await withPeerRefusalReceipt(req("/v1/newsmap/zz-caller-text?q=hello-there"), refusal(404, { error: "no such op zz-caller-text" }), { AZIEL_RUNTIME: bind }, { surface: SURFACE });
+b = await r.json();
+assert.equal(b.code, undefined); assert.equal(b.error, "no such op zz-caller-text");
+assert.equal(calls.length, c0 + 1); assert.equal(calls[c0].body.code, "HTTP-404-UNCODED");
+assert.equal(calls[c0].body.reason, null); assert.match(calls[c0].body.reason_sha256, /^[a-f0-9]{64}$/);
+assert.equal(JSON.stringify(calls[c0].body).includes("hello-there"), false);
+n++;
 
 // 3) fail closed: no binding -> unavailable; peer error -> unavailable; slow -> receipt_pending; never a hash.
 b = await (await withPeerRefusalReceipt(req("/x"), refusal(400, { ok: false, code: "MESH-UNKNOWN" }), {}, { surface: SURFACE })).json();
@@ -66,5 +79,15 @@ o = await peerRefusals({ AZIEL_RUNTIME: list }, { surface: SURFACE, localTip: { 
 assert.equal(o.body.tip_state, "lagging");
 o = await peerRefusals({}, { surface: SURFACE });
 assert.equal(o.status, 503); assert.equal(o.body.code, "REFUSALS-RUNTIME-UNBOUND"); n++;
+
+// 2c) RIB-018 follow-up: a long or body-echoing reason is never sent as text (no cut piece either).
+{
+  const CALLER = "hello-this-is-public-caller-text-" + "x".repeat(300);
+  const c1 = calls.length;
+  await withPeerRefusalReceipt(req("/v1/newsmap/x"), refusal(400, { ok: false, code: "NEWSMAP-ECHO", message: `unknown name "${CALLER}"` }), { AZIEL_RUNTIME: bind }, { surface: SURFACE });
+  assert.equal(calls.length, c1 + 1);
+  assert.equal(calls[c1].body.reason, null); assert.match(calls[c1].body.reason_sha256, /^[a-f0-9]{64}$/);
+  assert.equal(JSON.stringify(calls[c1].body).includes("hello-this-is-public"), false); n++;
+}
 
 console.log(`verify-refusal-peer (${SURFACE}): ok (${n} groups)`);

@@ -5,8 +5,10 @@
  * is reported over the AZIEL_RUNTIME service binding to the runtime's peer door
  * (POST https://peer.aziel.internal/v1/refusals/peer). The runtime seals it with the same
  * sealRefusal path onto its internal `refusals` ChainLock chain (dual lattice, append-only), so all
- * three sides share one refusal lattice; this tracker gets the rows back over the signed tether
- * (TETHER-REFUSALS-1.0) and /v1/runtime/sync compares the tips.
+ * This tracker keeps no refusal chain of its own: there is one chain, on the runtime. AZ-OS holds a verified
+ * copy of its tip from the signed tether (TETHER-REFUSALS-1.0); azinterface has no local copy and reads the
+ * runtime's tip. Uncoded 4xx refusals under /v1/ get the fixed code HTTP-<status>-UNCODED. Reason text
+ * is never sent: only the sha256 hex of the full reason is.
  *
  * The refusal itself never changes: same status, same fields, plus `refusal_receipt` and the header
  * X-Azrt-Refusal-Receipt. No binding, a failed call, or a slow call gives sealed:false with status
@@ -19,6 +21,18 @@ export const REFUSAL_PEER_URL = "https://peer.aziel.internal/v1/refusals/peer";
 export const REFUSAL_PEER_BUDGET_MS = 2500;
 const CODE_RE = /^[A-Za-z][A-Za-z0-9_-]{1,63}$/;
 const AUTH_CODES = ["token_required", "token_mismatch", "token_not_configured", "TOKEN-QUERY-REFUSED", "CL-NOT-ISSUER", "TETHER-SIG", "TETHER-KEY-MISMATCH", "TETHER-KEY-UNPINNED"];
+
+/**
+ * RIB-018 follow-up (AZBot pre-merge review): never send reason text. A message can repeat caller input
+ * from the path, query or body, and a cut message hides the repeat from any substring check. Only the
+ * sha256 hex of the full, uncut reason is sent. Defense in depth: the runtime peer door hashes any text too.
+ */
+export async function safeReason(reason, _url) {
+  const r = reason == null ? "" : String(reason);
+  if (!r) return { reason: null };
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(r));
+  return { reason: null, reason_sha256: [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("") };
+}
 
 export function isAuthRefusal(status, code) {
   if (Number(status) === 401) return true;
@@ -38,17 +52,22 @@ export async function withPeerRefusalReceipt(request, response, env, { surface, 
     try { body = JSON.parse(text); } catch { return response; }
     if (!body || typeof body !== "object" || Array.isArray(body)) return response;
     if (body.refusal_receipt != null || body.refused_receipt != null) return response; // sealed upstream
-    const code = typeof body.code === "string" ? body.code : (typeof body.refuse === "string" ? body.refuse : null);
+    const reqUrl = new URL(request.url);
+    const path = reqUrl.pathname;
+    let code = typeof body.code === "string" ? body.code : (typeof body.refuse === "string" ? body.refuse : null);
+    if (!code) {
+      const st = Number(response.status);
+      if (st >= 400 && st < 500 && path.startsWith("/v1/") && (body.ok === false || typeof body.error === "string")) code = `HTTP-${st}-UNCODED`;
+    }
     if (!code || !CODE_RE.test(code) || isAuthRefusal(response.status, code)) return response;
-    const path = new URL(request.url).pathname;
     if (tetherChain === "refusals") return response; // never re-seal a refusals-chain tether packet
-    const reason = String(body.message || body.error || body.reason || "").slice(0, 160);
+    const sr = await safeReason(String(body.message || body.error || body.reason || ""), reqUrl);
     let view;
     const bind = env && env.AZIEL_RUNTIME;
     if (!bind || typeof bind.fetch !== "function") {
       view = { kind: "refusal", sealed: false, status: "unavailable", reason: "AZIEL_RUNTIME binding absent", surface };
     } else {
-      const call = bind.fetch(new Request(REFUSAL_PEER_URL, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ surface, code, reason, method, route: path, status: response.status }) }))
+      const call = bind.fetch(new Request(REFUSAL_PEER_URL, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ surface, code, reason: sr.reason, ...(sr.reason_sha256 ? { reason_sha256: sr.reason_sha256 } : {}), method, route: path, status: response.status }) }))
         .then(async (r) => { const j = await r.json().catch(() => null); return j && j.refusal_receipt ? j.refusal_receipt : { kind: "refusal", sealed: false, status: "unavailable", reason: "peer door answered " + r.status + (j && j.code ? " " + j.code : ""), surface }; })
         .catch((e) => ({ kind: "refusal", sealed: false, status: "unavailable", reason: String((e && e.message) || e).slice(0, 120), surface }));
       let timer;
