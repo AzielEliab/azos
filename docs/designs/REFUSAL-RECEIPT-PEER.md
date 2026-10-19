@@ -14,8 +14,9 @@ AZRT-AZOS-TETHER-1.0 / TETHER-REFUSALS-1.0).
 - Fail closed: no binding, an error, or a write slower than 2.5 s gives `sealed:false` with
   `status: unavailable | receipt_pending`; never an invented hash. Not signed.
 - Uncoded 4xx under `/v1/` (ok:false or an `error` string, no `code`) are sealed with the fixed code
-  `HTTP-<status>-UNCODED`; the body is unchanged. A reason that echoes caller input (a path segment or query
-  value) is never sent; only its short sha256 (`reason_sha256`) is.
+  `HTTP-<status>-UNCODED`; the body is unchanged. Reason text is never sent (it can repeat caller input
+  from the path, query or body); only `reason_sha256`, the sha256 hex of the full reason, is. The runtime
+  peer door hashes any reason text it receives as well, so this is defense in depth.
 - Not recorded: auth refusals (401, token codes, TETHER-SIG / TETHER-KEY-*), 429s, uncoded 5xx, uncoded 4xx
   outside `/v1/`, and refusals of a tether packet for the `refusals` chain itself (no feedback loop).
 - Flood guard is on the runtime: per-minute dedupe on code + surface + method + status, an in-isolate memo,

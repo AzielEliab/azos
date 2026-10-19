@@ -7,8 +7,8 @@
  * sealRefusal path onto its internal `refusals` ChainLock chain (dual lattice, append-only), so all
  * This tracker keeps no refusal chain of its own: there is one chain, on the runtime. AZ-OS holds a verified
  * copy of its tip from the signed tether (TETHER-REFUSALS-1.0); azinterface has no local copy and reads the
- * runtime's tip. Uncoded 4xx refusals under /v1/ get the fixed code HTTP-<status>-UNCODED. A reason that
- * echoes caller input (a path segment or query value) is never sent: only its short sha256 is.
+ * runtime's tip. Uncoded 4xx refusals under /v1/ get the fixed code HTTP-<status>-UNCODED. Reason text
+ * is never sent: only the sha256 hex of the full reason is.
  *
  * The refusal itself never changes: same status, same fields, plus `refusal_receipt` and the header
  * X-Azrt-Refusal-Receipt. No binding, a failed call, or a slow call gives sealed:false with status
@@ -22,22 +22,16 @@ export const REFUSAL_PEER_BUDGET_MS = 2500;
 const CODE_RE = /^[A-Za-z][A-Za-z0-9_-]{1,63}$/;
 const AUTH_CODES = ["token_required", "token_mismatch", "token_not_configured", "TOKEN-QUERY-REFUSED", "CL-NOT-ISSUER", "TETHER-SIG", "TETHER-KEY-MISMATCH", "TETHER-KEY-UNPINNED"];
 
-async function sha16(text) {
-  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(String(text)));
-  return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("").slice(0, 16);
-}
-
-/** Reason that echoes caller input (path segment / query value, 3+ chars) -> null + reason_sha256. */
-export async function safeReason(reason, url) {
-  const r = String(reason || "").slice(0, 160);
-  if (!r) return { reason: "" };
-  const bits = [];
-  for (const seg of url.pathname.split("/")) { let d = seg; try { d = decodeURIComponent(seg); } catch { /* raw */ } if (d.length >= 3) bits.push(d.toLowerCase()); }
-  for (const [, v] of url.searchParams) if (String(v).length >= 3) bits.push(String(v).toLowerCase());
-  const fixed = new Set(["v1", "tether", "tip", "runtime", "sync", "refusals", "newsmap", "globe", "mesh", "health", "stats", "aznews", "4dmap"]);
-  const low = r.toLowerCase();
-  if (bits.some((b) => !fixed.has(b) && low.includes(b))) return { reason: null, reason_sha256: await sha16(r) };
-  return { reason: r };
+/**
+ * RIB-018 follow-up (AZBot pre-merge review): never send reason text. A message can repeat caller input
+ * from the path, query or body, and a cut message hides the repeat from any substring check. Only the
+ * sha256 hex of the full, uncut reason is sent. Defense in depth: the runtime peer door hashes any text too.
+ */
+export async function safeReason(reason, _url) {
+  const r = reason == null ? "" : String(reason);
+  if (!r) return { reason: null };
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(r));
+  return { reason: null, reason_sha256: [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("") };
 }
 
 export function isAuthRefusal(status, code) {
