@@ -46,3 +46,14 @@ is shown as bot on read (`views_bot = views - views_human`). Author: Aziel Eliab
 The runtime does not exec into AZ-OS. The runtime FragGate `azos` `exec`, `shell`, and `lattice` refusal stays (REMAIN-OFF item 8). This is not the TemporalLock `/v1/lattice` route. Not mesh membership, not a second device, not a public ledger.
 
 Test: `node scripts/verify-tether.mjs` (uses `scripts/fixtures/azos-tether-vector.json`, copied from aziel-runtime `fixtures/azos-tether-vector.json`, signed with a public test-only seed).
+
+## AZ-LOCKSTEP-1.0 (shared design + contract with aziel-runtime)
+
+This leg is independent and optional. `vendor/lockstep/` is a byte-for-byte copy of aziel-runtime's
+design tokens, contract, and consumer check, pinned by SHA-256 in `LOCKSTEP.pin.json`.
+
+- `GET /v1/lockstep`: `agree` / `drift` / `absent` against the runtime over the `AZIEL_RUNTIME` binding. When the runtime is absent this leg keeps running standalone and shows every flag as false.
+- `GET /design/tokens.css`, `/design/tokens.json`: the shared design source, the same bytes as the runtime's.
+- `npm test` fails if a vendored file changed, a lock moved, a flag is true, the tether key, chains, or mesh differ from the contract, or a feature this leg claims in the contract's union stops answering. `npm run lockstep:remote` also compares the pin with runtime `main`.
+- To re-vendor after a runtime contract change, run `node scripts/lockstep-vendor.mjs <this checkout>` from an aziel-runtime checkout.
+- There is no GitHub workflow here. Adding one that runs `npm test` needs a token with `workflow` scope.

@@ -1,4 +1,9 @@
 import { stampHealth } from "./build-stamp.js";
+import { handleLockstepRoute, PINNED as LOCKSTEP_PINNED } from "./lockstep.js";
+/** The tether + mesh facts this leg holds locally; /v1/lockstep checks them against the shared contract. */
+function lockstepLocal(env) {
+  return { tether_pubkey: (env && env.RUNTIME_TETHER_PUBKEY) || null, lattice_names: ["primary", "secondary"], mesh_path: "/v1/mesh", mesh_spec: LOCKSTEP_PINNED.contract.mesh.spec };
+}
 import { handleMeshApi } from "./mesh.js";
 import { handleRuntime } from "./runtime.js";
 import { AzosNewsCopy, handleNewsCopyRoute, newsCopyCall, localMapRead } from "./news-copy.js";
@@ -609,6 +614,20 @@ export default {
   ...inner,
   async fetch(request, env, ctx) {
     const path = new URL(request.url).pathname.replace(/\/+$/, "") || "/";
+    // AZ-LOCKSTEP-1.0: shared design + contract, pinned by hash; runtime optional (absent -> standalone, flags false).
+    const lockstep = await handleLockstepRoute(request, env, { leg: "azos", local: lockstepLocal(env) });
+    if (lockstep) return lockstep;
+    const { handleUnionRoute } = await import("./union.js");
+    const union = await handleUnionRoute(request, env);
+    if (union) {
+      if (union.status < 400) return union;
+      // Union refusals (413/501/403/503) get the same peer refusal receipt as every other coded refusal here.
+      const { withPeerRefusalReceipt } = await import("./refusal-peer.js");
+      // When the runtime itself is absent or slow, the seal goes to the background (receipt_pending) so the
+      // refusal still returns within the proxy timeout.
+      const runtimeDown = union.headers.get("X-Leg-Runtime") === "down";
+      return withPeerRefusalReceipt(request, union, env, { surface: "azos", ctx, budgetMs: runtimeDown ? 0 : undefined, tetherChain: null });
+    }
     if (path === "/v1/refusals" && (request.method === "GET" || request.method === "HEAD")) {
       // AZRT-REFUSAL-RECEIPT-1.0 addendum: this tracker's refusal receipts on the shared refusals chain,
       // with the tip this tracker stored from the signed tether (TETHER-REFUSALS-1.0) compared.
