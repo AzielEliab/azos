@@ -72,6 +72,10 @@ assert.equal(bucketSeq(9), "<10"); assert.equal(bucketSeq(120), "120+"); assert.
 // IPv6 is cut to its /64 before hashing (same rule as the runtime).
 assert.equal(agentIpKey("2001:db8:1:2:aaaa::1"), "2001:db8:1:2::/64");
 assert.equal(agentIpKey("192.0.2.1"), "192.0.2.1");
+// IPv4-mapped IPv6 is the IPv4 it carries (same rule as the runtime): mapped visitors never share a bucket.
+assert.equal(agentIpKey("::ffff:192.0.2.1"), "192.0.2.1");
+assert.equal(agentIpKey("::ffff:c000:201"), "192.0.2.1");
+assert.ok(agentIpKey("::ffff:192.0.2.1") !== agentIpKey("::ffff:192.0.2.2"));
 const v6a = await visitorIpHash(new Request("https://x/", { headers: { "cf-connecting-ip": "2001:db8:1:2:aaaa::1" } }));
 const v6b = await visitorIpHash(new Request("https://x/", { headers: { "cf-connecting-ip": "2001:db8:1:2:bbbb:cccc:dddd:9" } }));
 const v6c = await visitorIpHash(new Request("https://x/", { headers: { "cf-connecting-ip": "2001:db8:1:3::1" } }));
