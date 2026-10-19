@@ -1,3 +1,4 @@
+import { DESIGN_CSS } from "./lockstep.js";
 import { HINTS_HTML } from "./hints.js";
 import { agentsPanelHtml } from "./agents-view.js";
 /**
@@ -208,23 +209,24 @@ export function renderHomepage(stats) {
   <script type="application/ld+json">${ld}</script>
   <!-- gitbaby-seo -->
   <style>
+    ${DESIGN_CSS}
+    /* AZ-DESIGN-TOKENS-1.0: local names kept, values from the shared runtime tokens. */
     :root {
-      color-scheme: dark;
-      --bg: #070705;
-      --panel: #10100c;
-      --panel2: #16140e;
-      --ink: #f4ecd0;
-      --muted: #a89868;
-      --line: #3a3018;
-      --gold: #e4b84a;
-      --gold2: #f3d57a;
-      --pass: #7dcf9a;
-      --fail: #e07a7a;
+      --bg: var(--az-bg);
+      --panel: var(--az-card);
+      --panel2: var(--az-warm-panel);
+      --ink: var(--az-ink);
+      --muted: var(--az-muted);
+      --line: var(--az-warm-line);
+      --gold: var(--az-gold);
+      --gold2: var(--az-gold-ink);
+      --pass: var(--az-ok);
+      --fail: var(--az-fail);
       --shadow: 0 18px 48px #000a;
     }
     * { box-sizing: border-box; }
     html, body { margin: 0; min-height: 100%; background: var(--bg); color: var(--ink);
-      font: 16px/1.45 "Segoe UI", ui-sans-serif, system-ui, sans-serif; }
+      font: var(--az-type-body); }
     body {
       background:
         radial-gradient(900px 520px at 12% -10%, #3a2a10 0%, transparent 55%),
@@ -242,7 +244,7 @@ export function renderHomepage(stats) {
     .motto { color: var(--muted); margin: .2rem 0 0; }
     .meta-row { display: flex; flex-wrap: wrap; gap: .45rem .8rem; color: var(--muted); font-size: .86rem; margin-top: .35rem; }
     .banners { display: grid; gap: .65rem; margin: 0 0 1.1rem; }
-    .banner { border: 1px solid #5c4a1a; background: #1a1508; color: #f0d78c; padding: .75rem .9rem; border-radius: 8px; font-size: .92rem; }
+    .banner { border: 1px solid #5c4a1a; background: #1a1508; color: var(--az-gold-ink); padding: .75rem .9rem; border-radius: 8px; font-size: .92rem; }
     .banner.limit { border-color: #4a4030; background: #12100c; color: #d8c89a; }
     .grid { display: grid; grid-template-columns: minmax(17rem, 22rem) 1fr; gap: 1rem; align-items: start; }
     @media (max-width: 860px) { .grid { grid-template-columns: 1fr; } header.top { align-items: flex-start; } }
@@ -254,11 +256,11 @@ export function renderHomepage(stats) {
     .btns { display: grid; grid-template-columns: 1fr 1fr; gap: .65rem; margin: 0 0 .75rem; }
     @media (max-width: 520px) { .btns { grid-template-columns: 1fr; } }
     a.btn, button.btn { display: block; width: 100%; box-sizing: border-box; text-align: center; font: inherit; font-size: 1.05rem; font-weight: 750; padding: .85rem 1rem; border-radius: 10px; border: 0; cursor: pointer; text-decoration: none; }
-    a.btn.primary { background: var(--ink); color: #14110a; }
-    button.btn.install { background: var(--gold); color: #14110a; }
+    a.btn.primary { background: var(--ink); color: var(--az-warm-panel); }
+    button.btn.install { background: var(--gold); color: var(--az-warm-panel); }
     button.btn.install.copied { background: var(--pass); color: #0e1014; }
     a.btn.ghost, button.btn.ghost { background: transparent; color: var(--gold2); border: 1px solid var(--line); }
-    pre.cmd { background: #070705; padding: .7rem .8rem; overflow: auto; border-radius: 8px; font-size: .78rem; border: 1px solid var(--line); color: #e8d9a0; }
+    pre.cmd { background: var(--az-bg); padding: .7rem .8rem; overflow: auto; border-radius: 8px; font-size: .78rem; border: 1px solid var(--line); color: #e8d9a0; }
     .kid { font-size: .95rem; margin: 0 0 .75rem; color: #ddd3b0; }
     .iso { font-size: .8rem; color: #8a7a4e; margin: .7rem 0 0; }
     .tabs { display: flex; flex-wrap: wrap; gap: .35rem; margin: 0 0 .85rem; }
@@ -294,7 +296,7 @@ export function renderHomepage(stats) {
     #meshStrip .live { color: var(--ink); }
     #meshStrip .live b { color: var(--gold); font-size: 1.35rem; margin-right: .35rem; }
     #meshStrip .rollup b { color: var(--gold2); }
-    #meshStrip button { font: 700 .78rem/1 ui-monospace, Menlo, Consolas, monospace; height: 2rem; padding: 0 .75rem; border-radius: 8px; background: #10100c; color: var(--ink); border: 1px solid var(--gold); cursor: pointer; }
+    #meshStrip button { font: 700 .78rem/1 ui-monospace, Menlo, Consolas, monospace; height: 2rem; padding: 0 .75rem; border-radius: 8px; background: var(--az-card); color: var(--ink); border: 1px solid var(--gold); cursor: pointer; }
     #meshStrip button:hover { background: #2a230e; color: var(--gold2); }
     #meshStrip input { width: 10rem; padding: .4rem .55rem; border: 1px solid var(--gold); border-radius: 8px; background: #0a0906; color: var(--ink); font: inherit; }
     #meshProducts { flex-basis: 100%; margin: 0; }

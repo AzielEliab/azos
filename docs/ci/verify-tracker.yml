@@ -1,0 +1,29 @@
+name: verify-tracker
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: workers/download-tracker
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: verify scripts
+        env:
+          SURFACE: azos
+        run: |
+          set -e
+          for f in scripts/verify-*.mjs; do
+            case "$f" in
+              scripts/verify-human-bot.mjs) echo "SKIP $f: stale copy from the whitestone tracker (expects project 'whitestone'); fails on main too"; continue;;
+            esac
+            echo "== $f"; node "$f"
+          done
