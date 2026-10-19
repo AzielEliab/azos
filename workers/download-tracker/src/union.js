@@ -8,6 +8,11 @@
  *   receipts tip, memory, qns, uses, update manifest, catalog, about, 4DMap globe, MCP install cards
  *                            read through the runtime over AZIEL_RUNTIME. FragGate stays the one door: the
  *                            call runs on the runtime, never here. Absent -> 503 LEG-RUNTIME-ABSENT.
+ * Proxy reads time out after LEG_RUNTIME_TIMEOUT_MS (default 4000) with 503 LEG-RUNTIME-TIMEOUT and abort the upstream
+ * request; the caller IP rides as X-Azrt-Client-IP (LEG-CLIENT-IP-1.0; the runtime trusts it over the binding only).
+ * Known limit (follow-up): the tether tip write is a KV read-modify-write, not compare-and-set. Concurrent valid
+ * packets or a stale KV read can store an older tip; the next push re-links from the runtime tip (TETHER-LINK on a
+ * fork). Same as AZ-OS src/tether.js, kept byte for byte.
  * Nothing here flips a live flag. Author: Aziel Eliab. SPDX-License-Identifier: Apache-2.0
  */
 import { runtimeBinding } from "./lockstep.js";
@@ -30,17 +35,50 @@ function runtimeOrigin(env) {
   return raw ? String(raw).replace(/\/+$/, "") : "https://aziel-runtime.vibelock.workers.dev";
 }
 
+/** Proxy timeout (ms). LEG_RUNTIME_TIMEOUT_MS clamps to 250..10000; default 4000. */
+export function runtimeTimeoutMs(env) {
+  const n = Number(env && env.LEG_RUNTIME_TIMEOUT_MS);
+  return Number.isFinite(n) && n > 0 ? Math.min(10000, Math.max(250, Math.floor(n))) : 4000;
+}
+
+/** Read the body with an early abort: Content-Length first, then a streamed byte count. null = over the cap. */
+async function cappedBody(request) {
+  const declared = Number(request.headers.get("content-length"));
+  if (Number.isFinite(declared) && declared > MAX_BODY) return null;
+  if (!request.body) return new Uint8Array(0);
+  const reader = request.body.getReader();
+  const parts = [];
+  let total = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    total += value.byteLength;
+    if (total > MAX_BODY) {
+      try { await reader.cancel("LEG-BODY-TOO-LARGE"); } catch {}
+      return null;
+    }
+    parts.push(value);
+  }
+  const out = new Uint8Array(total);
+  let at = 0;
+  for (const p of parts) { out.set(p, at); at += p.byteLength; }
+  return out;
+}
+
 async function viaRuntime(request, env, path) {
   const bind = runtimeBinding(env);
   const absent = { ok: false, code: "LEG-RUNTIME-ABSENT", leg: LEG, path, standalone: true, plain: "The runtime is not reachable from AZ-OS right now. Nothing ran and nothing was shown as live.", ...honest };
-  const refuse = (b, s) => new Response(JSON.stringify(b, null, 2), { status: s, headers: H });
+  const refuse = (b, s) => new Response(JSON.stringify(b, null, 2), { status: s, headers: b.code === "LEG-RUNTIME-ABSENT" || b.code === "LEG-RUNTIME-TIMEOUT" ? { ...H, "X-Leg-Runtime": "down" } : H });
   if (!bind) return refuse(absent, 503);
   let body;
   if (request.method === "POST") {
-    const buf = await request.arrayBuffer();
-    if (buf.byteLength > MAX_BODY) return refuse({ ok: false, code: "LEG-BODY-TOO-LARGE", leg: LEG, ...honest }, 413);
-    body = buf;
+    body = await cappedBody(request);
+    if (body === null) return refuse({ ok: false, code: "LEG-BODY-TOO-LARGE", leg: LEG, limit_bytes: MAX_BODY, written: false, ...honest }, 413);
   }
+  const ms = runtimeTimeoutMs(env);
+  const ctl = new AbortController();
+  let timer;
+  const late = new Promise((r) => { timer = setTimeout(() => { ctl.abort(); r(null); }, ms); });
   try {
     const u = new URL(request.url);
     const headers = { accept: request.headers.get("accept") || "*/*" };
@@ -48,12 +86,22 @@ async function viaRuntime(request, env, path) {
     if (ct) headers["content-type"] = ct;
     const auth = request.headers.get("authorization");
     if (auth) headers.authorization = auth;
-    const r = await bind.fetch(new Request("https://aziel-runtime.internal" + path + u.search, { method: request.method === "HEAD" ? "GET" : request.method, headers, body }));
+    // LEG-CLIENT-IP-1.0: name the caller so the runtime keys its rate limits per client (trusted over the binding only).
+    const ip = request.headers.get("CF-Connecting-IP");
+    if (ip && ip.trim()) headers["X-Azrt-Client-IP"] = ip.trim();
+    const call = bind.fetch(new Request("https://aziel-runtime.internal" + path + u.search, { method: request.method === "HEAD" ? "GET" : request.method, headers, body, signal: ctl.signal }));
+    const r = await Promise.race([call, late]);
+    if (!r) {
+      call.catch(() => null);
+      return refuse({ ...absent, code: "LEG-RUNTIME-TIMEOUT", timeout_ms: ms, plain: `The runtime did not answer within ${ms} ms. Nothing was shown as live.` }, 503);
+    }
     const out = new Headers(r.headers);
     out.set("X-Served-Through", "AZIEL_RUNTIME");
     return new Response(request.method === "HEAD" ? null : r.body, { status: r.status, headers: out });
   } catch {
     return refuse(absent, 503);
+  } finally {
+    clearTimeout(timer);
   }
 }
 

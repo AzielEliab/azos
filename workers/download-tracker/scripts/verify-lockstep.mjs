@@ -30,6 +30,16 @@ ok((await hashOf(TOKENS)) === pin.tokens_sha256 && PINNED.tokens_sha256 === pin.
 ok((await sha256Hex(DESIGN_CSS)) === pin.css_sha256, "design css hash");
 ok((await sha256Hex(HINTS_HTML)) === pin.hints_sha256, "hints popup is the runtime's, byte for byte");
 
+// 1b. nothing host-specific in what this leg vendored: no private / link-local / loopback IPs, no interface names
+const PRIVATE_IP = /\b(?:10(?:\.\d{1,3}){3}|172\.(?:1[6-9]|2\d|3[01])(?:\.\d{1,3}){2}|192\.168(?:\.\d{1,3}){2}|169\.254(?:\.\d{1,3}){2}|127(?:\.\d{1,3}){3})\b|\b(?:fe80|fc[0-9a-f]{2}|fd[0-9a-f]{2}):[0-9a-f:]*/i;
+const IFACE = /\b(?:enp\d+s\d+|enx[0-9a-f]{12}|ens\d+|eno\d+|eth\d+|wlan\d+|wlp\d+s\d+|docker\d+|veth[0-9a-f]{4,}|br-[0-9a-f]{12}|virbr\d+|wg\d+|tailscale\d+|utun\d+)\b/;
+ok(PRIVATE_IP.test("LAN interface enp0s3 at 172.30.0.2") && IFACE.test("enp0s3") && PRIVATE_IP.test("fe80::1") && !PRIVATE_IP.test("203.0.113.9"), "host-data scan catches what it should");
+for (const file of Object.keys(pin.files)) {
+  const text = readFileSync(root + file, "utf8");
+  const ip = text.match(PRIVATE_IP), nic = text.match(IFACE);
+  ok(!ip && !nic, `${file} carries host-specific data: ${(ip && ip[0]) || (nic && nic[0])}`);
+}
+
 // 2. locks + flags
 const c = PINNED.contract;
 assert.deepEqual(c.locks, { softwares: 42, mcp_tools: 36, stub_op_count: 363, software_count: 33, health_count: 41 }); n++;
