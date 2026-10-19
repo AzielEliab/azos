@@ -57,8 +57,7 @@
       "whitestone": "Whitestone is worker-only and has no public door.",
       "smtp": "Public smtp_send stays refused.",
       "packet": "The packet path is not live.",
-      "alt": "The alternative internet is not live.",
-      "not_live": "An alternative internet is not live (alt_internet_live is false). A packet path is not live (packet_path_live is false). LAN interface enp0s3 at 172.30.0.2 is present on this machine and is not a second device. Wi-Fi hardware is absent (QNM-RADIO-ABSENT). Bluetooth hardware is absent (QNM-RADIO-ABSENT). RF hardware is absent (QNM-RADIO-ABSENT). Photon camera or flash is absent (QNM-RADIO-ABSENT). This machine id is d8133c37c91f4c2db6f92572eab59378. A second device stays false while both ends share that id. Still missing: a packet that leaves this machine and arrives on a different machine id. A same-machine mesh frame does not count. Cap-7 and .aziel stay names, not a public registrar and not ICANN or BGP. WireGuard, OpenVPN, an L3 exit pool, kernel UDP, and TUN/TAP stay SLOT. Public mail send, the kernel, and boot stay not live. The public door stays FG-STUB. Isolation is single-node security-awareness. Phoenix is a local wait and re-seal. That is not a loopback fence."
+      "alt": "The alternative internet is not live."
     },
     "doors": {
       "door": "fraggate",
@@ -865,7 +864,7 @@
     },
     "path": "/v1/lockstep"
   },
-  "contract_sha256": "4f26be11a52ba4b9b44ee7e8ebbe16fde90f19f6cd03f4c602499c8f2ddd22cf",
+  "contract_sha256": "0ec8eaf51724feb1c1c362dac0200272c84667838cbca9a2e862fb02021122e6",
   "tokens_sha256": "0515818b4de04a624c15d9e603ebdf20e1217a57115957ce434ab93ad88e2786",
   "css_sha256": "496be77f2dd44d295d8ef33936c977a2c9d68237b4d1086abae0c854a80f13ff",
   "hints_sha256": "ae9c3f9c3c7943c27824292b0193fa5784913ca059057a02e5b1c8e8ccf34ee8"
