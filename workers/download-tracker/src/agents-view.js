@@ -7,7 +7,8 @@
  *                             proved agent or owner come back.
  * Every runtime call has a timeout (AGENTS_RUNTIME_TIMEOUT_MS, 250..10000, default 4000) and answers
  * AGENTS-RUNTIME-TIMEOUT when it runs out, never a hang. The visitor's IP is forwarded only as a hash
- * (x-azrt-visitor-ip-h = sha256("agent-ip|"+ip)[:32], the runtime's own spec) so the runtime's
+ * (x-azrt-visitor-ip-h = sha256("agent-ip|"+agentIpKey(ip))[:32], the runtime's own spec: IPv6 is cut
+ * to its /64 first) so the runtime's
  * limiters key per visitor instead of one shared "binding" bucket; the raw IP never leaves here.
  * Nothing here writes, signs, or holds a key. A body with a private-key-shaped field is refused here and
  * never forwarded. Fails closed: no binding or an unreachable runtime gives ok:false and no claims.
@@ -28,11 +29,31 @@ export function agentsTimeoutMs(env) {
   return Math.min(10000, Math.max(250, Math.floor(v)));
 }
 
-/** sha256("agent-ip|"+ip)[:32] of the visitor's cf-connecting-ip, or null. Same spec as the runtime. */
+/** IPv4 as is; IPv6 cut to its /64 (same rule as the runtime's agentIpKey). */
+export function agentIpKey(ip) {
+  const raw = String(ip || "").trim().toLowerCase().replace(/^\[|\]$/g, "").split("%")[0];
+  if (!raw.includes(":")) return raw;
+  const [head, tail] = raw.includes("::") ? raw.split("::") : [raw, null];
+  const h = head ? head.split(":") : [];
+  const t = tail ? tail.split(":") : [];
+  if (t.length && t[t.length - 1].includes(".")) t.splice(t.length - 1, 1, "0", "0");
+  const fill = tail === null ? [] : Array(Math.max(0, 8 - h.length - t.length)).fill("0");
+  const full = [...h, ...fill, ...t].slice(0, 8).map((x) => (parseInt(x || "0", 16) || 0).toString(16));
+  return full.slice(0, 4).join(":") + "::/64";
+}
+
+/** Row numbers are bucketed in public like the runtime's counts: under 10 is "<10", else "N0+". */
+export function bucketSeq(n) {
+  if (typeof n === "string") return n;
+  const x = Math.max(0, Math.floor(Number(n) || 0));
+  return x < 10 ? "<10" : `${Math.floor(x / 10) * 10}+`;
+}
+
+/** sha256("agent-ip|"+agentIpKey(ip))[:32] of the visitor's cf-connecting-ip, or null. Same spec as the runtime. */
 export async function visitorIpHash(request) {
   const ip = request && request.headers ? String(request.headers.get("cf-connecting-ip") || "").trim() : "";
   if (!ip) return null;
-  const d = await crypto.subtle.digest("SHA-256", new TextEncoder().encode("agent-ip|" + ip));
+  const d = await crypto.subtle.digest("SHA-256", new TextEncoder().encode("agent-ip|" + agentIpKey(ip)));
   return [...new Uint8Array(d)].map((b) => b.toString(16).padStart(2, "0")).join("").slice(0, 32);
 }
 
@@ -66,7 +87,9 @@ export async function agentsPublic(env, { surface, localTip = null } = {}) {
   if (got.timeout) return { status: 503, body: { ok: false, code: "AGENTS-RUNTIME-TIMEOUT", timeout_ms: ms, spec: AGENTS_SPEC, surface, fail_closed: true, ...HONEST } };
   const j = got.r && got.r.ok ? got.j : null;
   if (!j || !j.ok) return { status: 503, body: { ok: false, code: "AGENTS-RUNTIME-UNREACHABLE", spec: AGENTS_SPEC, surface, fail_closed: true, ...HONEST } };
-  const rt = j.tip ? { seq: j.tip.seq, primary: j.tip.lattice && j.tip.lattice.primary, secondary: j.tip.lattice && j.tip.lattice.secondary } : null;
+  // No exact row numbers in public (AZBot #304 N5): the runtime sends its hourly tip with a bucketed seq,
+  // and this side's tether copy is shown by hash only.
+  const rt = j.tip ? { seq: bucketSeq(j.tip.seq), primary: j.tip.lattice && j.tip.lattice.primary, secondary: j.tip.lattice && j.tip.lattice.secondary } : null;
   const tip_state = localTip && rt ? (localTip.primary === rt.primary ? "agree" : "lagging") : (localTip === null ? "no-local-copy" : "unknown");
   return {
     status: 200,
@@ -74,7 +97,7 @@ export async function agentsPublic(env, { surface, localTip = null } = {}) {
       ok: true, spec: AGENTS_SPEC, surface, chain: "agentcomms", scope: "public",
       total: j.total, by_kind: j.by_kind, e2e_verified_observed: j.e2e_verified_observed,
       counts: j.counts || "bucketed", k_min: j.k_min, refresh: j.refresh || "hourly", as_of: j.as_of || null,
-      runtime_tip: rt, local_tip: localTip, tip_state,
+      runtime_tip: rt, local_tip: localTip ? { primary: localTip.primary || null, secondary: localTip.secondary || null, seq: localTip.seq == null ? null : bucketSeq(localTip.seq), verified: localTip.verified === true } : null, tip_state,
       verify: 'chainlock_verify {"c":"agentcomms"} on aziel-runtime', owner_view: "POST a signed agent-view statement here (scripts/agent-subnet-client.mjs view <agent> --print)",
       source: AGENTS_RUNTIME + "/v1/mesh/agents/receipts", ...HONEST,
     },

@@ -1,0 +1,26 @@
+# Proposed CI (staged in docs/ci, not active): AGENT-SUBNET-1.0 viewer checks via npm test.
+# To turn it on, copy this file to .github/workflows/ (needs a token with workflow scope).
+# Least privilege: contents: read. No secrets, no deploy. Author: Aziel Eliab.
+name: verify-agents-view
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: workers/download-tracker
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: npm test (verify-agents-view)
+        env:
+          SURFACE: azos
+        run: npm test

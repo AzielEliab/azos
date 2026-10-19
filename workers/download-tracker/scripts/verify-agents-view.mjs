@@ -3,7 +3,7 @@
  * private keys refused and never forwarded, fail closed without the binding. Author: Aziel Eliab.
  */
 import assert from "node:assert/strict";
-import { agentsPublic, agentsScoped, agentsPanelHtml, agentsTimeoutMs, visitorIpHash } from "../src/agents-view.js";
+import { agentsPublic, agentsScoped, agentsPanelHtml, agentsTimeoutMs, visitorIpHash, agentIpKey, bucketSeq } from "../src/agents-view.js";
 import { HINTS_HTML } from "../src/hints.js";
 const SURFACE = process.env.SURFACE || "azos";
 const calls = [];
@@ -65,4 +65,15 @@ assert.ok(!("x-azrt-visitor-ip-h" in seen[0].h)); n++;
 assert.ok(/designed to/.test(html) && /hashed, not encrypted/.test(html) && /live: false/.test(html));
 assert.ok(!/only you can open/i.test(html + HINTS_HTML));
 assert.ok(HINTS_HTML.includes("This is designed to let your agents talk to other agents. Messages are designed to be sealed and signed, with a hash-only receipt (hashed, not encrypted). Nothing links without your OK. Not live yet.")); n++;
+// No exact row numbers in public (runtime #304 N5): runtime and local tips show a bucketed seq.
+r = await agentsPublic({ AZIEL_RUNTIME: bind }, { surface: SURFACE, localTip: { seq: 37, primary: "e".repeat(64), secondary: "f".repeat(64), verified: true } });
+assert.equal(r.body.runtime_tip.seq, "<10"); assert.equal(r.body.local_tip.seq, "30+"); assert.equal(r.body.local_tip.primary, "e".repeat(64));
+assert.equal(bucketSeq(9), "<10"); assert.equal(bucketSeq(120), "120+"); assert.equal(bucketSeq("<10"), "<10"); n++;
+// IPv6 is cut to its /64 before hashing (same rule as the runtime).
+assert.equal(agentIpKey("2001:db8:1:2:aaaa::1"), "2001:db8:1:2::/64");
+assert.equal(agentIpKey("192.0.2.1"), "192.0.2.1");
+const v6a = await visitorIpHash(new Request("https://x/", { headers: { "cf-connecting-ip": "2001:db8:1:2:aaaa::1" } }));
+const v6b = await visitorIpHash(new Request("https://x/", { headers: { "cf-connecting-ip": "2001:db8:1:2:bbbb:cccc:dddd:9" } }));
+const v6c = await visitorIpHash(new Request("https://x/", { headers: { "cf-connecting-ip": "2001:db8:1:3::1" } }));
+assert.equal(v6a, v6b); assert.notEqual(v6a, v6c); n++;
 console.log(`ok agents view (${SURFACE}): ${n} checks`);
