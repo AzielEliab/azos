@@ -609,6 +609,26 @@ export default {
   ...inner,
   async fetch(request, env, ctx) {
     const path = new URL(request.url).pathname.replace(/\/+$/, "") || "/";
-    return stampHealth(path, request, await inner.fetch(request, env, ctx), env);
+    if (path === "/v1/refusals" && (request.method === "GET" || request.method === "HEAD")) {
+      // AZRT-REFUSAL-RECEIPT-1.0 addendum: this tracker's refusal receipts on the shared refusals chain,
+      // with the tip this tracker stored from the signed tether (TETHER-REFUSALS-1.0) compared.
+      const { peerRefusals } = await import("./refusal-peer.js");
+      const { tetherState } = await import("./tether.js");
+      const st = await tetherState(env).catch(() => null);
+      const row = st && Array.isArray(st.chains) ? st.chains.find((c) => c.chain === "refusals") : null;
+      const localTip = row && row.tips ? { seq: row.rows, primary: row.tips.primary, secondary: row.tips.secondary, verified: row.verified === true, updated_at: row.updated_at } : null;
+      const out = await peerRefusals(env, { surface: "azos", localTip });
+      return new Response(request.method === "HEAD" ? null : JSON.stringify(out.body, null, 2), { status: out.status, headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store", "Access-Control-Allow-Origin": "*" } });
+    }
+    // A tether packet for the refusals chain itself is never re-sealed (no feedback loop).
+    let tetherChain = null;
+    if (path === "/v1/tether/tip" && request.method === "POST") {
+      try { const pk = await request.clone().json(); tetherChain = pk && typeof pk.chain === "string" ? pk.chain : null; } catch { tetherChain = null; }
+    }
+    const res = await stampHealth(path, request, await inner.fetch(request, env, ctx), env);
+    if (!res || res.status < 400) return res;
+    // AZRT-REFUSAL-RECEIPT-1.0 addendum (RIB-018 gaps): coded non-auth refusals sealed on the shared chain.
+    const { withPeerRefusalReceipt } = await import("./refusal-peer.js");
+    return withPeerRefusalReceipt(request, res, env, { surface: "azos", ctx, tetherChain });
   },
 };
