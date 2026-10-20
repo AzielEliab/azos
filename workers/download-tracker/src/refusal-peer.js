@@ -42,6 +42,8 @@ export function isAuthRefusal(status, code) {
 export async function withPeerRefusalReceipt(request, response, env, { surface, ctx, budgetMs = REFUSAL_PEER_BUDGET_MS, tetherChain = null } = {}) {
   try {
     if (!response || Number(response.status) < 400 || Number(response.status) === 429) return response;
+    // R5: a refusal proxied from the runtime is the runtime's own. It seals its refusals itself; never seal twice.
+    if (response.headers.get("X-Served-Through") === "AZIEL_RUNTIME" || response.headers.has("X-Azrt-Refusal-Receipt")) return response;
     const method = String((request && request.method) || "GET").toUpperCase();
     if (method === "OPTIONS" || method === "HEAD") return response;
     const ct = response.headers.get("content-type") || "";

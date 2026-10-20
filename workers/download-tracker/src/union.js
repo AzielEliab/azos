@@ -78,7 +78,10 @@ async function viaRuntime(request, env, path) {
   const ms = runtimeTimeoutMs(env);
   const ctl = new AbortController();
   let timer;
-  const late = new Promise((r) => { timer = setTimeout(() => { ctl.abort(); r(null); }, ms); });
+  let timedOut = false;
+  // R5: one deadline covers headers AND body. A runtime that sends headers then stalls the body is a timeout too.
+  const late = new Promise((r) => { timer = setTimeout(() => { timedOut = true; ctl.abort(); r(null); }, ms); });
+  const timeoutResponse = () => refuse({ ...absent, code: "LEG-RUNTIME-TIMEOUT", timeout_ms: ms, plain: `The runtime did not answer within ${ms} ms. Nothing was shown as live.` }, 503);
   try {
     const u = new URL(request.url);
     const headers = { accept: request.headers.get("accept") || "*/*" };
@@ -93,13 +96,21 @@ async function viaRuntime(request, env, path) {
     const r = await Promise.race([call, late]);
     if (!r) {
       call.catch(() => null);
-      return refuse({ ...absent, code: "LEG-RUNTIME-TIMEOUT", timeout_ms: ms, plain: `The runtime did not answer within ${ms} ms. Nothing was shown as live.` }, 503);
+      return timeoutResponse();
+    }
+    let out_body = null;
+    if (request.method !== "HEAD") {
+      const read = r.arrayBuffer().then((b) => ({ b }), () => null);
+      const got = await Promise.race([read, late]);
+      if (!got) return timedOut ? timeoutResponse() : refuse(absent, 503);
+      out_body = got.b;
     }
     const out = new Headers(r.headers);
     out.set("X-Served-Through", "AZIEL_RUNTIME");
-    return new Response(request.method === "HEAD" ? null : r.body, { status: r.status, headers: out });
+    out.delete("content-length");
+    return new Response(out_body, { status: r.status, headers: out });
   } catch {
-    return refuse(absent, 503);
+    return timedOut ? timeoutResponse() : refuse(absent, 503);
   } finally {
     clearTimeout(timer);
   }

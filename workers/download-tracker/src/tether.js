@@ -226,8 +226,17 @@ export async function receiveTether(request, env, now = new Date().toISOString()
     public_key: packet.public_key,
     spec: TETHER_SPEC,
   };
+  // R5 compare-and-set: the stored tip must still be the one this packet was checked against. KV has no atomic
+  // CAS, so this is a re-read guard plus a read-back check; it narrows the race to the KV write itself and
+  // reports a lost race as 409 TETHER-CAS-CONFLICT instead of silently overwriting a newer tip. Retry to recover.
+  const tipOf = (s) => (s && s.tips ? `${s.tips.primary}|${s.tips.secondary}|${s.rows}` : "none");
+  const conflict = () => refuse("TETHER-CAS-CONFLICT", "The stored tip changed while this packet was checked. Nothing was overwritten; resend.", 409);
+  const before = await readJsonKv(kv, stateKey(chain));
+  if (tipOf(before) !== tipOf(stored)) return conflict();
   for (const secondary of checked.offline) await kv.put(offKey(chain, secondary), now);
   await kv.put(stateKey(chain), JSON.stringify(next));
+  const after = await readJsonKv(kv, stateKey(chain));
+  if (tipOf(after) !== tipOf(next)) return conflict();
   const index = (await readJsonKv(kv, INDEX_KEY)) || [];
   if (!index.includes(chain)) {
     index.push(chain);

@@ -4,7 +4,7 @@
   },
   "type": "module",
   "scripts": {
-    "test": "node scripts/verify-build-stamp.mjs && node scripts/verify-checkpoint-copy.mjs && node scripts/verify-join-flags.mjs && node scripts/verify-map-copy.mjs && node scripts/verify-mesh-kernel.mjs && node scripts/verify-news-copy.mjs && node scripts/verify-newsmap-cache.mjs && node scripts/verify-newsmap-door.mjs && node scripts/verify-prefab-flags.mjs && node scripts/verify-refusal-peer.mjs && node scripts/verify-runtime-sync.mjs && node scripts/verify-tether.mjs && node scripts/verify-union-proxy.mjs && node scripts/verify-lockstep.mjs",
+    "test": "node scripts/verify-r5-hardening.mjs && node scripts/verify-build-stamp.mjs && node scripts/verify-checkpoint-copy.mjs && node scripts/verify-join-flags.mjs && node scripts/verify-map-copy.mjs && node scripts/verify-mesh-kernel.mjs && node scripts/verify-news-copy.mjs && node scripts/verify-newsmap-cache.mjs && node scripts/verify-newsmap-door.mjs && node scripts/verify-prefab-flags.mjs && node scripts/verify-refusal-peer.mjs && node scripts/verify-runtime-sync.mjs && node scripts/verify-tether.mjs && node scripts/verify-union-proxy.mjs && node scripts/verify-lockstep.mjs",
     "lockstep:remote": "LOCKSTEP_REMOTE=1 node scripts/verify-lockstep.mjs",
     "test:human-bot": "node scripts/verify-human-bot.mjs"
   }
