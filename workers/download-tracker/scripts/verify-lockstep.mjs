@@ -31,7 +31,7 @@ ok((await sha256Hex(DESIGN_CSS)) === pin.css_sha256, "design css hash");
 ok((await sha256Hex(HINTS_HTML)) === pin.hints_sha256, "hints popup is the runtime's, byte for byte");
 
 // 1b. nothing host-specific in what this leg vendored: no private / link-local / loopback IPs, no interface names
-const PRIVATE_IP = /\b(?:10(?:\.\d{1,3}){3}|172\.(?:1[6-9]|2\d|3[01])(?:\.\d{1,3}){2}|192\.168(?:\.\d{1,3}){2}|169\.254(?:\.\d{1,3}){2}|127(?:\.\d{1,3}){3})\b|\b(?:fe80|fc[0-9a-f]{2}|fd[0-9a-f]{2}):[0-9a-f:]*/i;
+const PRIVATE_IP = /\b(?:10(?:\.\d{1,3}){3}|172\.(?:1[6-9]|2\d|3[01])(?:\.\d{1,3}){2}|192\.168(?:\.\d{1,3}){2}|169\.254(?:\.\d{1,3}){2}|127(?:\.\d{1,3}){3}|100\.(?:6[4-9]|[7-9]\d|1[01]\d|12[0-7])(?:\.\d{1,3}){2})\b|\b(?:fe[89ab][0-9a-f]|fc[0-9a-f]{2}|fd[0-9a-f]{2}):[0-9a-f:]*|(?<![0-9a-z:])::1(?![0-9a-z:.])/i; // R5: + 100.64/10, ::1, fe80::/10 (same as runtime lockstep-hostscan)
 const IFACE = /\b(?:enp\d+s\d+|enx[0-9a-f]{12}|ens\d+|eno\d+|eth\d+|wlan\d+|wlp\d+s\d+|docker\d+|veth[0-9a-f]{4,}|br-[0-9a-f]{12}|virbr\d+|wg\d+|tailscale\d+|utun\d+)\b/;
 ok(PRIVATE_IP.test("LAN interface enp0s3 at 172.30.0.2") && IFACE.test("enp0s3") && PRIVATE_IP.test("fe80::1") && !PRIVATE_IP.test("203.0.113.9"), "host-data scan catches what it should");
 for (const file of Object.keys(pin.files)) {
