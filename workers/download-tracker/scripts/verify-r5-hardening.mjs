@@ -109,4 +109,10 @@ const isPeer = (req) => new URL(req.url).hostname === "peer.aziel.internal";
   for (const bad of ["100.64.0.1", "100.127.1.1", "::1", "fe80::1", "febf::1"]) ok(PRIVATE_IP.test(` ${bad} `), `hostscan catches ${bad}`);
   for (const fine of ["100.63.0.1", "100.128.0.1", "2001:db8::1", "std::10"]) ok(!PRIVATE_IP.test(` ${fine} `), `hostscan passes ${fine}`);
 }
+// 6. vendored parsing scanner matches the runtime's and catches the inet_aton / mapped forms
+{
+  const { hostDataFinding } = await import(new URL("./lockstep-hostscan.mjs", import.meta.url).href);
+  for (const bad of ["0.0.0.0", "2130706433", "0177.0.0.1", "0x7f.1", "127.1", "::ffff:127.0.0.1", "::ffff:7f00:1"]) ok(hostDataFinding(` ${bad} `), `parsed scan catches ${bad}`);
+  for (const fine of ["8.8.8.8", "0x1234", "0.5", "2.0.0-rc1", "::ffff:8.8.8.8"]) ok(!hostDataFinding(` ${fine} `), `parsed scan passes ${fine}`);
+}
 console.log(`ok R5 lockstep hardening (${AZOS ? "azos" : "azinterface"}): ${n} checks`);
