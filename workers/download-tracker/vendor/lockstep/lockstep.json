@@ -868,12 +868,14 @@
             "method": "POST"
           },
           "azinterface": {
-            "status": "gap",
-            "route": null
+            "status": "proxied",
+            "route": "/v1/ark/account",
+            "method": "POST"
           },
           "azos": {
-            "status": "gap",
-            "route": null
+            "status": "proxied",
+            "route": "/v1/ark/account",
+            "method": "POST"
           }
         }
       }
@@ -885,7 +887,7 @@
     },
     "path": "/v1/lockstep"
   },
-  "contract_sha256": "9bdd180c50b1c1b95ef3e704a19d3e6ac18c9e435bc6943a5db810fc2a42d73c",
+  "contract_sha256": "e4e7dcecb01b5e56b3f0048addd33895230db5e9f7462a9fd88554427cc28192",
   "tokens_sha256": "0515818b4de04a624c15d9e603ebdf20e1217a57115957ce434ab93ad88e2786",
   "css_sha256": "496be77f2dd44d295d8ef33936c977a2c9d68237b4d1086abae0c854a80f13ff",
   "hints_sha256": "d22d202e1f46e936e8ed532375698f38e4c66c79ce122671e0a26aa432486dae"

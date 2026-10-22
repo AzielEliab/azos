@@ -6,6 +6,7 @@ function lockstepLocal(env) {
 }
 import { handleMeshApi } from "./mesh.js";
 import { handleRuntime } from "./runtime.js";
+import { handleArkAccount } from "./ark-door.js";
 import { AzosNewsCopy, handleNewsCopyRoute, newsCopyCall, localMapRead } from "./news-copy.js";
 import { registerLocalCopy } from "./newsmap-door.js";
 
@@ -439,6 +440,10 @@ const inner = {
     if (request.method === "OPTIONS") {
       return new Response(null, { status: 204, headers: corsHeaders() });
     }
+
+    // USER-SIGNIN-ARK-1.0 §12.3: hashed/signed login only; plaintext refused here.
+    const ark = await handleArkAccount(request, url, env, "azos");
+    if (ark) return json(ark.body, ark.status);
 
     if ((url.pathname === "/sigil.png" || url.pathname === "/sigil.png/") && (request.method === "GET" || request.method === "HEAD")) {
       return serveSigilPng(request, env, { head: request.method === "HEAD" });
