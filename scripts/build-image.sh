@@ -13,10 +13,8 @@ OUT=build/azos-boot; ROOT=$(mktemp -d)
 trap 'rm -rf "$ROOT"' EXIT
 mkdir -p "$OUT" "$ROOT"/{bin,proc,sys,dev,etc}
 cp "$BB" "$ROOT/bin/busybox"; cp image/init "$ROOT/init"; chmod 755 "$ROOT/init" "$ROOT/bin/busybox"
-# image_sha256 = sha256 of the sorted per-file manifest of the WHOLE initramfs tree (every file,
-# path + content hash), excluding only etc/azos-image-sha256 itself (a file cannot contain its own hash).
-( cd "$ROOT" && find . -type f ! -path ./etc/azos-image-sha256 -print0 | LC_ALL=C sort -z | xargs -0 sha256sum ) \
-  | sha256sum | cut -d' ' -f1 > "$ROOT/etc/azos-image-sha256"
+# image_sha256 = whole-initramfs manifest hash (type, mode, path, content hash / link target); see image-manifest.sh.
+scripts/image-manifest.sh "$ROOT" > "$ROOT/etc/azos-image-sha256"
 cp "$ROOT/etc/azos-image-sha256" "$OUT/image_sha256"
 ( cd "$ROOT" && find . -print0 | LC_ALL=C sort -z | cpio --null -o -H newc --reproducible 2>/dev/null ) | gzip -9n > "$OUT/initramfs.cpio.gz"
 cp "$KERNEL" "$OUT/vmlinuz"

@@ -17,6 +17,6 @@ case "$BODY" in *'"guardian":"absent"'*) ;; *) echo "AZOS-BOOT-SMOKE-FAIL: guard
 # Recompute image_sha256 over the whole unpacked initramfs on the host and compare with the sealed value.
 X=$(mktemp -d); trap 'rm -rf "$X"' EXIT
 ( cd "$X" && gzip -dc "$OLDPWD/$OUT/initramfs.cpio.gz" | cpio -id --quiet 2>/dev/null )
-WANT=$( cd "$X" && find . -type f ! -path ./etc/azos-image-sha256 -print0 | LC_ALL=C sort -z | xargs -0 sha256sum | sha256sum | cut -d' ' -f1 )
+WANT=$(scripts/image-manifest.sh "$X")
 case "$BODY" in *"\"image_sha256\":\"$WANT\""*) ;; *) echo "AZOS-BOOT-SMOKE-FAIL: image_sha256 != whole-initramfs hash $WANT"; exit 1;; esac
 echo "AZOS-BOOT-SMOKE-PASS (QEMU $ACCEL) $LINE"
