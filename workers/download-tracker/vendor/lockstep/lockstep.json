@@ -143,6 +143,7 @@
         "library",
         "learn",
         "refusals",
+        "agentcomms",
         "fraggate"
       ],
       "tether_chains": [
@@ -156,7 +157,8 @@
         "mesh",
         "library",
         "learn",
-        "refusals"
+        "refusals",
+        "agentcomms"
       ],
       "lattice_names": [
         "primary",
@@ -864,8 +866,8 @@
     },
     "path": "/v1/lockstep"
   },
-  "contract_sha256": "0ec8eaf51724feb1c1c362dac0200272c84667838cbca9a2e862fb02021122e6",
+  "contract_sha256": "5921cfd344c204280bdb40ef6cfee08a6f8314ba81c296dbec804d82fca811dd",
   "tokens_sha256": "0515818b4de04a624c15d9e603ebdf20e1217a57115957ce434ab93ad88e2786",
   "css_sha256": "496be77f2dd44d295d8ef33936c977a2c9d68237b4d1086abae0c854a80f13ff",
-  "hints_sha256": "ae9c3f9c3c7943c27824292b0193fa5784913ca059057a02e5b1c8e8ccf34ee8"
+  "hints_sha256": "d22d202e1f46e936e8ed532375698f38e4c66c79ce122671e0a26aa432486dae"
 }
