@@ -1,0 +1,16 @@
+#!/bin/busybox sh
+# AZOS-BOOT-1 init (PID 1). Minimal: proves the boot path only. Not the AZ-OS Python userspace yet.
+# Ethical guardian is always on. Host bash and SSH are OFF by default; this image ships neither.
+/bin/busybox --install -s /bin
+mount -t proc proc /proc
+mount -t sysfs sys /sys
+mount -t devtmpfs dev /dev 2>/dev/null
+echo "AZOS guardian: ON (refuses malware, worms and unethical use; FragGate is the single door)"
+echo "AZOS bash_host: OFF  ssh: OFF  vpn: OFF  hypervisor: OFF (not built; off until verified)"
+KREL=$(uname -r)
+IMG=$(cat /etc/azos-image-sha256 2>/dev/null || echo unknown)
+BODY="{\"author\":\"Aziel Eliab\",\"guardian\":\"on\",\"image_sha256\":\"$IMG\",\"kernel\":\"$KREL\",\"kind\":\"azos.boot\",\"signed\":false,\"spec\":\"AZOS-BOOT-1\",\"where\":\"qemu\"}"
+H=$(printf '%s' "$BODY" | sha256sum | cut -d' ' -f1)
+echo "AZOS-BOOT-1 sealed=$H $BODY"
+if grep -q azos.shell /proc/cmdline; then exec sh; fi
+poweroff -f

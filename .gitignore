@@ -9,3 +9,4 @@ node_modules/
 workers/download-tracker/node_modules/
 .wrangler
 .azos/
+build/
