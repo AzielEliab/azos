@@ -2,13 +2,14 @@
 
 Goal (Aziel): AZ-OS as a true ethical computing OS at the runtime, bootstrap and OS levels:
 kernel, bootloader, hypervisor, operating system, VPN, host bash and SSH.
-**Never malware, never worms.** The ethical guardian is always on and refuses unethical use.
+**Never malware, never worms.** The ethical guardian is the goal (capability 4). Until it is built and
+runs in the image, the boot image prints and seals `guardian: absent`, never `on`.
 FragGate stays the single door. Host bash and SSH stay **OFF by default** until verified.
 Every action gets a sealed (not signed) receipt. Nothing is called live until code and tests prove it.
 
 | # | Capability | PR | Proof required before any "works" claim | Status |
 |---|---|---|---|---|
-| 1 | Bootable image (kernel + initramfs, PID 1 init) | this PR | `scripts/boot-smoke.sh` sees a sealed `AZOS-BOOT-1` line on QEMU serial | **boots in QEMU** (tcg); not hardware |
+| 1 | Bootable image (kernel + initramfs, PID 1 init) | this PR | `scripts/boot-smoke.sh` sees a sealed `AZOS-BOOT-1` line on QEMU serial | **boots in QEMU** (tcg); not hardware. Seals `guardian:"absent"`; no shell escape (no `azos.shell`, PID 1 only powers off); `image_sha256` = sha256 of the sorted per-file manifest of the whole initramfs (minus the hash file itself), re-checked on the host by boot-smoke |
 | 2 | Bootloader (GRUB/limine ISO + UEFI) | next | ISO boots in QEMU BIOS and OVMF UEFI, same AZOS-BOOT-1 line | not built |
 | 3 | OS userspace (AZ-OS Python as first service after PID 1, receipts to disk) | next | boot shows AZ-OS service up + first ChainLock-shaped receipt; parity vectors (azos #42) pass in-image | not built |
 | 4 | Guardian in the boot path (refusal gate before any service) | next | in-image refusal tests: malware/worm/self-propagation requests refused with sealed refusal receipt | not built |
