@@ -108,3 +108,14 @@ def test_azbot_lows_double_tip_ct(tmp_path):
     p.write_text(p.read_text().splitlines()[0] + "\n")
     with pytest.raises(m.ArkError):
         vault.recall(acct)                                    # truncated file fails closed
+
+
+def test_doc_hash_parity_and_key_separation():
+    import hmac, hashlib
+    fx = json.loads((Path(__file__).parent / "fixtures" / "ark-account-vectors.json").read_text())
+    for v in fx["vectors"]:
+        a = ark.derive(v["username"], v["password"])
+        assert a.doc_hash(v["doc_plaintext"]) == v["doc_hash"]
+        # never the AES-GCM key
+        assert a.doc_hash("x") != hmac.new(a._ek, b"ARK:DOC|x", hashlib.sha256).hexdigest()
+        assert a._dk != a._ek

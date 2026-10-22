@@ -131,6 +131,7 @@ class ArkAccount:
     rl_subject: str
     _sk: Any = field(repr=False)
     _ek: bytes = field(repr=False)
+    _dk: bytes = field(repr=False, default=b"")
 
     def __repr__(self) -> str:
         return f"ArkAccount(vault_id={self.vault_id})"
@@ -152,10 +153,13 @@ class ArkAccount:
             raise ArkError("ARK-DECRYPT") from exc
 
     def doc_hash(self, plaintext: str) -> str:
-        """Keyed plaintext document hash (HMAC under the vault's enc key): stable across the
-        random AES-GCM IV, so LATTICE-DOUBLE can fire, yet unguessable without the key."""
+        """Keyed plaintext document hash: HMAC-SHA256 under a SEPARATE HKDF key ("ARK:DOC"), never the
+        AES-GCM key. Stable across the random IV (LATTICE-DOUBLE can fire), unguessable without the
+        user's key. Parity: aziel-runtime ark-kdf.js docHashOf (fixtures doc_hash)."""
         import hmac
-        return hmac.new(self._ek, ("ARK:DOC|" + plaintext).encode(), hashlib.sha256).hexdigest()
+        if len(self._dk) != 32:
+            raise ArkError("ARK-FAIL-CLOSED")
+        return hmac.new(self._dk, ("ARK:DOC|" + plaintext).encode(), hashlib.sha256).hexdigest()
 
     # Device-mode FragGate payloads (POST /v1/fraggate/call {slug:"ark", op, payload}).
     def open_request(self) -> dict:
@@ -188,7 +192,7 @@ def derive(username: str, password: str, iterations: int = ITERS) -> ArkAccount:
     sk = Priv.from_private_bytes(sub("ARK:SIGN"))
     ek = sub("ARK:ENC")
     pub = sk.public_key().public_bytes(Encoding.Raw, PublicFormat.Raw).hex()
-    return ArkAccount(pub, vault_id_of(pub), sha256_hex("ARK-ACCOUNT:v1:rl|" + u), sk, ek)
+    return ArkAccount(pub, vault_id_of(pub), sha256_hex("ARK-ACCOUNT:v1:rl|" + u), sk, ek, sub("ARK:DOC"))
 
 
 class OfflineVault:

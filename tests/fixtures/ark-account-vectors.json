@@ -8,35 +8,45 @@
       "password": "correct horse battery",
       "pub": "7e81134f779da3cdf3e7f696426a26d195d012cf8c8c43c0b9a91afaa11e26b4",
       "vault_id": "5edd3cac1e7c91a0cd5ee9c8735e7ca209a245d5c092a17a6c572106b55f8dfd",
-      "rl_subject": "44c255c0178ea544d933091165fc7a0ff34873d16cb3ba4029b5e4d18bc7c692"
+      "rl_subject": "44c255c0178ea544d933091165fc7a0ff34873d16cb3ba4029b5e4d18bc7c692",
+      "doc_plaintext": "ARK parity doc",
+      "doc_hash": "657d21406faa98a22c36c171a474abffeebcb83c72cae1ef88b76822d328902c"
     },
     {
       "username": "Aziel",
       "password": "correct horse battery",
       "pub": "7e81134f779da3cdf3e7f696426a26d195d012cf8c8c43c0b9a91afaa11e26b4",
       "vault_id": "5edd3cac1e7c91a0cd5ee9c8735e7ca209a245d5c092a17a6c572106b55f8dfd",
-      "rl_subject": "44c255c0178ea544d933091165fc7a0ff34873d16cb3ba4029b5e4d18bc7c692"
+      "rl_subject": "44c255c0178ea544d933091165fc7a0ff34873d16cb3ba4029b5e4d18bc7c692",
+      "doc_plaintext": "ARK parity doc",
+      "doc_hash": "657d21406faa98a22c36c171a474abffeebcb83c72cae1ef88b76822d328902c"
     },
     {
       "username": "aziel",
       "password": "correct horse batterz",
       "pub": "f98211f397ea6986e4ab5553f6193a2d85bc003bfe1229c1c2e5ea1b47178a46",
       "vault_id": "7df643f9a7fe64347e2aa52ea9149f863bbd67d5217848b41c61fca0549d1d67",
-      "rl_subject": "44c255c0178ea544d933091165fc7a0ff34873d16cb3ba4029b5e4d18bc7c692"
+      "rl_subject": "44c255c0178ea544d933091165fc7a0ff34873d16cb3ba4029b5e4d18bc7c692",
+      "doc_plaintext": "ARK parity doc",
+      "doc_hash": "59a6f943397082d06cfed3483a6148d4080366a1a7be55397971dd838f383414"
     },
     {
       "username": "zion.user",
       "password": "pässwörd-ünïcode",
       "pub": "d7e4ff3d3c607654988c1493adf7f9a62f11dc37b2fc2d20a0fd8b3e256fa86b",
       "vault_id": "4ff55df1f043d3853daee0b7f19cc3696d4a5fe7c46a76d6b2e13309c25f4b0e",
-      "rl_subject": "4b2caa14159412294919468d7e23f84a4a3cca39c65f453ff1d28fe576013606"
+      "rl_subject": "4b2caa14159412294919468d7e23f84a4a3cca39c65f453ff1d28fe576013606",
+      "doc_plaintext": "ARK parity doc",
+      "doc_hash": "b5f92a175a37673de85aa884bd908f0b0a8bd5e02c54f1426bc74598d403cd65"
     },
     {
       "username": "áziel",
       "password": "correct horse battery",
       "pub": "7e81134f779da3cdf3e7f696426a26d195d012cf8c8c43c0b9a91afaa11e26b4",
       "vault_id": "5edd3cac1e7c91a0cd5ee9c8735e7ca209a245d5c092a17a6c572106b55f8dfd",
-      "rl_subject": "44c255c0178ea544d933091165fc7a0ff34873d16cb3ba4029b5e4d18bc7c692"
+      "rl_subject": "44c255c0178ea544d933091165fc7a0ff34873d16cb3ba4029b5e4d18bc7c692",
+      "doc_plaintext": "ARK parity doc",
+      "doc_hash": "657d21406faa98a22c36c171a474abffeebcb83c72cae1ef88b76822d328902c"
     }
   ]
 }
