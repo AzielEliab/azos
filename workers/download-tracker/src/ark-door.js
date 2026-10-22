@@ -6,11 +6,14 @@
  * applies ARK_ACCOUNTS (default OFF). Fails closed. Author: Aziel Eliab.
  * SPDX-License-Identifier: Apache-2.0
  */
+import { visitorIpHash } from "./agents-view.js";
+
 export const ARK_ROUTE = "/v1/ark/account";
 export const ARK_ROUTE_OPS = Object.freeze(["account_open", "account_append", "account_recall", "account_challenge", "account_session"]);
 const MAX_BODY = 65536;
-const CRED = new Set(["username", "user", "user_name", "login", "uname", "password", "pass", "passphrase", "passwd", "pwd", "pw", "secret"]);
-const norm = (k) => String(k).toLowerCase().replace(/[^a-z_]/g, "");
+// Keys are normalized by dropping case and every non-letter (pass_word, pass-word, passWord → password).
+const CRED = new Set(["username", "user", "login", "uname", "password", "pass", "passphrase", "passwd", "pwd", "pw", "secret", "passcode", "userid", "loginname"]);
+const norm = (k) => String(k).toLowerCase().replace(/[^a-z]/g, "");
 
 export function hasCredentialKey(v, depth = 0) {
   if (depth > 6) return true; // too deep: fail closed
@@ -41,6 +44,9 @@ export async function handleArkAccount(request, url, env, leg) {
     if (op !== undefined && !ARK_ROUTE_OPS.includes(op)) return out("ARK-INPUT");
     const payload = body.payload && typeof body.payload === "object" && !Array.isArray(body.payload) ? body.payload : {};
     const fwd = { method: "POST", headers: { "content-type": "application/json", accept: "application/json", "user-agent": `Mozilla/5.0 (${leg}-ark-door)` }, body: JSON.stringify({ op, payload }) };
+    // Per-visitor rate bucket at the runtime (same hashed key as the agent-subnet routes).
+    const vh = await visitorIpHash(request).catch(() => null);
+    if (vh) fwd.headers["x-azrt-visitor-ip-h"] = vh;
     const res = await binding.fetch(new Request("https://aziel-runtime" + ARK_ROUTE, fwd));
     let j;
     try { j = await res.json(); } catch { return out("ARK-FAIL-CLOSED", 502); }
