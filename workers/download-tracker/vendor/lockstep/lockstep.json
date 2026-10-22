@@ -857,6 +857,27 @@
             "route": "/install/cursor.json"
           }
         }
+      },
+      {
+        "id": "ark_account",
+        "label": "ARK account sign-in (USER-SIGNIN-ARK-1.0, default OFF; FragGate ark account_*)",
+        "legs": {
+          "aziel-runtime": {
+            "status": "source",
+            "route": "/v1/fraggate/call",
+            "method": "POST"
+          },
+          "azinterface": {
+            "status": "proxied",
+            "route": "/v1/ark/account",
+            "method": "POST"
+          },
+          "azos": {
+            "status": "proxied",
+            "route": "/v1/ark/account",
+            "method": "POST"
+          }
+        }
       }
     ],
     "design": {
@@ -866,7 +887,7 @@
     },
     "path": "/v1/lockstep"
   },
-  "contract_sha256": "5921cfd344c204280bdb40ef6cfee08a6f8314ba81c296dbec804d82fca811dd",
+  "contract_sha256": "e4e7dcecb01b5e56b3f0048addd33895230db5e9f7462a9fd88554427cc28192",
   "tokens_sha256": "0515818b4de04a624c15d9e603ebdf20e1217a57115957ce434ab93ad88e2786",
   "css_sha256": "496be77f2dd44d295d8ef33936c977a2c9d68237b4d1086abae0c854a80f13ff",
   "hints_sha256": "d22d202e1f46e936e8ed532375698f38e4c66c79ce122671e0a26aa432486dae"
