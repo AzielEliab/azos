@@ -1,7 +1,7 @@
 {
   "spec": "AZ-LOCKSTEP-1.0",
   "runtime_repo": "AzielEliab/aziel-runtime",
-  "runtime_commit": "f8b669585b35dbdbde0271d2195881433ba8f866",
+  "runtime_commit": "f4679ca250ac7c608744840c70ed3bced6e0016e",
   "runtime_version": "2.0.0-rc1",
   "contract_sha256": "9bdd180c50b1c1b95ef3e704a19d3e6ac18c9e435bc6943a5db810fc2a42d73c",
   "tokens_sha256": "0515818b4de04a624c15d9e603ebdf20e1217a57115957ce434ab93ad88e2786",
