@@ -151,6 +151,12 @@ class ArkAccount:
         except Exception as exc:
             raise ArkError("ARK-DECRYPT") from exc
 
+    def doc_hash(self, plaintext: str) -> str:
+        """Keyed plaintext document hash (HMAC under the vault's enc key): stable across the
+        random AES-GCM IV, so LATTICE-DOUBLE can fire, yet unguessable without the key."""
+        import hmac
+        return hmac.new(self._ek, ("ARK:DOC|" + plaintext).encode(), hashlib.sha256).hexdigest()
+
     # Device-mode FragGate payloads (POST /v1/fraggate/call {slug:"ark", op, payload}).
     def open_request(self) -> dict:
         return {"slug": "ark", "op": "account_open", "payload": {"vault_pub": self.pub}}
@@ -210,8 +216,11 @@ class OfflineVault:
         if not KIND_RE.fullmatch(kind) or not isinstance(data, str) or not data:
             raise ArkError("ARK-INPUT")
         rows = self.rows(acct.vault_id)
-        if verify_rows(rows) is not True:
+        if verify_rows(rows, self._tip(acct.vault_id)) is not True:
             raise ArkError("ARK-FAIL-CLOSED")
+        doc = acct.doc_hash(data)
+        if any(r["lattice"].get("document_hash") == doc for r in rows):
+            raise ArkError("LATTICE-DOUBLE")  # same document twice → no duplicate hash on the chain
         prev = rows[-1]["row_hash"] if rows else GENESIS
         prev_primary = rows[-1]["lattice"]["primary"] if rows else GENESIS
         seq = len(rows) + 1
@@ -227,11 +236,11 @@ class OfflineVault:
             "user_sig": acct.sign(append_message(body)),
             "signed_by": "user",
             "lattice": {
-                "document_hash": ct_sha,
-                "primary": lattice_primary(ct_sha, prev_primary),
+                "document_hash": doc,
+                "primary": lattice_primary(doc, prev_primary),
                 "offline": True,
                 "username": handle,
-                "secondary": lattice_offline_secondary(ct_sha, handle),
+                "secondary": lattice_offline_secondary(doc, handle),
             },
             "synced": False,
         }
@@ -240,30 +249,45 @@ class OfflineVault:
         p.parent.mkdir(parents=True, exist_ok=True)
         with p.open("a", encoding="utf-8") as fh:  # append-only
             fh.write(json.dumps(row, sort_keys=True) + "\n")
+        self._tip_path(acct.vault_id).write_text(json.dumps({"seq": seq, "row_hash": row["row_hash"]}), encoding="utf-8")
         return row
+
+    def _tip_path(self, vault_id: str) -> Path:
+        return self.root / "ark-accounts" / f"{vault_id}.tip.json"
+
+    def _tip(self, vault_id: str) -> dict:
+        p = self._tip_path(vault_id)
+        # No tip file → expect an empty vault (a file of rows without its tip fails closed).
+        return json.loads(p.read_text(encoding="utf-8")) if p.exists() else {"seq": 0, "row_hash": GENESIS}
 
     def recall(self, acct: ArkAccount) -> list[str]:
         rows = self.rows(acct.vault_id)
-        if verify_rows(rows) is not True:
+        if verify_rows(rows, self._tip(acct.vault_id)) is not True:
             raise ArkError("ARK-FAIL-CLOSED")
         return [acct.open(r["seq"], r["ct_b64"]) for r in rows]
 
 
-def verify_rows(rows: list[dict]) -> bool | str:
+def verify_rows(rows: list[dict], tip: dict | None = None) -> bool | str:
     """Read-only check of one vault's offline rows. True, or the first failing reason."""
     prev, pp = GENESIS, GENESIS
     for i, r in enumerate(rows, start=1):
         if r.get("seq") != i or r.get("prev") != prev:
             return f"link@{i}"
+        if isinstance(r.get("ct_b64"), str) and sha256_hex(r["ct_b64"]) != r.get("ct_sha256"):
+            return f"ct_sha256@{i}"
         rest = {k: v for k, v in r.items() if k != "row_hash"}
         if sha256_hex(canonical(rest)) != r.get("row_hash"):
             return f"row_hash@{i}"
         lat = r["lattice"]
-        if lat["primary"] != lattice_primary(r["ct_sha256"], pp):
+        doc = lat.get("document_hash")
+        if lat["primary"] != lattice_primary(doc, pp):
             return f"primary@{i}"
-        if lat["username"] != lattice_handle(r["vault_id"]) or lat["secondary"] != lattice_offline_secondary(r["ct_sha256"], lat["username"]):
+        if lat["username"] != lattice_handle(r["vault_id"]) or lat["secondary"] != lattice_offline_secondary(doc, lat["username"]):
             return f"secondary@{i}"
         if vault_id_of(r["user_pub"]) != r["vault_id"] or not verify_sig(r["user_pub"], r["user_sig"], append_message(r)):
             return f"user_sig@{i}"
         prev, pp = r["row_hash"], lat["primary"]
+    # Bind to the stored tip: a swapped last row or a truncated file fails.
+    if tip is not None and (tip.get("seq") != len(rows) or tip.get("row_hash") != prev):
+        return "tip"
     return True

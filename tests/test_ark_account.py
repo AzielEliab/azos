@@ -82,3 +82,29 @@ def test_uniform_input_refusal(u, p):
     with pytest.raises(ark.ArkError) as e:
         ark.derive(u, p)
     assert e.value.code == "ARK-INPUT"
+
+
+def test_azbot_lows_double_tip_ct(tmp_path):
+    import json as _j
+    m = ark
+    acct = m.derive("lowsuser", "lows-pass-1234")
+    vault = m.OfflineVault(tmp_path)
+    vault.append(acct, "same doc")
+    with pytest.raises(m.ArkError) as e:
+        vault.append(acct, "same doc")
+    assert e.value.code == "LATTICE-DOUBLE"
+    vault.append(acct, "other doc")
+    rows = vault.rows(acct.vault_id)
+    tip = vault._tip(acct.vault_id)
+    assert m.verify_rows(rows, tip) is True
+    assert m.verify_rows(rows[:-1], tip) == "tip"          # truncation
+    swapped = [dict(r) for r in rows]
+    swapped[-1] = dict(rows[0], seq=2, prev=rows[0]["row_hash"])
+    assert m.verify_rows(swapped, tip) is not True           # last-row swap
+    bad = [dict(r) for r in rows]
+    bad[0]["ct_b64"] = "AAAA"
+    assert m.verify_rows(bad, tip) == "ct_sha256@1"
+    p = tmp_path / "ark-accounts" / f"{acct.vault_id}.jsonl"
+    p.write_text(p.read_text().splitlines()[0] + "\n")
+    with pytest.raises(m.ArkError):
+        vault.recall(acct)                                    # truncated file fails closed
