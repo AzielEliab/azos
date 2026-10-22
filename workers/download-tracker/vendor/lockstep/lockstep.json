@@ -228,6 +228,24 @@
         }
       },
       {
+        "id": "version",
+        "label": "Version + auto-update adoption field (AUTO-UPDATE-1.0, live:false)",
+        "legs": {
+          "aziel-runtime": {
+            "status": "source",
+            "route": "/v1/version"
+          },
+          "azinterface": {
+            "status": "gap",
+            "route": "/v1/version"
+          },
+          "azos": {
+            "status": "gap",
+            "route": "/v1/version"
+          }
+        }
+      },
+      {
         "id": "skill",
         "label": "Skill card",
         "legs": {
@@ -866,7 +884,7 @@
     },
     "path": "/v1/lockstep"
   },
-  "contract_sha256": "5921cfd344c204280bdb40ef6cfee08a6f8314ba81c296dbec804d82fca811dd",
+  "contract_sha256": "5769d1c59288cae3326e328438777403ac993bdd6a2129d8cc6ece0959650a14",
   "tokens_sha256": "0515818b4de04a624c15d9e603ebdf20e1217a57115957ce434ab93ad88e2786",
   "css_sha256": "496be77f2dd44d295d8ef33936c977a2c9d68237b4d1086abae0c854a80f13ff",
   "hints_sha256": "d22d202e1f46e936e8ed532375698f38e4c66c79ce122671e0a26aa432486dae"
