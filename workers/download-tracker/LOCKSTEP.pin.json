@@ -1,9 +1,9 @@
 {
   "spec": "AZ-LOCKSTEP-1.0",
   "runtime_repo": "AzielEliab/aziel-runtime",
-  "runtime_commit": "23470643aa839706a1f22c1f38427c7ee2ea46d1",
+  "runtime_commit": "595b24e5effcb2ceb3260223ca83e22ffc7bf929",
   "runtime_version": "2.0.0-rc1",
-  "contract_sha256": "5769d1c59288cae3326e328438777403ac993bdd6a2129d8cc6ece0959650a14",
+  "contract_sha256": "d247d2f084d077103e4b918479e90f1148d28afbbdc721e9b75a5ceaa8a0a8a8",
   "tokens_sha256": "0515818b4de04a624c15d9e603ebdf20e1217a57115957ce434ab93ad88e2786",
   "css_sha256": "496be77f2dd44d295d8ef33936c977a2c9d68237b4d1086abae0c854a80f13ff",
   "hints_sha256": "d22d202e1f46e936e8ed532375698f38e4c66c79ce122671e0a26aa432486dae",
@@ -12,8 +12,8 @@
     "vendor/lockstep/tokens-css.js": "3d15c0f2aaf99ed855dda79b978b44e48155be261debb738dd77eaebdf8e26e6",
     "vendor/lockstep/tokens.json": "64c7a4abaadcd0108b3643f072435b7a7d1cd1daa2dd3459c7ce2123943225ee",
     "vendor/lockstep/tokens.css": "496be77f2dd44d295d8ef33936c977a2c9d68237b4d1086abae0c854a80f13ff",
-    "vendor/lockstep/lockstep.json": "5dbb157aae53c03e1244dcd969003668f283b790f37989502ca5fb2361d9701a",
-    "vendor/lockstep/pinned.js": "e5184bced56355d6884f733c3e2adf92bb387c2ec4b1c3eac65b201a23087b5c",
+    "vendor/lockstep/lockstep.json": "4d22766843f448b9f7e3af020b80e8b77f214a86458ccdc08e304b3ded32180b",
+    "vendor/lockstep/pinned.js": "a5cad3abf772ddc19d96cc98f17d07c96062860dd03e8e0f3353e2d6d1a6c297",
     "vendor/lockstep/tokens.js": "7abc29a05566cbd53079bb58d97c0354e9a5158fda8d9a56d1a6f679a6708644",
     "vendor/lockstep/hints-html.js": "6e1dc24fa4bbe4474706df3cc996aed787f0670c0a900de8b5372d844983b7bd"
   }
