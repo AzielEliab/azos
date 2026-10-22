@@ -1,8 +1,9 @@
 #!/bin/busybox sh
 # AZOS-BOOT-1 init (PID 1). Minimal: proves the boot path only. Not the AZ-OS Python userspace yet.
 # No guardian runs in this image yet (capability 4, not built), so it reports guardian: absent honestly.
-# Host bash and SSH are OFF; this image ships neither and has no shell escape.
-/bin/busybox --install -s /bin
+# Host bash and SSH are OFF; this image ships neither; no shell reachable from init.
+# Link only the applets init needs (no sh, ash, getty, login, telnetd...).
+for a in mount uname cat sha256sum cut poweroff; do /bin/busybox ln -s busybox /bin/$a; done
 mount -t proc proc /proc
 mount -t sysfs sys /sys
 mount -t devtmpfs dev /dev 2>/dev/null
