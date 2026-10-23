@@ -9,6 +9,8 @@
  * Fails closed: an unreachable runtime gives ok:false and no claims.
  * Author: Aziel Eliab. SPDX-License-Identifier: Apache-2.0
  */
+import { copyOptionalTiebreak } from "./tether.js";
+
 export const RUNTIME_SYNC_SPEC = "RUNTIME-SYNC-1.0";
 export const RUNTIME_ORIGIN = "https://aziel-runtime.vibelock.workers.dev";
 
@@ -50,7 +52,7 @@ export async function runtimeSync({ side, localChains = [], fetchImpl = fetch, o
     side,
     code: "RUNTIME-SYNC-OK",
     source: origin,
-    lattice_tip: { code: lt.code, chains: lt.chains.map((c) => ({ c: c.c, seq: c.seq, primary: c.primary, secondary: c.secondary })) },
+    lattice_tip: { code: lt.code, chains: lt.chains.map((c) => copyOptionalTiebreak({ c: c.c, seq: c.seq, primary: c.primary, secondary: c.secondary }, c)) },
     compare,
     compare_ok: compare.every((x) => x.state !== "unknown"),
     tether_bases: bases,

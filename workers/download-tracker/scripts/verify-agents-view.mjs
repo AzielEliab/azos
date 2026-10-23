@@ -68,6 +68,11 @@ assert.ok(HINTS_HTML.includes("This is designed to let your agents talk to other
 // No exact row numbers in public (runtime #304 N5): runtime and local tips show a bucketed seq.
 r = await agentsPublic({ AZIEL_RUNTIME: bind }, { surface: SURFACE, localTip: { seq: 37, primary: "e".repeat(64), secondary: "f".repeat(64), verified: true } });
 assert.equal(r.body.runtime_tip.seq, "<10"); assert.equal(r.body.local_tip.seq, "30+"); assert.equal(r.body.local_tip.primary, "e".repeat(64));
+assert.ok(!("tiebreak" in r.body.runtime_tip), "agent receipt tip without tiebreak keeps its keys");
+const tbTip = { seq: 9, h: "d".repeat(64), lattice: { primary: "e".repeat(64), secondary: "f".repeat(64), tiebreak: { status: "synced", hash: "c".repeat(64), prev: "0".repeat(64) } } };
+const bindTb = { fetch: async () => Response.json({ ok: true, total: 9, by_kind: { send: 2 }, e2e_verified_observed: 0, tip: tbTip, live: false }) };
+r = await agentsPublic({ AZIEL_RUNTIME: bindTb }, { surface: SURFACE, localTip: { primary: "e".repeat(64) } });
+assert.equal(r.body.runtime_tip.tiebreak.hash, "c".repeat(64));
 assert.equal(bucketSeq(9), "<10"); assert.equal(bucketSeq(120), "120+"); assert.equal(bucketSeq("<10"), "<10"); n++;
 // IPv6 is cut to its /64 before hashing (same rule as the runtime).
 assert.equal(agentIpKey("2001:db8:1:2:aaaa::1"), "2001:db8:1:2::/64");

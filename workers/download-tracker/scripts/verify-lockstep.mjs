@@ -63,6 +63,10 @@ if (LEG === "azos") {
   ok((await t.primaryOf(d, prev)) === (await hashOf({ document: d, prev })), "primary rule");
   ok((await t.onlineSecondaryOf(d, prev)) === (await hashOf({ offline: false, prev, primary: d })), "online secondary rule");
   ok((await t.offlineSecondaryOf(d, "aziel")) === (await hashOf({ primary: d, username: "aziel" })), "offline secondary rule");
+  const off = await t.offlineSecondaryOf("a".repeat(64), "aziel");
+  ok((await t.tiebreakOf({ prev: "0".repeat(64), primary: "b".repeat(64), secondary: off, username: "aziel" })) === "168b99add5f1735d8efd44012c41c449e752d7d6ddd0d470d40c975b45da9c27", "tiebreak rule");
+  const bare = t.copyOptionalTiebreak({ primary: d, secondary: prev }, { primary: d, secondary: prev });
+  ok(!("tiebreak" in bare) && JSON.stringify(bare) === JSON.stringify({ primary: d, secondary: prev }), "no tiebreak key when the row has none");
   ok(t.canonicalize({ b: 1, a: [true, null, "x"] }) === canonicalize({ b: 1, a: [true, null, "x"] }), "same canonical JSON");
 }
 
