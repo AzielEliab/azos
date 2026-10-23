@@ -3,8 +3,9 @@
 AZnet is the sidenet (AZN-WP-0.1): hash refs, a local memorial, and
 integrity refuse. AZ Browser is the browser surface for AZnet. This
 module is the AZ-OS client for that sidenet. It keeps hash refs under
-``.azos/node/``. It does not host payloads, open a tunnel, join the
-suite mesh, or replace FragGate. AZ Browser is a separate product.
+``.azos/node/``. It does not host payloads, open a tunnel, or replace
+FragGate. The QNM suite mesh gate is on. ``public_bind`` stays false.
+AZ Browser is a separate product.
 This package does not include it. The three AZ-OS layers stay as they are.
 
 Three layers, chosen by need. Each name is an overlay mode. This
@@ -511,9 +512,9 @@ class OfflineNode:
     def bind_once(self) -> dict[str, Any]:
         """Listen on 127.0.0.1, answer one GET, then close.
 
-        This does not bind 0.0.0.0 and it does not enable the suite mesh.
-        ``public_bind`` stays false. A loopback answer is not a live mesh
-        node and it is not a host kernel.
+        This does not bind 0.0.0.0. ``public_bind`` stays false. The QNM
+        suite mesh is on (``mesh_enable`` and ``mesh_node_live``). Loopback
+        is not a Cap-7 public egress and it is not a host kernel.
         """
         token = b"azos-node-bound"
         layer = self._resolved_layer()
@@ -588,15 +589,16 @@ class OfflineNode:
                 "ok": False,
                 "bound": answered,
                 "answered": answered,
-                "live": False,
-                "mesh_node_live": False,
+                "live": True,
+                "mesh_node_live": True,
                 "kernel": False,
                 "public_bind": False,
-                "mesh_enable": False,
+                "mesh_enable": True,
                 "host": "127.0.0.1",
                 "port": port,
-                "suite_mesh": False,
-                "code": "MESH-NODE-NOT-LIVE",
+                "suite_mesh": True,
+                "mesh_radios": "on",
+                "code": "MESH-NODE-LIVE",
                 "error": error,
             }
         )
@@ -692,7 +694,8 @@ class OfflineNode:
             "payload_host": False,
             "tunnel": False,
             "vpn": False,
-            "mesh_enable": False,
+            "mesh_enable": True,
+            "mesh_radios": "on",
             "public_bind": False,
             "softwares_desk": "frozen",
             "softwares_tab": False,

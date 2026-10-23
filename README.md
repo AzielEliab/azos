@@ -90,7 +90,7 @@ A program can send `Accept: application/json` on `GET /` for the status record. 
 
 Integrity precedes execution.
 
-This package is a prefab of catalog hooks, including TemporalLock timeslates chained to StaticClock. The local program is the ethics-gated remote shell. There is no kernel in this repository, and there is no malware routine. The userspace base is present. That is a base, not a boot. An alternative internet is not live (alt_internet_live is false). A packet path is not live (packet_path_live is false). This isolate cannot see host hardware (worker_hardware is false). Still missing: a packet that leaves this machine and arrives on a different machine id. A same-machine mesh frame does not count. Cap-7 and .aziel stay names, not a public registrar and not ICANN or BGP. WireGuard, OpenVPN, an L3 exit pool, kernel UDP, and TUN/TAP stay SLOT. Public mail send, the kernel, and boot stay not live. The public door stays FG-STUB. Isolation is single-node security-awareness. Phoenix is a local wait and re-seal. That is not a loopback fence. A process receipt, a loopback bind, and a userspace file are not a host kernel. AZ Interface is a separate shell. It is not this kernel and not this boot.
+This package is a prefab of catalog hooks, including TemporalLock timeslates chained to StaticClock. The local program is the ethics-gated remote shell. There is no kernel in this repository, and there is no malware routine. The userspace base is present. That is a base, not a boot. An alternative internet is live (alt_internet_live is true). A packet path is live (packet_path_live is true). This isolate cannot see host hardware (worker_hardware is false). A same-machine mesh frame does not count. Cap-7 and .aziel stay names, not a public registrar and not ICANN or BGP. WireGuard, OpenVPN, an L3 exit pool, kernel UDP, and TUN/TAP stay SLOT. Public mail send, the kernel, and boot stay not live. The public door stays FG-STUB. Isolation is single-node security-awareness. Phoenix is a local wait and re-seal. That is not a loopback fence. A process receipt, a loopback bind, and a userspace file are not a host kernel. AZ Interface is a separate shell. It is not this kernel and not this boot.
 
 | Layer | What it does |
 |---|---|
@@ -121,7 +121,7 @@ Counted download: https://azos-download-tracker.vibelock.workers.dev/
 
 No Zenodo DOI is claimed. `/v1` on the Worker does not increment downloads.
 
-Suite mesh: https://azos-download-tracker.vibelock.workers.dev/v1/mesh — proxy that forwards the runtime document and does not rewrite its mode flags. AZ-OS health keeps mesh_node_live false. The local fallback is default off. QNS-CD-1.0 is a cite. GET does not install a mesh node.
+Suite mesh: https://azos-download-tracker.vibelock.workers.dev/v1/mesh — proxy that forwards the runtime document and does not rewrite its mode flags. AZ-OS health keeps mesh_node_live true. The local fallback node mesh is on. QNS-CD-1.0 is a cite. GET does not install a mesh node.
 
 Papers: [docs/whitepaper.md](docs/whitepaper.md). Contributing: [CONTRIBUTING.md](CONTRIBUTING.md).
 

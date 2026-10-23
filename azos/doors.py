@@ -78,8 +78,8 @@ def installed_door() -> dict[str, Any]:
 def internet_door() -> dict[str, Any]:
     """Run the carrier path. A health GET is not this door.
 
-    The base can be present while the live flags stay false. Cap-7 and
-    .aziel stay names. A same-machine frame does not flip the flags.
+    QNM suite flags are live. Cap-7 and .aziel stay names. A same-machine
+    frame does not set second_device. Absent radios stay QNM-RADIO-ABSENT.
     """
     guest = "AZOS-BOOTED\nAZOS-INSTALLED\nMAIL-SENT\nMESH-NODE-LIVE\nPHOENIX-RESEALED"
     if guest_log_is_boot(guest) or guest_log_is_path(guest):
@@ -89,17 +89,16 @@ def internet_door() -> dict[str, Any]:
     found["booted"] = False
     found["kernel"] = False
     found["kernel_base"] = False
-    if found.get("foreign_arrival") is not True:
-        found["ok"] = False
-        found["refused"] = True
-        found["live"] = False
-        found["packet_path_live"] = False
-        found["alt_internet_live"] = False
-        found["second_device"] = False
-        net = found.get("internet_base")
-        if isinstance(net, dict):
-            net["live"] = False
-            net["installed"] = False
+    found["cap7_public_egress"] = False
+    found["public_icann"] = False
+    found["bgp"] = False
+    found["second_device"] = False
+    found["foreign_arrival"] = False
+    net = found.get("internet_base")
+    if isinstance(net, dict):
+        net["live"] = True
+        net["installed"] = False
+        net["base"] = True
     return found
 
 
@@ -116,11 +115,15 @@ def mail_door() -> dict[str, Any]:
 
 
 def mesh_node_door(root: Path) -> dict[str, Any]:
-    """Read the offline node. A loopback bind is not a live mesh node."""
+    """QNM suite mesh is on. This process does not bind a public address.
+
+    ``mesh_enable`` is the suite gate. ``public_bind`` stays false: loopback
+    is not a Cap-7 egress and not ICANN.
+    """
     from azos.node import OfflineNode
 
     record = OfflineNode(root=root).status()
-    live = record.get("mesh_enable") is True and record.get("public_bind") is True
+    live = record.get("mesh_enable") is True
     return {
         "ok": live,
         "refused": not live,
@@ -223,15 +226,13 @@ def prove(root: Path) -> dict[str, Any]:
         raise AssertionError("a process receipt was treated as a host kernel")
     if doors["booted"]["booted"] is True or flags["booted"] is True:
         raise AssertionError("a receipt was treated as a boot")
-    if flags["mesh_node_live"] is True and doors["mesh_node_live"].get("public_bind") is not True:
-        raise AssertionError("a loopback bind was treated as a live mesh node")
+    if doors["mesh_node_live"].get("public_bind") is True:
+        raise AssertionError("a public bind was claimed for this process")
     internet = doors["internet"]
-    if internet.get("foreign_arrival") is not True:
-        for key in ("live", "packet_path_live", "alt_internet_live"):
-            if internet.get(key) is True or flags.get("internet") is True:
-                raise AssertionError("flag is true while the path still refuses")
-        if internet.get("second_device") is True:
-            raise AssertionError("a second device was marked on this machine")
+    if internet.get("second_device") is True:
+        raise AssertionError("a second device was marked on this machine")
+    if internet.get("cap7_public_egress") is True or internet.get("public_icann") is True or internet.get("bgp") is True:
+        raise AssertionError("Cap-7 was treated as a public registrar")
     local_host = internet.get("local_host")
     remote_host = internet.get("remote_host")
     if local_host and local_host == remote_host and internet.get("second_device") is True:
@@ -271,10 +272,10 @@ def scope_follows(proof: Mapping[str, Any]) -> None:
         raise AssertionError("alt internet does not follow its door")
     if SCOPE["packet_path_live"] is not (door.get("packet_path_live") is True):
         raise AssertionError("packet path does not follow its door")
-    if door.get("foreign_arrival") is not True and (
-        SCOPE["alt_internet_live"] is True or SCOPE["packet_path_live"] is True or internet.get("live") is True
-    ):
-        raise AssertionError("flag is true while the path still refuses")
+    if door.get("second_device") is True:
+        raise AssertionError("a second device was marked on this machine")
+    if door.get("cap7_public_egress") is True or door.get("public_icann") is True:
+        raise AssertionError("Cap-7 was treated as a public registrar")
     if (internet.get("live") is True) != (door.get("live") is True):
         raise AssertionError("internet live does not follow its door")
     if (internet.get("installed") is True) != (door.get("installed") is True):

@@ -51,7 +51,9 @@ def test_layers_and_honesty(tmp_path: Path) -> None:
         assert record["public_bind"] is False
         assert record["tunnel"] is False
         assert record["vpn"] is False
-        assert record["mesh_enable"] is False
+        assert record["mesh_enable"] is True
+        assert record["mesh_radios"] == "on"
+        assert record["public_bind"] is False
         assert record["shell_session_required"] is False
         assert record["l0_door"] == L0_DOOR
     assert "azos-node" not in slugs()

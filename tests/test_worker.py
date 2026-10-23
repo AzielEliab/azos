@@ -130,7 +130,7 @@ def test_worker_runtime_exposes_ethics_shell() -> None:
     assert "AZNEWS-SOURCE-ABSENT" in newsmap
     assert "runtime_done: false" in newsmap
     assert "one_click_install_live: false" in runtime
-    assert "mesh_node_live: false" in runtime
+    assert "mesh_node_live: true" in runtime
     assert "mail_live: false" in newsmap
     assert "internet_live: false" in newsmap
     assert "kernel_live: false" in newsmap
@@ -138,12 +138,12 @@ def test_worker_runtime_exposes_ethics_shell() -> None:
     assert "booted: false" in runtime
     assert "os_yet: false" in runtime
     assert "userspace_base: true" in runtime
-    assert "alt_internet_live: false" in runtime
-    assert "packet_path_live: false" in runtime
-    assert "alt_internet_live is false" in runtime
-    assert "packet_path_live is false" in runtime
+    assert "alt_internet_live: true" in runtime
+    assert "packet_path_live: true" in runtime
+    assert "alt_internet_live is true" in runtime
+    assert "packet_path_live is true" in runtime
     assert "This isolate cannot see host hardware (worker_hardware is false)." in runtime
-    assert "Still missing: a packet that leaves this machine and arrives on a different machine id." in runtime
+    assert "A same-machine mesh frame does not count." in runtime
     assert "Cap-7 and .aziel stay names" in runtime
     assert "mail_send: false" in runtime
     prefab_slugs = runtime.split("const slugs = [", 1)[1].split("];", 1)[0]

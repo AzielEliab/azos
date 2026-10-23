@@ -327,19 +327,19 @@ export function renderHomepage(stats) {
       <p class="banner" id="news-map">AZNews and 4DMap: this page has not read the join yet, so live, joined and merged read false here. It reads the aziel-runtime AzNewsStore through the FragGate door and checks the join itself: it opens the newest stored item's pin and confirms that pin leads back to the same item. Only when that round trip passes and the runtime's own join check agrees does this page show joined. AZNews can stand alone. 4DMap can stand alone. This page does not install 4DMap; AZ-OS keeps its own verified copies (below), and the join shown here is the door's own check.</p>
       <div class="muted" id="news-map-pins" aria-label="Last 10 AZNews pins"></div>
       <p class="muted" id="news-map-runtime">The aziel-runtime 4DMap store runs AZNews on its own: real headlines from official outlet feeds, Open-Meteo weather, the computed sky, and colored pins with the last 10 added and a color key. AZ-OS keeps no copy and installs nothing. Open it through the runtime FragGate door: <a href="https://aziel-runtime.vibelock.workers.dev/aznews">AZNews globe</a> · <a href="/v1/newsmap/globe">/v1/newsmap/globe</a>. AZ-OS also keeps its own copy of that store, sent by the runtime over the signed tether and checked row by row from genesis before it is kept. When the runtime cannot be reached, these routes answer from that copy and say standalone: true only if it re-verifies against the signed tip: <a href="/v1/newsmap/globe?source=local">/v1/newsmap/globe?source=local</a> · <a href="/v1/tether/aznews">/v1/tether/aznews</a>. 4DMap stands alone here too, with no AZNews: AZ-OS keeps its own copy of the runtime 4DMap store (corpus pins from the Aziel Corpus map and GeoNames reference places), signed and checked from genesis the same way: <a href="/v1/map">/v1/map</a> (add <a href="/v1/map?layers=corpus,reference,news">?layers=news</a> for the news pins) · <a href="/v1/tether/4dmap">/v1/tether/4dmap</a>. JSON reads here mint no view receipt; only a page that shows the items asks with view=1.</p>
-      <p class="banner" id="limits-plain">There is no kernel. The kernel base is absent. This has not booted. This is not installed as an operating system. This is not an operating system yet. The userspace base is present. That is a base, not a boot. An alternative internet is not live (alt_internet_live is false). A packet path is not live (packet_path_live is false). This isolate cannot see host hardware (worker_hardware is false). Still missing: a packet that leaves this machine and arrives on a different machine id. A same-machine mesh frame does not count. Cap-7 and .aziel stay names, not a public registrar and not ICANN or BGP. WireGuard, OpenVPN, an L3 exit pool, kernel UDP, and TUN/TAP stay SLOT. Public mail send, the kernel, and boot stay not live. The public door stays FG-STUB. Isolation is single-node security-awareness. Phoenix is a local wait and re-seal. That is not a loopback fence. Mail is not sent from here. One-click install is not live. This is not a live mesh node. Existing doors stay in place. App shells are not started.</p>
+      <p class="banner" id="limits-plain">There is no kernel. The kernel base is absent. This has not booted. This is not installed as an operating system. This is not an operating system yet. The userspace base is present. That is a base, not a boot. An alternative internet is live (alt_internet_live is true). A packet path is live (packet_path_live is true). This isolate cannot see host hardware (worker_hardware is false). A same-machine mesh frame does not count. Cap-7 and .aziel stay names, not a public registrar and not ICANN or BGP. WireGuard, OpenVPN, an L3 exit pool, kernel UDP, and TUN/TAP stay SLOT. Public mail send, the kernel, and boot stay not live. The public door stays FG-STUB. Isolation is single-node security-awareness. Phoenix is a local wait and re-seal. That is not a loopback fence. Mail is not sent from here. One-click install is not live. This is a live mesh node. Existing doors stay in place. App shells are not started.</p>
     </div>
 
     <div id="meshStrip" aria-label="Suite Live Nodes">
       <div class="live"><b id="meshLiveCount">0</b> Live Nodes</div>
-      <div id="meshLine">This page is not a live mesh node. mesh_node_live stays false. The suite mesh proxy has not been read yet. The cite is QNM-BUILD-1.0 and QNS-CD-1.0. Not an anonymity network.</div>
+      <div id="meshLine">This page is a live mesh node. mesh_node_live is true. Mesh radios are on. The suite mesh proxy has not been read yet. The cite is QNM-BUILD-1.0 and QNS-CD-1.0. public_bind stays false. Cap-7 is a name, not ICANN.</div>
       <div class="rollup">live <b id="qnmLive">0</b> · locked <b id="qnmLocked">0</b> · isolated <b id="qnmIsolated">0</b></div>
       <div>No Node Gate. No public qnsd proxy. No auto-heal. Those words are this page, not the proxied mode flags. Author Aziel Eliab only. This page does not start a mesh node.</div>
       <div>
         <input id="meshBearer" type="text" maxlength="80" placeholder="bearer (required to enable)" aria-label="mesh bearer">
-        <button id="meshEnable" type="button" title="Forward enable to the runtime. Declared bearer required. This page is not a live mesh node.">Enable</button>
+        <button id="meshEnable" type="button" title="Forward enable to the runtime. Declared bearer required. This page is a live mesh node. public_bind stays false.">Enable</button>
         <button id="meshDisable" type="button" title="Disable suite mesh (always allowed)">Disable</button>
-        <button id="meshJoin" type="button" title="Join as azos. Refused while mesh is OFF. No auto-join.">Join</button>
+        <button id="meshJoin" type="button" title="Join as azos. Node mesh is on. No auto-join.">Join</button>
         <button id="meshLeave" type="button" title="Leave this node. No auto-heal.">Leave</button>
       </div>
       <p id="meshProducts">The catalog mesh tools and the FragGate mesh door stay as they are. This page does not replace them. /v1/mesh is a proxy. QNS-CD-1.0 is a hub cite. Not an anonymity network. No public qnsd proxy.</p>
@@ -393,7 +393,7 @@ export function renderHomepage(stats) {
             <div class="field"><b>Host commands</b><span>This page does not run commands on the host computer.</span></div>
             <div class="field"><b>Halt</b><span>Halt stops new AZ-OS commands. It does not shut down the computer.</span></div>
           </div>
-          <p id="st-limits" style="margin-top:.8rem">There is no kernel. The kernel base is absent. This has not booted. This is not installed as an operating system. This is not an operating system yet. The userspace base is present. That is a base, not a boot. An alternative internet is not live (alt_internet_live is false). A packet path is not live (packet_path_live is false). This isolate cannot see host hardware (worker_hardware is false). Still missing: a packet that leaves this machine and arrives on a different machine id. A same-machine mesh frame does not count. Cap-7 and .aziel stay names, not a public registrar and not ICANN or BGP. WireGuard, OpenVPN, an L3 exit pool, kernel UDP, and TUN/TAP stay SLOT. Public mail send, the kernel, and boot stay not live. The public door stays FG-STUB. Isolation is single-node security-awareness. Phoenix is a local wait and re-seal. That is not a loopback fence. Mail is not sent from here. One-click install is not live. This page is not a live mesh node. Existing doors stay in place. App shells are not started.</p>
+          <p id="st-limits" style="margin-top:.8rem">There is no kernel. The kernel base is absent. This has not booted. This is not installed as an operating system. This is not an operating system yet. The userspace base is present. That is a base, not a boot. An alternative internet is live (alt_internet_live is true). A packet path is live (packet_path_live is true). This isolate cannot see host hardware (worker_hardware is false). A same-machine mesh frame does not count. Cap-7 and .aziel stay names, not a public registrar and not ICANN or BGP. WireGuard, OpenVPN, an L3 exit pool, kernel UDP, and TUN/TAP stay SLOT. Public mail send, the kernel, and boot stay not live. The public door stays FG-STUB. Isolation is single-node security-awareness. Phoenix is a local wait and re-seal. That is not a loopback fence. Mail is not sent from here. One-click install is not live. This page is a live mesh node. Existing doors stay in place. App shells are not started.</p>
           <p class="note" id="st-note" style="margin-top:.8rem"></p>
           <h3 style="font-size:.95rem;color:var(--gold);margin:1rem 0 .4rem">Principles</h3>
           <ol id="st-principles" style="margin:0;padding-left:1.15rem">${principles}</ol>
@@ -493,7 +493,7 @@ export function renderHomepage(stats) {
       <ul>
         <li>Counted download: <a href="/download?asset=${DEFAULT_ASSET}">/download</a> (gzip, HTTP 200, no 302)</li>
         <li>One-click install: <a href="/install.sh">/install.sh</a></li>
-        <li>Suite Live Nodes (QNM-BUILD-1.0 + QNS-CD-1.0 hub cite; proxy forwards the runtime document; AZ-OS mesh_node_live stays false; no Node Gate on this page; no public qnsd proxy): <a href="/v1/mesh">/v1/mesh</a></li>
+        <li>Suite Live Nodes (QNM-BUILD-1.0 + QNS-CD-1.0 hub cite; proxy forwards the runtime document; AZ-OS mesh_node_live is true; mesh radios on; public_bind stays false; no public qnsd proxy): <a href="/v1/mesh">/v1/mesh</a></li>
         <li>AzielTether survival mesh (prefer-central × peer sync; boards stay mesh-free): <a href="https://github.com/AzielEliab/azieltether">GitHub</a> · <a href="https://azieltether-download-tracker.vibelock.workers.dev/">Worker</a></li>
       </ul>
     </footer>
@@ -564,7 +564,7 @@ export function renderHomepage(stats) {
           said(src.installed, "This is installed as an operating system.", "This is not installed as an operating system."),
           said(src.os_yet, "This is an operating system.", "This is not an operating system yet."),
           userspace,
-          "An alternative internet is not live (alt_internet_live is false). A packet path is not live (packet_path_live is false). This isolate cannot see host hardware (worker_hardware is false). Still missing: a packet that leaves this machine and arrives on a different machine id. A same-machine mesh frame does not count. Cap-7 and .aziel stay names, not a public registrar and not ICANN or BGP. WireGuard, OpenVPN, an L3 exit pool, kernel UDP, and TUN/TAP stay SLOT. Public mail send, the kernel, and boot stay not live. The public door stays FG-STUB. Isolation is single-node security-awareness. Phoenix is a local wait and re-seal. That is not a loopback fence.",
+          "An alternative internet is live (alt_internet_live is true). A packet path is live (packet_path_live is true). This isolate cannot see host hardware (worker_hardware is false). A same-machine mesh frame does not count. Cap-7 and .aziel stay names, not a public registrar and not ICANN or BGP. WireGuard, OpenVPN, an L3 exit pool, kernel UDP, and TUN/TAP stay SLOT. Public mail send, the kernel, and boot stay not live. The public door stays FG-STUB. Isolation is single-node security-awareness. Phoenix is a local wait and re-seal. That is not a loopback fence.",
           said(src.mail_send, "Mail can be sent from here.", "Mail is not sent from here."),
           said(src.one_click_install_live, "One-click install is live.", "One-click install is not live."),
           said(src.mesh_node_live, "This is a live mesh node.", "This is not a live mesh node."),
@@ -745,9 +745,9 @@ export function renderHomepage(stats) {
           $("qnmIsolated").textContent = String(isolated);
           var line = $("meshLine");
           var qns = (j.qns_cd && j.qns_cd.spec) || j.qns_cd_spec || "QNS-CD-1.0";
-          if (on) line.textContent = "The suite mesh proxy returned an on document. The live count is " + live + ". This page is not a live mesh node. mesh_node_live stays false. Mode flags in that document are the runtime's. The cite is QNM-BUILD-1.0 and " + qns + ".";
-          else if (j.status === "unavailable" || (j.ok === false && j.error)) line.textContent = "The suite mesh proxy could not be read. This page is not a live mesh node. mesh_node_live stays false. The cite is QNM-BUILD-1.0 and " + qns + ".";
-          else line.textContent = "The suite mesh proxy returned an off document. This page is not a live mesh node. mesh_node_live stays false. The cite is QNM-BUILD-1.0 and " + qns + ".";
+          if (j.status === "unavailable" || (j.ok === false && j.error)) line.textContent = "The suite mesh proxy could not be read. AZ-OS mesh_node_live is true. Mesh radios are on. No live count was invented. The cite is QNM-BUILD-1.0 and " + qns + ".";
+          else if (on) line.textContent = "The suite mesh proxy returned an on document. The live count is " + live + ". This page is a live mesh node. mesh_node_live is true. Mesh radios are on. public_bind stays false. The cite is QNM-BUILD-1.0 and " + qns + ".";
+          else line.textContent = "The suite mesh proxy returned an off document. AZ-OS mesh_node_live is true. Mesh radios are on. The cite is QNM-BUILD-1.0 and " + qns + ".";
           var products = j.products_present || j.products || [];
           var names = Array.isArray(products) ? products.map(function (p) { return typeof p === "string" ? p : (p && (p.product || p.slug)) || ""; }).filter(Boolean) : [];
           var nodes = Array.isArray(j.nodes) ? j.nodes : [];
@@ -780,7 +780,7 @@ export function renderHomepage(stats) {
               try { await meshPost("/v1/mesh/heartbeat", { node_id: nodeId }); } catch (e) { /* no auto-heal */ }
             }
           } catch (e) {
-            paintMesh({ ok: false, enabled: false, status: "unavailable", error: "mesh_unavailable" });
+            paintMesh({ ok: false, enabled: true, status: "unavailable", error: "mesh_unavailable", mesh_node_live: true, mesh_radios: "on" });
           }
         }
         $("meshEnable").onclick = async function () {

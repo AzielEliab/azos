@@ -28,6 +28,8 @@ def test_prefab_installs_catalog() -> None:
     assert REQUIRED <= found
     assert all(a["hooked"] and a["hook_record"] for a in apps)
     assert all(a["installed"] is False for a in apps)
+    assert all(a["node_mesh"] is True and a["mesh_enabled"] is True for a in apps)
+    assert all(a["mesh_radios"] == "on" for a in apps)
     assert all(a["author"] == "Aziel Eliab" for a in apps)
 
 

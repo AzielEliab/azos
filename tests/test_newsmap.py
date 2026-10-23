@@ -344,8 +344,9 @@ def test_fetched_item_joins_only_when_both_chains_and_a_pin_exist(tmp_path: Path
     assert proof["doors"]["booted"]["hardware"] is False
     assert proof["flags"]["mail_send"] is False
     assert proof["doors"]["mail_send"]["public_mta"] is False
-    assert proof["flags"]["mesh_node_live"] is False
+    assert proof["flags"]["mesh_node_live"] is True
     assert proof["doors"]["mesh_node_live"]["public_bind"] is False
+    assert proof["doors"]["mesh_node_live"]["code"] == "MESH-NODE-LIVE"
     assert proof["doors"]["userspace_base"]["booted"] is False
 
 

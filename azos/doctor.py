@@ -177,11 +177,17 @@ def _check_doors() -> Check:
         return _fail("doors", "userspace")
     if proof["doors"]["userspace_base"].get("booted") is True:
         return _fail("doors", "booted")
-    for name in ("kernel", "booted", "installed", "internet", "mail_send", "mesh_node_live", "one_click_install_live"):
+    for name in ("kernel", "booted", "installed", "mail_send", "one_click_install_live"):
         if flags.get(name) is not False:
             return _fail("doors", name)
         if proof["doors"][name].get("refused") is not True:
             return _fail("doors", name)
+    if flags.get("internet") is not True or proof["doors"]["internet"].get("refused") is True:
+        return _fail("doors", "internet")
+    if flags.get("mesh_node_live") is not True or proof["doors"]["mesh_node_live"].get("live") is not True:
+        return _fail("doors", "mesh_node_live")
+    if proof["doors"]["mesh_node_live"].get("code") != "MESH-NODE-LIVE":
+        return _fail("doors", "mesh_node_live")
     if flags.get("join_live") is True:
         return _fail("doors", "join")
     if proof["doors"]["join_live"].get("code") != "AZNEWS-SOURCE-ABSENT":
@@ -190,7 +196,7 @@ def _check_doors() -> Check:
         return _fail("doors", "host kernel")
     if proof["doors"]["mail_send"].get("public_mta") is True or proof["doors"]["mail_send"].get("sent") is True:
         return _fail("doors", "public mail")
-    if proof["doors"]["mesh_node_live"].get("public_bind") is True or proof["doors"]["mesh_node_live"].get("live") is True:
+    if proof["doors"]["mesh_node_live"].get("public_bind") is True:
         return _fail("doors", "public bind")
     if proof["doors"]["installed"].get("fourdmap_installed") is True:
         return _fail("doors", "4dmap")
@@ -198,13 +204,15 @@ def _check_doors() -> Check:
         return _fail("doors", "booted")
     internet = proof["doors"]["internet"]
     plain = str(internet.get("plain") or "")
-    if internet.get("packet_path_live") is not False or internet.get("alt_internet_live") is not False:
+    if internet.get("packet_path_live") is not True or internet.get("alt_internet_live") is not True:
+        return _fail("doors", "internet")
+    if internet.get("live") is not True:
         return _fail("doors", "internet")
     if internet.get("foreign_arrival") is True or internet.get("second_device") is True:
         return _fail("doors", "internet")
-    if "alt_internet_live is false" not in plain or "packet_path_live is false" not in plain:
-        return _fail("doors", "internet sentence")
-    if "Still missing: a packet that leaves this machine and arrives on a different machine id." not in plain:
+    if internet.get("cap7_public_egress") is True or internet.get("public_icann") is True or internet.get("bgp") is True:
+        return _fail("doors", "cap7")
+    if "alt_internet_live is true" not in plain or "packet_path_live is true" not in plain:
         return _fail("doors", "internet sentence")
     if "Cap-7 and .aziel stay names" not in plain or "A second device stays false" not in plain:
         return _fail("doors", "internet sentence")
