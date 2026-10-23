@@ -15,6 +15,8 @@
  * live stays false (runtime rule: two real independent agents, verified end to end, operator-checked).
  * Author: Aziel Eliab. SPDX-License-Identifier: Apache-2.0
  */
+import { copyOptionalTiebreak } from "./tether.js";
+
 export const AGENTS_SPEC = "AGENT-SUBNET-1.0";
 export const AGENTS_RUNTIME = "https://aziel-runtime.vibelock.workers.dev";
 export const AGENTS_BODY_MAX = 8192;
@@ -101,7 +103,7 @@ export async function agentsPublic(env, { surface, localTip = null } = {}) {
   if (!j || !j.ok) return { status: 503, body: { ok: false, code: "AGENTS-RUNTIME-UNREACHABLE", spec: AGENTS_SPEC, surface, fail_closed: true, ...HONEST } };
   // No exact row numbers in public (AZBot #304 N5): the runtime sends its hourly tip with a bucketed seq,
   // and this side's tether copy is shown by hash only.
-  const rt = j.tip ? { seq: bucketSeq(j.tip.seq), primary: j.tip.lattice && j.tip.lattice.primary, secondary: j.tip.lattice && j.tip.lattice.secondary } : null;
+  const rt = j.tip ? copyOptionalTiebreak({ seq: bucketSeq(j.tip.seq), primary: j.tip.lattice && j.tip.lattice.primary, secondary: j.tip.lattice && j.tip.lattice.secondary }, j.tip.lattice) : null;
   const tip_state = localTip && rt ? (localTip.primary === rt.primary ? "agree" : "lagging") : (localTip === null ? "no-local-copy" : "unknown");
   return {
     status: 200,

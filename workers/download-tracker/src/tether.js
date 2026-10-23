@@ -16,6 +16,9 @@
  *   primary   = H({document: document_hash, prev: primary_prev})
  *   secondary = online:  H({offline: false, prev: secondary_prev, primary})
  *               offline: H({primary: document_hash, username})
+ *   tiebreak  = H({chain:"tiebreak", prev, primary, secondary, username})
+ *               optional third chain (LATTICE-TIEBREAK-1.0). A row with no
+ *               tiebreak block keeps the primary and secondary bytes it had.
  *
  * Not mesh membership. Not a second device. Not a public ledger. Not courtroom proof.
  * Author: Aziel Eliab. Identity is Aziel Eliab only.
@@ -77,6 +80,18 @@ export async function offlineSecondaryOf(documentHash, username) {
 
 export async function onlineSecondaryOf(primary, prev) {
   return sha256Hex(canonicalize({ offline: false, prev: prev || GENESIS, primary }));
+}
+
+/** LATTICE-TIEBREAK-1.0. primary = synced online primary; secondary = offline secondary; prev = last tie-break. */
+export async function tiebreakOf({ prev, primary, secondary, username }) {
+  return sha256Hex(canonicalize({ chain: "tiebreak", prev: prev || GENESIS, primary, secondary, username: String(username) }));
+}
+
+/** Copy source.tiebreak onto target only when it is an object. No key is added otherwise. */
+export function copyOptionalTiebreak(target, source) {
+  const tb = source && typeof source === "object" ? source.tiebreak : null;
+  if (tb && typeof tb === "object" && !Array.isArray(tb)) target.tiebreak = tb;
+  return target;
 }
 
 function b64urlBytes(text) {

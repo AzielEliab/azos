@@ -22,7 +22,7 @@
  * Old rows keep their hashes; documents older than DOC_KEEP rows are dropped.
  * Author: Aziel Eliab. Identity is Aziel Eliab only.
  */
-import { GENESIS, canonicalize, sha256Hex, primaryOf, offlineSecondaryOf, onlineSecondaryOf, verifySignature, pinnedKey } from "./tether.js";
+import { GENESIS, canonicalize, sha256Hex, primaryOf, offlineSecondaryOf, onlineSecondaryOf, copyOptionalTiebreak, verifySignature, pinnedKey } from "./tether.js";
 
 export const NEWS_TETHER_SPEC = "AZRT-AZOS-NEWS-1.0";
 export const NEWS_TETHER_KIND = "aznews-rows";
@@ -483,7 +483,7 @@ export async function copyRead(repo, op, payload = {}, { host = "azos" } = {}) {
     body = { ok: true, op, regions };
   } else if (op === "receipts") {
     const rows = await repo.newest(["pull_receipt", "view_receipt"], lim(payload.limit, 20, 50), minSeq); low(rows);
-    body = { ok: true, op, receipts: rows.map((r) => ({ seq: r.seq, kind: r.kind, at: r.at, doc: r.doc, lattice: { primary: r.lattice.primary, secondary: r.lattice.secondary } })) };
+    body = { ok: true, op, receipts: rows.map((r) => ({ seq: r.seq, kind: r.kind, at: r.at, doc: r.doc, lattice: copyOptionalTiebreak({ primary: r.lattice.primary, secondary: r.lattice.secondary }, r.lattice) })) };
   } else if (op === "item") {
     const r = await repo.byItem(String(payload.item_id || ""));
     if (!r || r.seq < minSeq || !r.doc) return { ok: false, code: "NEWS-COPY-NO-MATCH", ...base };

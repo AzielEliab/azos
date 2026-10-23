@@ -17,6 +17,8 @@
  * is never sealed again (no feedback loop). The runtime dedupes per minute and caps per isolate.
  * Author: Aziel Eliab. SPDX-License-Identifier: Apache-2.0
  */
+import { copyOptionalTiebreak } from "./tether.js";
+
 export const REFUSAL_PEER_URL = "https://peer.aziel.internal/v1/refusals/peer";
 export const REFUSAL_PEER_BUDGET_MS = 2500;
 const CODE_RE = /^[A-Za-z][A-Za-z0-9_-]{1,63}$/;
@@ -101,7 +103,7 @@ export async function peerRefusals(env, { surface, localTip = null } = {}) {
   } catch { j = null; }
   if (!j || !j.ok) return { status: 503, body: { ok: false, code: "REFUSALS-RUNTIME-UNREACHABLE", surface, fail_closed: true } };
   const mine = (j.receipts || []).filter((x) => x.refusal && x.refusal.surface === surface);
-  const rt = j.tip ? { seq: j.tip.seq, primary: j.tip.lattice && j.tip.lattice.primary, secondary: j.tip.lattice && j.tip.lattice.secondary } : null;
+  const rt = j.tip ? copyOptionalTiebreak({ seq: j.tip.seq, primary: j.tip.lattice && j.tip.lattice.primary, secondary: j.tip.lattice && j.tip.lattice.secondary }, j.tip.lattice) : null;
   const agree = localTip && rt ? (localTip.primary === rt.primary ? "agree" : "lagging") : (localTip === null ? "no-local-copy" : "unknown");
   return { status: 200, body: { ok: true, spec: "AZRT-REFUSAL-RECEIPT-1.0", surface, chain: "refusals", runtime_tip: rt, local_tip: localTip, tip_state: agree, total: j.total, mine_recent: mine, find_all: "https://aziel-runtime.vibelock.workers.dev/v1/receipts/refusals", verify: "chainlock_verify {\"c\":\"refusals\"} on aziel-runtime", signed: false } };
 }

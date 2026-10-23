@@ -75,6 +75,11 @@ assert.equal(b.code, "NEWS-COPY-UNAVAILABLE"); assert.equal(b.refusal_receipt.st
 const list = { fetch: async () => new Response(JSON.stringify({ ok: true, total: 3, tip: { seq: 3, lattice: { primary: "p".repeat(64), secondary: "s".repeat(64) } }, receipts: [{ seq: 3, refusal: { surface: SURFACE } }, { seq: 2, refusal: { surface: "runtime" } }] }), { headers: { "content-type": "application/json" } }) };
 let o = await peerRefusals({ AZIEL_RUNTIME: list }, { surface: SURFACE, localTip: { primary: "p".repeat(64) } });
 assert.equal(o.status, 200); assert.equal(o.body.tip_state, "agree"); assert.equal(o.body.mine_recent.length, 1); assert.equal(o.body.signed, false);
+assert.ok(!("tiebreak" in o.body.runtime_tip), "refusal tip without tiebreak keeps its keys");
+const listTb = { fetch: async () => new Response(JSON.stringify({ ok: true, total: 3, tip: { seq: 3, lattice: { primary: "p".repeat(64), secondary: "s".repeat(64), tiebreak: { status: "synced", hash: "c".repeat(64), prev: "0".repeat(64) } } }, receipts: [{ seq: 3, refusal: { surface: SURFACE } }] }), { headers: { "content-type": "application/json" } }) };
+o = await peerRefusals({ AZIEL_RUNTIME: listTb }, { surface: SURFACE, localTip: { primary: "p".repeat(64) } });
+assert.equal(o.body.runtime_tip.tiebreak.hash, "c".repeat(64));
+assert.equal(JSON.stringify(o.body.mine_recent[0]), JSON.stringify({ seq: 3, refusal: { surface: SURFACE } }));
 o = await peerRefusals({ AZIEL_RUNTIME: list }, { surface: SURFACE, localTip: { primary: "q".repeat(64) } });
 assert.equal(o.body.tip_state, "lagging");
 o = await peerRefusals({}, { surface: SURFACE });

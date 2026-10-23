@@ -102,6 +102,12 @@ for (const op of ["status", "feed", "pins", "sky", "weather", "receipts", "globe
   assert.equal(r.copy_verify.ok, true, op);
   assert.equal(r.copy.from_genesis, true);
 }
+const receipts = await copyRead(repo, "receipts", {});
+assert.ok(receipts.receipts.length > 0);
+for (const row of receipts.receipts) {
+  assert.ok(!("tiebreak" in row.lattice), "a receipt without a tiebreak block keeps primary and secondary only");
+  assert.equal(JSON.stringify(row.lattice), JSON.stringify({ primary: row.lattice.primary, secondary: row.lattice.secondary }));
+}
 const feed = await copyRead(repo, "feed", { limit: 3 });
 assert.equal(feed.items.length, 3);
 assert.equal(feed.items[0].item_id, "n-5");
