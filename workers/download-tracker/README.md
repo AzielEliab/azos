@@ -52,8 +52,8 @@ Test: `node scripts/verify-tether.mjs` (uses `scripts/fixtures/azos-tether-vecto
 This leg is independent and optional. `vendor/lockstep/` is a byte-for-byte copy of aziel-runtime's
 design tokens, contract, and consumer check, pinned by SHA-256 in `LOCKSTEP.pin.json`.
 
-- `GET /v1/lockstep`: `agree` / `drift` / `absent` against the runtime over the `AZIEL_RUNTIME` binding. When the runtime is absent this leg keeps running standalone and shows every flag as false.
+- `GET /v1/lockstep`: `agree` / `drift` / `absent` against the runtime over the `AZIEL_RUNTIME` binding. When the runtime is absent this leg keeps running standalone and shows every displayed flag as false. A displayed flag is true only on `agree`, when the contract says true, and when this leg proves it.
 - `GET /design/tokens.css`, `/design/tokens.json`: the shared design source, the same bytes as the runtime's.
-- `npm test` fails if a vendored file changed, a lock moved, a flag is true, the tether key, chains, or mesh differ from the contract, or a feature this leg claims in the contract's union stops answering. `npm run lockstep:remote` also compares the pin with runtime `main`.
+- `npm test` fails if a vendored file changed, a lock moved (Softwares 42, tools 36, stub ops 363, software_count 33, health_count 41), `mesh_node_live`, `alt_internet_live`, or `packet_path_live` is not true, any other contract flag is true, the tether key, chains, or mesh differ from the contract, or a feature this leg claims in the contract's union stops answering. `npm run lockstep:remote` also compares the pin with runtime `main`.
 - To re-vendor after a runtime contract change, run `node scripts/lockstep-vendor.mjs <this checkout>` from an aziel-runtime checkout.
 - There is no GitHub workflow here. Adding one that runs `npm test` needs a token with `workflow` scope.

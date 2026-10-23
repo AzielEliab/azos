@@ -1,9 +1,11 @@
 /**
  * AZ-LOCKSTEP-1.0 (leg). The vendored shared design + contract match LOCKSTEP.pin.json; locks and
- * flags hold; this leg tethers to the same chains, key, and mesh as the contract; /v1/lockstep fails
- * closed (runtime absent -> standalone, flags false; drift -> 503); every non-gap feature this leg
+ * flags hold (mesh_node_live, alt_internet_live, and packet_path_live true; every other flag false);
+ * this leg tethers to the same chains, key, and mesh as the contract; /v1/lockstep fails
+ * closed (runtime absent -> standalone, displayed flags false; agree without leg proof still
+ * displays false; drift -> 503); every non-gap feature this leg
  * claims answers with the runtime absent. LOCKSTEP_REMOTE=1 also compares the pin with runtime main.
- * Same file on AZInterface and AZ-OS. Author: Aziel Eliab.
+ * Author: Aziel Eliab.
  */
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -48,7 +50,8 @@ for (const file of Object.keys(pin.files)) {
 const c = PINNED.contract;
 assert.deepEqual(c.locks, { softwares: 42, mcp_tools: 36, stub_op_count: 363, software_count: 33, health_count: 41 }); n++;
 ok(c.runtime.version === "2.0.0-rc1", "runtime version");
-for (const [k, v] of Object.entries(c.flags)) ok(v === false, `flag ${k} false`);
+const namedLive = new Set(["mesh_node_live", "alt_internet_live", "packet_path_live"]);
+for (const [k, v] of Object.entries(c.flags)) ok(v === namedLive.has(k), namedLive.has(k) ? `flag ${k} is ON` : `flag ${k} stays false`);
 ok(c.legs[LEG] && c.legs[LEG].independent === true && c.legs[LEG].optional === true, "this leg is independent + optional");
 
 // 3. same chains, key, mesh
@@ -87,6 +90,7 @@ ok(Object.values(b.flags).every((x) => x === false), "absent -> every flag false
 r = await call("/v1/lockstep", { ...baseEnv, AZIEL_RUNTIME: bindingFor(PINNED) });
 b = await r.json();
 ok(r.status === 200 && b.state === "agree" && b.tether.ok === true, "runtime serves the pinned contract -> agree");
+ok(Object.values(b.flags).every((x) => x === false), "agree without leg proof still displays false");
 const moved = structuredClone(PINNED); moved.contract.locks.mcp_tools = 37; moved.contract_sha256 = await hashOf(moved.contract);
 r = await call("/v1/lockstep", { ...baseEnv, AZIEL_RUNTIME: bindingFor(moved) });
 b = await r.json();

@@ -15,8 +15,8 @@
       "health_count": 41
     },
     "flags": {
-      "alt_internet_live": false,
-      "packet_path_live": false,
+      "alt_internet_live": true,
+      "packet_path_live": true,
       "second_device": false,
       "public_mail_send_live": false,
       "public_smtp_send": false,
@@ -25,7 +25,7 @@
       "booted": false,
       "installed": false,
       "os_yet": false,
-      "mesh_node_live": false,
+      "mesh_node_live": true,
       "one_click_install_live": false,
       "witness_dual": false,
       "receipts_signed": false
@@ -46,7 +46,7 @@
       "signing": "hash-linked-sealed-not-signed"
     },
     "sentences": {
-      "internet": "Internet base is present. Not live.",
+      "internet": "Internet base is present. The alternative internet is live. The packet path is live. A mesh node is live. Radio PHY is not live.",
       "mail": "Public send stays refused.",
       "kernel_note": "The kernel base is present. It has not booted a machine.",
       "os": "Not an OS yet",
@@ -56,8 +56,8 @@
       "veillock": "VeilLock stays local_only.",
       "whitestone": "Whitestone is worker-only and has no public door.",
       "smtp": "Public smtp_send stays refused.",
-      "packet": "The packet path is not live.",
-      "alt": "The alternative internet is not live."
+      "packet": "The packet path is live.",
+      "alt": "The alternative internet is live."
     },
     "doors": {
       "door": "fraggate",
@@ -905,8 +905,8 @@
     },
     "path": "/v1/lockstep"
   },
-  "contract_sha256": "d247d2f084d077103e4b918479e90f1148d28afbbdc721e9b75a5ceaa8a0a8a8",
+  "contract_sha256": "c24c368f5fa4df71ef7e43afeab21486e160876036a5572c272d87034e1ff492",
   "tokens_sha256": "0515818b4de04a624c15d9e603ebdf20e1217a57115957ce434ab93ad88e2786",
   "css_sha256": "496be77f2dd44d295d8ef33936c977a2c9d68237b4d1086abae0c854a80f13ff",
-  "hints_sha256": "d22d202e1f46e936e8ed532375698f38e4c66c79ce122671e0a26aa432486dae"
+  "hints_sha256": "31d107ef0b113a5e5807128558a46a1d40afcc0da424e9ec34c6d94ddc12d679"
 }
