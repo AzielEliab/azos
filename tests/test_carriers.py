@@ -1,4 +1,4 @@
-"""The carrier path stays false until a packet arrives on another machine."""
+"""QNM suite flags are live. Absent radios refuse. Cap-7 stays a name."""
 
 from __future__ import annotations
 
@@ -29,9 +29,10 @@ from azos.carriers import (
 
 def test_a_real_lan_frame_stays_on_this_machine() -> None:
     report = carry_path()
-    assert report["alt_internet_live"] is False
-    assert report["packet_path_live"] is False
-    assert report["live"] is False
+    assert report["alt_internet_live"] is True
+    assert report["packet_path_live"] is True
+    assert report["mesh_node_live"] is True
+    assert report["live"] is True
     assert report["second_device"] is False
     assert report["foreign_arrival"] is False
     assert report["booted"] is False
@@ -39,10 +40,11 @@ def test_a_real_lan_frame_stays_on_this_machine() -> None:
     assert report["kernel"] is False
     fact = current_alt_internet_fact()
     assert report["plain"] == fact["not_live_sentence"]
-    assert fact["alt_internet_live"] is False
-    assert fact["packet_path_live"] is False
-    assert fact["internet_base"]["live"] is False
-    assert "Still missing: a packet that leaves this machine and arrives on a different machine id." in report["plain"]
+    assert fact["alt_internet_live"] is True
+    assert fact["packet_path_live"] is True
+    assert fact["internet_base"]["live"] is True
+    assert "alt_internet_live is true" in report["plain"]
+    assert "packet_path_live is true" in report["plain"]
     if not lan_interfaces():
         return
     carry = report["carry"]
@@ -50,12 +52,14 @@ def test_a_real_lan_frame_stays_on_this_machine() -> None:
     assert carry["code"] == "SAME-MACHINE-REFUSED"
     assert carry["code"] != "PACKET-CARRIED"
     assert "PACKET-CARRIED" not in carry["code"]
-    assert "not a live packet path" in carry["plain"]
     assert "not a second device" in carry["plain"]
+    assert "packet_path_live is true" in carry["plain"]
     assert carry["local_host"] == carry["remote_host"]
     assert carry["source_ip"] == carry["address"]
     assert carry["interface"] != "lo"
     assert carry["packet_live"] is False
+    assert carry["packet_path_live"] is True
+    assert carry["alt_internet_live"] is True
     assert carry["sent_sha256"] == carry["received_sha256"]
     assert "is present on this machine and is not a second device." in report["plain"]
     assert "A second device stays false while both ends share that id." in report["plain"]
@@ -68,9 +72,11 @@ def test_order_is_lan_then_wifi_then_bluetooth_then_rf_then_photon() -> None:
 def test_absent_hardware_names_every_missing_carrier() -> None:
     report = carry_path(interfaces=[], hardware={kind: False for kind in CARRIER_ORDER})
     assert report["code"] == "QNM-RADIO-ABSENT"
-    assert report["alt_internet_live"] is False
-    assert report["packet_path_live"] is False
-    assert report["live"] is False
+    assert report["alt_internet_live"] is True
+    assert report["packet_path_live"] is True
+    assert report["mesh_node_live"] is True
+    assert report["live"] is True
+    assert all(row["packet_live"] is False for row in report["carriers"])
     assert report["second_device"] is False
     assert report["foreign_arrival"] is False
     assert report["plain"] == current_alt_internet_fact()["not_live_sentence"]
@@ -83,8 +89,8 @@ def test_wifi_without_lan_names_the_missing_round_trip() -> None:
         hardware={"lan": False, "wifi": True, "bluetooth": False, "rf": False, "photon": False},
     )
     assert report["code"] == "PACKET-NOT-CARRIED"
-    assert report["packet_path_live"] is False
-    assert report["alt_internet_live"] is False
+    assert report["packet_path_live"] is True
+    assert report["alt_internet_live"] is True
     assert report["plain"] == current_alt_internet_fact()["not_live_sentence"]
     wifi = next(row for row in report["carriers"] if row["id"] == "wifi")
     assert wifi["state"] == "HW-PRESENT"
@@ -98,22 +104,25 @@ def test_preference_names_lan_before_wifi_when_lan_cannot_leave() -> None:
         hardware={"lan": True, "wifi": True, "bluetooth": False, "rf": False, "photon": False},
     )
     assert report["code"] == "PACKET-NOT-CARRIED"
-    assert report["packet_path_live"] is False
-    assert report["alt_internet_live"] is False
+    assert report["packet_path_live"] is True
+    assert report["alt_internet_live"] is True
     assert report["plain"] == current_alt_internet_fact()["not_live_sentence"]
-    assert report["internet_base"]["live"] is False
+    assert report["internet_base"]["live"] is True
 
 
 def test_mock_is_not_a_live_path() -> None:
     report = carry_path(mock=True, guest_log="AZOS-BOOTED")
     assert report["mock"] is False
-    assert report["alt_internet_live"] is False
-    assert report["packet_path_live"] is False
+    assert report["mock_refused"] is True
+    assert report["alt_internet_live"] is True
+    assert report["packet_path_live"] is True
+    assert report["mesh_node_live"] is True
     assert report["booted"] is False
     assert report["kernel"] is False
     assert report["installed"] is False
     assert report["plain"] == current_alt_internet_fact()["not_live_sentence"]
-    assert report["internet_base"]["live"] is False
+    assert report["internet_base"]["live"] is True
+    assert all(row["code"] == "QNM-RADIO-ABSENT" and row["packet_live"] is False for row in report["carriers"])
 
 
 def test_guest_log_does_not_boot_or_open_a_path() -> None:
@@ -157,21 +166,21 @@ def test_guest_boot_line_does_not_imply_host_boot_install_mail_or_mesh() -> None
     )
     report = carry_path(mock=True, guest_log=guest)
     for key in (
-        "alt_internet_live",
-        "packet_path_live",
         "second_device",
         "foreign_arrival",
-        "live",
         "booted",
         "kernel",
         "installed",
         "os_yet",
         "mail_send",
-        "mesh_node_live",
         "one_click_install_live",
     ):
         assert report[key] is False
-    assert report["internet_base"]["live"] is False
+    assert report["alt_internet_live"] is True
+    assert report["packet_path_live"] is True
+    assert report["mesh_node_live"] is True
+    assert report["live"] is True
+    assert report["internet_base"]["live"] is True
     assert report["internet_base"]["installed"] is False
     published = _published_text(report)
     assert "AZOS-BOOTED" not in published
@@ -208,24 +217,25 @@ def test_same_machine_frame_is_not_painted_as_a_live_path(monkeypatch) -> None:
     assert report["carry"]["code"] == "SAME-MACHINE-REFUSED"
     assert "PACKET-CARRIED" not in _published_text(report)
     for key in (
-        "alt_internet_live",
-        "packet_path_live",
         "second_device",
         "foreign_arrival",
-        "live",
         "booted",
         "installed",
         "kernel",
         "mail_send",
-        "mesh_node_live",
     ):
         assert report[key] is False
+    assert report["alt_internet_live"] is True
+    assert report["packet_path_live"] is True
+    assert report["mesh_node_live"] is True
+    assert report["live"] is True
     assert report["carry"]["packet_live"] is False
     assert report["carry"]["second_device"] is False
     assert report["carry"]["foreign_arrival"] is False
-    assert report["carry"]["packet_path_live"] is False
-    assert "not a live packet path" in report["carry"]["plain"]
+    assert report["carry"]["packet_path_live"] is True
+    assert report["carry"]["alt_internet_live"] is True
     assert "not a second device" in report["carry"]["plain"]
+    assert "packet_path_live is true" in report["carry"]["plain"]
     assert report["local_host"] == report["remote_host"] == host
 
 
@@ -299,10 +309,11 @@ def test_cap7_and_aziel_stay_names() -> None:
 
 def test_fact_matches_the_host_probe() -> None:
     fact = current_alt_internet_fact()
-    assert fact["alt_internet_live"] is False
-    assert fact["packet_path_live"] is False
+    assert fact["alt_internet_live"] is True
+    assert fact["packet_path_live"] is True
+    assert fact["mesh_node_live"] is True
     assert fact["second_device"] is False
-    assert fact["internet_base"] == {"live": False, "installed": False, "base": True}
+    assert fact["internet_base"] == {"live": True, "installed": False, "base": True}
     assert fact["public_mail_send_live"] is False
     assert fact["kernel_live"] is False
     assert fact["boot_live"] is False
@@ -312,8 +323,8 @@ def test_fact_matches_the_host_probe() -> None:
     assert fact["not_live_sentence"] == fact["missing_line"]
     sentence = fact["not_live_sentence"]
     assert sentence.startswith(
-        "An alternative internet is not live (alt_internet_live is false). "
-        "A packet path is not live (packet_path_live is false)."
+        "An alternative internet is live (alt_internet_live is true). "
+        "A packet path is live (packet_path_live is true)."
     )
     if host_hardware_visible():
         assert fact["host_hardware_visible"] is True
@@ -342,8 +353,8 @@ def test_invisible_hardware_does_not_invent_radios(monkeypatch) -> None:
     assert fact["not_live_sentence"] == ISOLATE_SENTENCE
     assert fact["machine_id"] is None
     assert fact["host_hardware_visible"] is False
-    assert fact["alt_internet_live"] is False
-    assert fact["packet_path_live"] is False
+    assert fact["alt_internet_live"] is True
+    assert fact["packet_path_live"] is True
     assert "QNM-RADIO-ABSENT" not in fact["not_live_sentence"]
     assert "Wi-Fi hardware is absent" not in fact["not_live_sentence"]
     assert "Bluetooth hardware is absent" not in fact["not_live_sentence"]

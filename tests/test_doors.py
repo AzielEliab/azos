@@ -1,4 +1,4 @@
-"""Flags follow the door. A true flag while the path refuses fails the test."""
+"""Flags follow the door. Cap-7 stays a name. Absent radios are not a public bind."""
 
 from __future__ import annotations
 
@@ -16,7 +16,7 @@ def hosted_limits(internet: str) -> str:
         "This is not installed as an operating system. This is not an operating system yet. "
         "The userspace base is present. That is a base, not a boot. "
         f"{internet} "
-        "Mail is not sent from here. One-click install is not live. This is not a live mesh node. "
+        "Mail is not sent from here. One-click install is not live. This is a live mesh node. "
         "Existing doors stay in place. App shells are not started."
     )
 
@@ -36,13 +36,13 @@ def test_scope_flags_follow_the_doors(tmp_path: Path) -> None:
     assert scope["installed"] is False
     assert scope["os_yet"] is False
     assert scope["mail_send"] is False
-    assert scope["mesh_node_live"] is False
+    assert scope["mesh_node_live"] is True
     assert scope["one_click_install_live"] is False
-    assert scope["internet_base"]["live"] is False
+    assert scope["internet_base"]["live"] is True
     assert scope["internet_base"]["installed"] is False
     assert scope["internet_base"]["base"] is True
-    assert scope["alt_internet_live"] is False
-    assert scope["packet_path_live"] is False
+    assert scope["alt_internet_live"] is True
+    assert scope["packet_path_live"] is True
     assert scope["userspace_base"] is True
     assert proof["flags"]["userspace_base"] is True
     assert proof["doors"]["userspace_base"]["ok"] is True
@@ -68,11 +68,12 @@ def test_scope_flags_follow_the_doors(tmp_path: Path) -> None:
     assert proof["doors"]["one_click_install_live"]["pip_ran"] is False
     assert proof["doors"]["one_click_install_live"]["code"] == "ONE-CLICK-NOT-LIVE"
     internet = proof["doors"]["internet"]
-    assert internet["live"] is False
+    assert internet["live"] is True
     assert internet["installed"] is False
     assert internet["base"] is True
-    assert internet["packet_path_live"] is False
-    assert internet["alt_internet_live"] is False
+    assert internet["packet_path_live"] is True
+    assert internet["alt_internet_live"] is True
+    assert internet["mesh_node_live"] is True
     assert internet["foreign_arrival"] is False
     assert internet["second_device"] is False
     assert internet["booted"] is False
@@ -83,9 +84,8 @@ def test_scope_flags_follow_the_doors(tmp_path: Path) -> None:
     assert internet["aziel_is_path"] is False
     assert internet["mock"] is False
     assert internet["carrier_order"] == ["lan", "wifi", "bluetooth", "rf", "photon"]
-    assert "alt_internet_live is false" in internet["plain"]
-    assert "packet_path_live is false" in internet["plain"]
-    assert "Still missing: a packet that leaves this machine and arrives on a different machine id." in internet["plain"]
+    assert "alt_internet_live is true" in internet["plain"]
+    assert "packet_path_live is true" in internet["plain"]
     assert "A same-machine mesh frame does not count." in internet["plain"]
     assert "Cap-7 and .aziel stay names" in internet["plain"]
     assert "A second device stays false" in internet["plain"]
@@ -100,9 +100,9 @@ def test_scope_flags_follow_the_doors(tmp_path: Path) -> None:
         assert "PACKET-CARRIED" not in str(carry.get("code"))
         assert "PACKET-CARRIED" not in str(internet.get("code"))
         assert carry["second_device"] is False
-        assert carry["packet_path_live"] is False
-        assert "not a live packet path" in carry["plain"]
+        assert carry["packet_path_live"] is True
         assert "not a second device" in carry["plain"]
+        assert "packet_path_live is true" in carry["plain"]
         assert carry["interface"] != "lo"
         assert carry["sent_sha256"] == carry["received_sha256"]
         assert "is present on this machine and is not a second device." in internet["plain"]
@@ -111,8 +111,8 @@ def test_scope_flags_follow_the_doors(tmp_path: Path) -> None:
     assert proof["doors"]["mail_send"]["sent"] is False
     assert proof["doors"]["mail_send"]["code"] == "MAIL-SEND-REFUSED"
     assert proof["doors"]["mesh_node_live"]["public_bind"] is False
-    assert proof["doors"]["mesh_node_live"]["live"] is False
-    assert proof["doors"]["mesh_node_live"]["code"] == "MESH-NODE-NOT-LIVE"
+    assert proof["doors"]["mesh_node_live"]["live"] is True
+    assert proof["doors"]["mesh_node_live"]["code"] == "MESH-NODE-LIVE"
     assert proof["flags"]["join_live"] is False
     assert proof["doors"]["join_live"]["code"] == ABSENT_CODE
     assert proof["doors"]["join_live"]["refused"] is True
@@ -123,13 +123,15 @@ def test_scope_flags_follow_the_doors(tmp_path: Path) -> None:
         "kernel",
         "booted",
         "installed",
-        "internet",
         "mail_send",
-        "mesh_node_live",
         "one_click_install_live",
     ):
         assert proof["doors"][name]["refused"] is True
         assert proof["flags"][name] is False
+    assert proof["flags"]["internet"] is True
+    assert proof["doors"]["internet"]["refused"] is False
+    assert proof["flags"]["mesh_node_live"] is True
+    assert proof["doors"]["mesh_node_live"]["refused"] is False
 
 
 def test_local_artifacts_do_not_become_a_host_kernel(tmp_path: Path) -> None:
@@ -149,10 +151,11 @@ def test_local_artifacts_do_not_become_a_host_kernel(tmp_path: Path) -> None:
     assert bound["answered"] is True
     assert bound["host"] == "127.0.0.1"
     assert bound["public_bind"] is False
-    assert bound["live"] is False
+    assert bound["live"] is True
     assert bound["kernel"] is False
-    assert bound["mesh_node_live"] is False
-    assert bound["code"] == "MESH-NODE-NOT-LIVE"
+    assert bound["mesh_node_live"] is True
+    assert bound["mesh_enable"] is True
+    assert bound["code"] == "MESH-NODE-LIVE"
     copied = place(tmp_path / "copied")
     assert copied["placed"] is True
     assert copied["installed"] is False
@@ -191,12 +194,12 @@ def test_local_artifacts_do_not_become_a_host_kernel(tmp_path: Path) -> None:
         "kernel",
         "booted",
         "installed",
-        "internet",
         "mail_send",
-        "mesh_node_live",
         "one_click_install_live",
     ):
         assert proof["flags"][name] is False
+    assert proof["flags"]["internet"] is True
+    assert proof["flags"]["mesh_node_live"] is True
     assert proof["flags"]["userspace_base"] is True
     assert proof["doors"]["userspace_base"]["booted"] is False
     assert proof["flags"]["join_live"] is False

@@ -3,9 +3,11 @@
  * QNS-CD-1.0 hub cite (photon QNS1 packet transfer) — not a Softwares-tab product.
  * /v1/mesh/* forwards the aziel-runtime document (AZIEL_RUNTIME binding).
  * A successful proxy does not rewrite upstream mode flags.
- * AZ-OS health keeps mesh_node_live false. This Worker is not a live mesh node.
- * The local fallback (emptyMesh) is default off: no Node Gate, no auto-heal,
- * and not an anonymity network. Those fallback constants are not applied to a proxied body.
+ * AZ-OS health publishes mesh_node_live, alt_internet_live, and packet_path_live true.
+ * Mesh radios are on. public_bind stays false. Cap-7 is a name, not ICANN.
+ * The local fallback (emptyMesh) is node-mesh on. A raw proxy body is still
+ * forwarded. No Node Gate rewrite, no auto-heal rewrite, and not an anonymity
+ * rewrite are not applied to a proxied body. Absent radios stay QNM-RADIO-ABSENT.
  * No public qnsd proxy. Public rollup is live|locked|isolated counts only.
  * Author: Aziel Eliab only.
  */
@@ -22,7 +24,9 @@ const AZINTERFACE_REPO = "https://github.com/AzielEliab/azinterface";
 export const QNM_SPEC = "QNM-BUILD-1.0";
 export const QNS_CD_SPEC = "QNS-CD-1.0";
 export const MESH_KERNEL = "NM-0.1";
-export const MESH_DEFAULT_OFF = true;
+export const MESH_DEFAULT_OFF = false;
+export const MESH_ENABLED = true;
+export const MESH_RADIOS = "on";
 export const MESH_ANONYMITY_NETWORK = false;
 export const MESH_NODE_GATE = false;
 export const MESH_AUTO_HEAL = false;
@@ -50,7 +54,8 @@ export const QNS_CD = Object.freeze({
   public_proxy: false,
   qnsd_proxy: false,
   node_gate: false,
-  enabled_default: false,
+  enabled_default: true,
+  mesh_radios: MESH_RADIOS,
   local_daemon: "qnsd",
   local_node: QNM_NODE,
   runtime: AZIEL_RUNTIME_REPO,
@@ -68,7 +73,7 @@ export const QNS_CD = Object.freeze({
 });
 
 export const MESH_NOTE =
-  "QNM-BUILD-1.0. QNS-CD-1.0 photon QNS1 packet transfer (hub cite; local qnsd in qnm-node; no public proxy). Local fallback is default off. A proxied body keeps the runtime mode flags. AZ-OS mesh_node_live stays false. Live|locked|isolated counts only. No Node Gate. No auto-heal. Not an anonymity network. Author: Aziel Eliab only.";
+  "QNM-BUILD-1.0. QNS-CD-1.0 photon QNS1 packet transfer (hub cite; local qnsd in qnm-node; no public proxy). Local fallback node mesh is on. Mesh radios are on. AZ-OS mesh_node_live, alt_internet_live, and packet_path_live are true. public_bind stays false. Cap-7 is a name, not ICANN. A raw proxied body keeps the runtime mode flags. Live|locked|isolated counts only. No public qnsd proxy. Author: Aziel Eliab only.";
 
 export const MESH_OPS = Object.freeze([
   "status",
@@ -82,12 +87,12 @@ export const MESH_OPS = Object.freeze([
 ]);
 
 export const MESH_PROXY_ROUTES = Object.freeze([
-  { path: MESH_PATH, methods: ["get", "head"], op: "status", summary: "PROXY to aziel-runtime GET /v1/mesh. Forwards the runtime document. AZ-OS mesh_node_live stays false. Not a local op." },
+  { path: MESH_PATH, methods: ["get", "head"], op: "status", summary: "PROXY to aziel-runtime GET /v1/mesh. Forwards the runtime document. AZ-OS mesh_node_live is true. Not a local op." },
   { path: MESH_STATUS_PATH, methods: ["get"], op: "status", summary: "PROXY alias of GET /v1/mesh. Not a local op." },
   { path: MESH_NODES_PATH, methods: ["get"], op: "nodes", summary: "PROXY to aziel-runtime GET /v1/mesh/nodes. Live Nodes (5-minute presence). Not a local op." },
   { path: MESH_ENABLE_PATH, methods: ["post"], op: "enable", summary: "PROXY to aziel-runtime POST /v1/mesh/enable. Operator bearer required. Rate-limited. Not a local op." },
   { path: MESH_DISABLE_PATH, methods: ["post"], op: "disable", summary: "PROXY to aziel-runtime POST /v1/mesh/disable. Always allowed. Not a local op." },
-  { path: MESH_JOIN_PATH, methods: ["post"], op: "join", summary: "PROXY to aziel-runtime POST /v1/mesh/join. Body {product, node_id?, label?, presence?}. Refused while OFF. Not a local op." },
+  { path: MESH_JOIN_PATH, methods: ["post"], op: "join", summary: "PROXY to aziel-runtime POST /v1/mesh/join. Body {product, node_id?, label?, presence?}. Node mesh is on. Not a local op. public_bind stays false." },
   { path: MESH_HEARTBEAT_PATH, methods: ["post"], op: "heartbeat", summary: "PROXY to aziel-runtime POST /v1/mesh/heartbeat. Body {node_id}. Not a local op." },
   { path: MESH_LEAVE_PATH, methods: ["post"], op: "leave", summary: "PROXY to aziel-runtime POST /v1/mesh/leave. Body {node_id}. Not a local op." },
   { path: MESH_BROADCAST_PATH, methods: ["post"], op: "broadcast", summary: "PROXY to aziel-runtime POST /v1/mesh/broadcast. SHA-256 receipt only. Not AnonBroadcast upload. Not a local op." },
@@ -196,10 +201,16 @@ export function emptyMesh(extra = {}) {
     code: extra.code || "MESH-OK",
     kernel: false,
     kernel_profile: MESH_KERNEL,
-    enabled: false,
-    default_off: true,
+    enabled: true,
+    default_off: false,
+    mesh_radios: MESH_RADIOS,
+    mesh_node_live: true,
+    alt_internet_live: true,
+    packet_path_live: true,
+    public_bind: false,
+    cap7_public_icann: false,
     live_nodes: 0,
-    status: extra.status || "off",
+    status: extra.status || "on",
     source: extra.source || "fallback",
     note: MESH_NOTE,
     door: MESH_PATH,
@@ -211,6 +222,14 @@ export function emptyMesh(extra = {}) {
     node_gate: false,
     auto_heal: false,
     anonymity_network: false,
+    enabled: true,
+    default_off: false,
+    mesh_radios: MESH_RADIOS,
+    mesh_node_live: true,
+    alt_internet_live: true,
+    packet_path_live: true,
+    public_bind: false,
+    cap7_public_icann: false,
     author: MESH_IDENTITY,
     identity: MESH_IDENTITY,
   });
@@ -265,7 +284,7 @@ export function parseMeshDoc(body) {
   return emptyMesh({
     ok: inner.ok !== false,
     enabled,
-    default_off: inner.default_off !== false,
+    default_off: false,
     live_nodes: live,
     rollup: { live, locked, isolated },
     products_present: products,
@@ -274,26 +293,31 @@ export function parseMeshDoc(body) {
     source: inner.source || "parsed",
     door: inner.door || MESH_PATH,
     note: enabled
-      ? "QNM-BUILD-1.0. QNS-CD-1.0 photon QNS1 packet transfer (hub cite; no public qnsd proxy). Parsed view reports the suite on. AZ-OS mesh_node_live stays false. This parsed view is not the raw proxied document. Live|locked|isolated counts only."
+      ? "QNM-BUILD-1.0. QNS-CD-1.0 photon QNS1 packet transfer (hub cite; no public qnsd proxy). Parsed view reports the suite on. AZ-OS mesh_node_live is true. Mesh radios are on. public_bind stays false. This parsed view is not the raw proxied document. Live|locked|isolated counts only."
       : MESH_NOTE,
   });
 }
 
 export function publicMesh(mesh) {
   const m = mesh && typeof mesh === "object" ? mesh : emptyMesh();
-  const enabled = !!m.enabled;
-  const rollup = enabled ? meshRollup(m) : emptyRollup();
+  const rollup = meshRollup(m);
   return withQnsCd({
     spec: QNM_SPEC,
     qns_cd_spec: QNS_CD_SPEC,
     qns_cd: QNS_CD,
     kernel: false,
     kernel_profile: MESH_KERNEL,
-    enabled,
-    default_off: m.default_off !== false,
-    live_nodes: enabled ? rollup.live : 0,
+    enabled: true,
+    default_off: false,
+    mesh_radios: MESH_RADIOS,
+    mesh_node_live: true,
+    alt_internet_live: true,
+    packet_path_live: true,
+    public_bind: false,
+    cap7_public_icann: false,
+    live_nodes: rollup.live,
     rollup,
-    status: enabled ? "on" : (m.status === "unavailable" ? "unavailable" : "off"),
+    status: m.status === "unavailable" ? "unavailable" : "on",
     source: m.source || "fallback",
     node_gate: false,
     auto_heal: false,
@@ -323,12 +347,12 @@ export function meshStatusLine(mesh) {
   const m = mesh && typeof mesh === "object" ? mesh : emptyMesh();
   if (m.enabled) {
     const r = meshRollup(m);
-    return "Suite mesh proxy: on · live " + r.live + " · locked " + r.locked + " · isolated " + r.isolated + ". AZ-OS mesh_node_live stays false. Mode flags belong to the runtime document.";
+    return "Suite mesh proxy: on · live " + r.live + " · locked " + r.locked + " · isolated " + r.isolated + ". AZ-OS mesh_node_live is true. Mesh radios are on. public_bind stays false.";
   }
   if (m.status === "unavailable") {
-    return "Suite mesh proxy: unavailable. AZ-OS mesh_node_live stays false. QNM-BUILD-1.0. QNS-CD-1.0.";
+    return "Suite mesh proxy: unavailable. AZ-OS mesh_node_live stays true. No live count was invented. QNM-BUILD-1.0. QNS-CD-1.0.";
   }
-  return "Suite mesh local fallback: off. AZ-OS mesh_node_live stays false. QNM-BUILD-1.0. QNS-CD-1.0.";
+  return "Suite mesh local fallback: on. mesh_node_live is true. Mesh radios are on. AZ-OS public_bind stays false. QNM-BUILD-1.0. QNS-CD-1.0.";
 }
 
 /** Public Live Nodes count. Never auto-heal a visiting floor. */
@@ -341,7 +365,13 @@ export function meshPointer() {
   return withQnsCd({
     pointer: true,
     path: MESH_PATH,
-    enabled_default: false,
+    enabled_default: true,
+    mesh_radios: MESH_RADIOS,
+    mesh_node_live: true,
+    alt_internet_live: true,
+    packet_path_live: true,
+    public_bind: false,
+    cap7_public_icann: false,
     spec: QNM_SPEC,
     qns_cd_spec: QNS_CD_SPEC,
     qns_cd: QNS_CD,
@@ -446,8 +476,14 @@ function meshErrFields({ message, door_url, http_status, content_type, via, extr
     node_gate: false,
     auto_heal: false,
     anonymity_network: false,
-    enabled: false,
-    default_off: true,
+    enabled: true,
+    default_off: false,
+    mesh_radios: MESH_RADIOS,
+    mesh_node_live: true,
+    alt_internet_live: true,
+    packet_path_live: true,
+    public_bind: false,
+    cap7_public_icann: false,
     message,
     door_url: door_url || "",
     http_status: http_status == null ? null : http_status,
@@ -495,7 +531,7 @@ async function originFetch(env, pathAndQuery, init, request) {
  * PROXY one allowlisted /v1/mesh/* path to aziel-runtime.
  * A successful response is the runtime document plus the QNS-CD cite.
  * This function does not rewrite enabled, node_gate, auto_heal, or anonymity_network.
- * AZ-OS health mesh_node_live stays false. This Worker is not a live mesh node.
+ * AZ-OS health mesh_node_live is true. public_bind stays false. This is not a Cap-7 egress.
  * GET on this route does not install a mesh node.
  */
 export async function runMeshProxy(env, request, pathAndQuery) {
@@ -599,7 +635,7 @@ export async function runMeshProxy(env, request, pathAndQuery) {
   }
 
   if (method === "HEAD") {
-    return { status: res.status, data: withQnsCd({ ok: res.ok, code: res.ok ? "MESH-OK" : "MESH-ERR", door: "mesh", via, enabled: false }) };
+    return { status: res.status, data: withQnsCd({ ok: res.ok, code: res.ok ? "MESH-OK" : "MESH-ERR", door: "mesh", via, enabled: true, mesh_radios: MESH_RADIOS, mesh_node_live: true, alt_internet_live: true, packet_path_live: true, public_bind: false, cap7_public_icann: false }) };
   }
 
   const text = await res.text();

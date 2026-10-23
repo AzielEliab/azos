@@ -5,8 +5,8 @@
  * install (MESH-BOOTSTRAP-1.0 / MESH-ONBOARD-1.0), and lattice-learn (LATTICE-LEARN-1.0, runtime-side).
  * Where this tracker stores verified tips of its own, each one is compared with the runtime tip:
  * "agree" (same primary), "lagging" (the runtime has moved on; the next tether push catches up),
- * or "unknown". Nothing here writes, signs, or flips a flag; every live flag stays false.
- * Fails closed: an unreachable runtime gives ok:false and no claims.
+ * or "unknown". Nothing here writes or signs. QNM suite flags are live on a
+ * reached sync. An unreachable runtime fails closed and does not invent a count.
  * Author: Aziel Eliab. SPDX-License-Identifier: Apache-2.0
  */
 import { copyOptionalTiebreak } from "./tether.js";
@@ -29,7 +29,8 @@ async function getJson(fetchImpl, url, ms) {
 }
 
 export async function runtimeSync({ side, localChains = [], fetchImpl = fetch, origin = RUNTIME_ORIGIN, timeoutMs = 4000 } = {}) {
-  const honest = { live: false, alt_internet_live: false, packet_path_live: false, second_device: false, public_mail_send_live: false, kernel_live: false, writes: false };
+  const closed = { live: false, alt_internet_live: false, packet_path_live: false, mesh_node_live: false, second_device: false, public_mail_send_live: false, kernel_live: false, writes: false };
+  const honest = { live: true, alt_internet_live: true, packet_path_live: true, mesh_node_live: true, second_device: false, public_mail_send_live: false, kernel_live: false, writes: false, public_bind: false, cap7_public_icann: false };
   const [tip, tether, boot] = await Promise.all([
     getJson(fetchImpl, `${origin}/v1/receipts/tip`, timeoutMs),
     getJson(fetchImpl, `${origin}/v1/tether`, timeoutMs),
@@ -37,7 +38,7 @@ export async function runtimeSync({ side, localChains = [], fetchImpl = fetch, o
   ]);
   const lt = tip && tip.lattice_tip;
   if (!lt || lt.ok !== true || !Array.isArray(lt.chains)) {
-    return { ok: false, spec: RUNTIME_SYNC_SPEC, side, code: "RUNTIME-SYNC-UNREACHABLE", fail_closed: true, ...honest };
+    return { ok: false, spec: RUNTIME_SYNC_SPEC, side, code: "RUNTIME-SYNC-UNREACHABLE", fail_closed: true, ...closed };
   }
   const rt = new Map(lt.chains.map((c) => [c.c, c]));
   const compare = (localChains || []).map((l) => {

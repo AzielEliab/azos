@@ -14,9 +14,9 @@ GET `/sigil.png` is the wordless rose-star brand mark (empty alt; no words on th
 GET `/install.sh` one-click install (does not increment; script curls `/download`).
 GET `/v1/skill` returns skill markdown (`text/markdown`). Does not increment views or downloads.
 GET `/cite.json` citation record. `doi` is `null` — no invented Zenodo DOI.
-`/v1/mesh/*` PROXY to aziel-runtime suite mesh (`AZIEL_RUNTIME` / `https://aziel-runtime.vibelock.workers.dev`). The proxy forwards the runtime document and does not rewrite its mode flags. AZ-OS health keeps mesh_node_live false. The local fallback is default off (`enabled: false` on that fallback only). QNM-BUILD-1.0 live|locked|isolated. QNS-CD-1.0 photon QNS1 packet transfer is a hub cite / Worker mesh cross-map only (local qnsd in https://github.com/AzielEliab/qnm-node; runtime cites + catalog field in https://github.com/AzielEliab/aziel-runtime; AZInterface pair custody). Not a Softwares-tab product. No Node Gate. No public qnsd proxy. No auto-heal. Not anonymity. Those fallback words are not applied to a proxied body. Human UI Live Nodes strip polls `GET /v1/mesh`.
+`/v1/mesh/*` PROXY to aziel-runtime suite mesh (`AZIEL_RUNTIME` / `https://aziel-runtime.vibelock.workers.dev`). The proxy forwards the runtime document and does not rewrite its mode flags. AZ-OS health keeps mesh_node_live true. The local fallback node mesh is on (`enabled: true`, mesh radios on). QNM-BUILD-1.0 live|locked|isolated. QNS-CD-1.0 photon QNS1 packet transfer is a hub cite / Worker mesh cross-map only (local qnsd in https://github.com/AzielEliab/qnm-node; runtime cites + catalog field in https://github.com/AzielEliab/aziel-runtime; AZInterface pair custody). Not a Softwares-tab product. No Node Gate. No public qnsd proxy. No auto-heal. Not anonymity. Those fallback words are not applied to a proxied body. Human UI Live Nodes strip polls `GET /v1/mesh`.
 
-Verify: `curl -sS -A 'Mozilla/5.0' https://azos-download-tracker.vibelock.workers.dev/v1/mesh/status` returns the runtime document. AZ-OS health keeps `mesh_node_live` false. A local fallback uses code MESH-OK and `enabled: false`.
+Verify: `curl -sS -A 'Mozilla/5.0' https://azos-download-tracker.vibelock.workers.dev/v1/mesh/status` returns the runtime document. AZ-OS health keeps `mesh_node_live` true. A local fallback uses code MESH-OK and `enabled: true`.
 
 Hosted `/v1` status / invite / health / skill / prefab / lattice GET are
 public and session-safe. Session, exec, and lattice bind persist in
@@ -52,8 +52,8 @@ Test: `node scripts/verify-tether.mjs` (uses `scripts/fixtures/azos-tether-vecto
 This leg is independent and optional. `vendor/lockstep/` is a byte-for-byte copy of aziel-runtime's
 design tokens, contract, and consumer check, pinned by SHA-256 in `LOCKSTEP.pin.json`.
 
-- `GET /v1/lockstep`: `agree` / `drift` / `absent` against the runtime over the `AZIEL_RUNTIME` binding. When the runtime is absent this leg keeps running standalone and shows every flag as false.
+- `GET /v1/lockstep`: `agree` / `drift` / `absent` against the runtime over the `AZIEL_RUNTIME` binding. When the runtime is absent this leg keeps running standalone and shows every displayed flag as false. A displayed flag is true only on `agree`, when the contract says true, and when this leg proves it.
 - `GET /design/tokens.css`, `/design/tokens.json`: the shared design source, the same bytes as the runtime's.
-- `npm test` fails if a vendored file changed, a lock moved, a flag is true, the tether key, chains, or mesh differ from the contract, or a feature this leg claims in the contract's union stops answering. `npm run lockstep:remote` also compares the pin with runtime `main`.
+- `npm test` fails if a vendored file changed, a lock moved (Softwares 42, tools 36, stub ops 363, software_count 33, health_count 41), `mesh_node_live`, `alt_internet_live`, or `packet_path_live` is not true, any other contract flag is true, the tether key, chains, or mesh differ from the contract, or a feature this leg claims in the contract's union stops answering. `npm run lockstep:remote` also compares the pin with runtime `main`.
 - To re-vendor after a runtime contract change, run `node scripts/lockstep-vendor.mjs <this checkout>` from an aziel-runtime checkout.
 - There is no GitHub workflow here. Adding one that runs `npm test` needs a token with `workflow` scope.

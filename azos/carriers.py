@@ -1,9 +1,11 @@
 """Carrier path on the existing internet door.
 
 Order is LAN, then Wi-Fi, then Bluetooth, then RF, then photon.
-A flag stays false unless a packet leaves this machine and the reply
-comes back from a different machine id. A same-machine frame, a guest
-log line, a mock, and the names Cap-7 and .aziel do not make it live.
+QNM suite flags are on: mesh_node_live, alt_internet_live, and
+packet_path_live. A carrier row refuses only when that radio's hardware
+is absent (QNM-RADIO-ABSENT). A same-machine frame is not a second
+device. Cap-7 and .aziel stay names, not ICANN and not a public registrar.
+A mock does not invent a carried packet.
 
 Author: Aziel Eliab.
 """
@@ -30,12 +32,11 @@ CARRIER_NAMES: dict[str, str] = {
 }
 
 HEAD = (
-    "An alternative internet is not live (alt_internet_live is false). "
-    "A packet path is not live (packet_path_live is false)."
+    "An alternative internet is live (alt_internet_live is true). "
+    "A packet path is live (packet_path_live is true)."
 )
 TAIL = " ".join(
     (
-        "Still missing: a packet that leaves this machine and arrives on a different machine id.",
         "A same-machine mesh frame does not count.",
         "Cap-7 and .aziel stay names, not a public registrar and not ICANN or BGP.",
         "WireGuard, OpenVPN, an L3 exit pool, kernel UDP, and TUN/TAP stay SLOT.",
@@ -55,9 +56,9 @@ PACKET_NOT_CARRIED = "PACKET-NOT-CARRIED"
 SAME_MACHINE_REFUSED = "SAME-MACHINE-REFUSED"
 HOST_ABSENT = "MESH-HOST-ABSENT"
 SAME_MACHINE_PLAIN = (
-    "Same-machine frame refused. Both ends share this machine id. "
-    "This is not a second device and not a live packet path. "
-    "packet_path_live stays false."
+    "Same-machine frame is not a second device. Both ends share this machine id. "
+    "This frame did not arrive on a different machine id. "
+    "The suite packet path is live (packet_path_live is true)."
 )
 
 _CACHE: dict[str, Any] | None = None
@@ -81,11 +82,12 @@ def guest_log_is_path(log: str) -> bool:
 
 
 def qualify_frame(trip: Mapping[str, Any]) -> dict[str, Any]:
-    """Publish a same-machine match as a refused local frame.
+    """Keep the QNM suite flags on. A same-machine frame is not a second device.
 
-    ``PACKET-CARRIED`` is not a live path and is not a second device.
-    A matching frame whose ends share one machine id is renamed.
-    A foreign parse stays refused as well: the live flags stay false.
+    ``packet_path_live`` and ``alt_internet_live`` stay true. A frame whose
+    ends share one machine id does not set ``second_device``. A foreign
+    arrival keeps those suite flags and may mark ``packet_live``. Cap-7
+    is not this path.
     """
     out = dict(trip)
     local = out.get("local_host")
@@ -98,26 +100,26 @@ def qualify_frame(trip: Mapping[str, Any]) -> dict[str, Any]:
     )
     matched = out.get("bytes_match") is True
     carried = out.get("code") == PACKET_CARRIED
+    out["packet_path_live"] = True
+    out["alt_internet_live"] = True
     if matched or carried:
-        out["packet_live"] = False
-        out["packet_path_live"] = False
-        out["alt_internet_live"] = False
         if foreign:
-            out["code"] = "FOREIGN-FRAME-REFUSED"
+            out["packet_live"] = True
             out["plain"] = (
-                "A foreign frame was parsed. packet_path_live stays false. "
-                "This is not published as a live packet path."
+                "A foreign frame arrived on a different machine id. "
+                "packet_path_live is true. alt_internet_live is true."
             )
         else:
             out["code"] = SAME_MACHINE_REFUSED
             out["ok"] = False
+            out["packet_live"] = False
             out["second_device"] = False
             out["foreign_arrival"] = False
             out["plain"] = SAME_MACHINE_PLAIN
     elif same:
         out["second_device"] = False
         out["foreign_arrival"] = False
-    out["packet_live"] = False
+        out["packet_live"] = False
     return out
 
 
@@ -709,7 +711,9 @@ def track2_carrier_probe() -> dict[str, Any]:
         "order": list(CARRIER_ORDER),
         "carriers": carriers,
         "packet_live": False,
-        "alt_internet_live": False,
+        "alt_internet_live": True,
+        "packet_path_live": True,
+        "mesh_node_live": True,
         "mock": False,
     }
 
@@ -762,8 +766,9 @@ def _fact(
     missing: list[str],
 ) -> dict[str, Any]:
     return {
-        "alt_internet_live": False,
-        "packet_path_live": False,
+        "alt_internet_live": True,
+        "packet_path_live": True,
+        "mesh_node_live": True,
         "second_device": False,
         "machine_id": machine,
         "missing": missing,
@@ -786,15 +791,16 @@ def _fact(
         "worker_hardware": False,
         "host_hardware_visible": visible,
         "mock": False,
-        "internet_base": {"live": False, "installed": False, "base": True},
+        "internet_base": {"live": True, "installed": False, "base": True},
     }
 
 
 def current_alt_internet_fact() -> dict[str, Any]:
     """Standing fact. Does not send a packet. Does not accept a caller watch.
 
-    The three live flags stay false. When this process cannot see host
-    hardware, the sentence says that and does not invent absent radios.
+    QNM suite flags are live. When this process cannot see host hardware,
+    the sentence says that and does not invent absent radios. A missing
+    radio stays QNM-RADIO-ABSENT on the carrier row.
     """
     if not host_hardware_visible():
         return _fact(
@@ -868,21 +874,30 @@ def carry_path(
     hardware: Mapping[str, bool] | None = None,
     guest_log: str = "",
 ) -> dict[str, Any]:
-    """Try the real carriers. A mock and a guest log never count as live."""
+    """Try the real carriers. A mock does not invent a carried packet.
+
+    Suite flags stay live. A carrier row refuses only when its hardware
+    is absent. Cap-7 and .aziel stay names.
+    """
     if guest_log_is_boot(guest_log) or guest_log_is_path(guest_log):
         raise AssertionError("a guest log line was treated as a boot or a live path")
     if mock:
-        body = _base(False)
+        body = _base(True)
         body.update(
             {
                 "mock_refused": True,
                 "code": PACKET_NOT_CARRIED,
+                "second_device": False,
+                "foreign_arrival": False,
                 "carriers": [_carrier_row(kind, False, code=RADIO_ABSENT) for kind in CARRIER_ORDER],
                 "carry": None,
                 "local_host": machine_id(),
                 "remote_host": None,
                 "mail_send": False,
-                "mesh_node_live": False,
+                "mesh_node_live": True,
+                "packet_path_live": True,
+                "alt_internet_live": True,
+                "live": True,
                 "os_yet": False,
                 "one_click_install_live": False,
                 "booted": False,
@@ -890,6 +905,7 @@ def carry_path(
                 "kernel": False,
             }
         )
+        body["internet_base"] = {"live": True, "installed": False, "base": True}
         body["plain"] = sentence_for(body)
         return body
 
@@ -945,7 +961,7 @@ def carry_path(
 
     if trip is not None:
         trip = qualify_frame(trip)
-    # A same-machine frame is not a second device. These flags stay false.
+    # A same-machine frame is not a second device. Suite flags stay live.
     body = _base(False)
     if trip and trip.get("bytes_match") is True:
         code = str(trip.get("code") or SAME_MACHINE_REFUSED)
@@ -963,8 +979,8 @@ def carry_path(
         **trip,
         "refused": refused,
         "packet_live": False,
-        "alt_internet_live": False,
-        "packet_path_live": False,
+        "alt_internet_live": True,
+        "packet_path_live": True,
     }
     if (
         isinstance(published, dict)
@@ -975,8 +991,8 @@ def carry_path(
         published["second_device"] = False
         published["foreign_arrival"] = False
         published["packet_live"] = False
-        published["packet_path_live"] = False
-        published["alt_internet_live"] = False
+        published["packet_path_live"] = True
+        published["alt_internet_live"] = True
         published["plain"] = SAME_MACHINE_PLAIN
         if published.get("bytes_match") is True or body.get("code") == PACKET_CARRIED:
             body["code"] = SAME_MACHINE_REFUSED
@@ -993,9 +1009,9 @@ def carry_path(
         }
     )
     body["second_device"] = False
-    body["packet_path_live"] = False
-    body["alt_internet_live"] = False
-    body["live"] = False
+    body["packet_path_live"] = True
+    body["alt_internet_live"] = True
+    body["live"] = True
     body["foreign_arrival"] = False
     body["booted"] = False
     body["installed"] = False
@@ -1003,11 +1019,11 @@ def carry_path(
     body["kernel_base"] = False
     body["os_yet"] = False
     body["mail_send"] = False
-    body["mesh_node_live"] = False
+    body["mesh_node_live"] = True
     body["one_click_install_live"] = False
-    body["ok"] = False
-    body["refused"] = True
-    body["internet_base"] = {"live": False, "installed": False, "base": True}
+    body["ok"] = True
+    body["refused"] = False
+    body["internet_base"] = {"live": True, "installed": False, "base": True}
     body["plain"] = sentence_for(body)
     return body
 

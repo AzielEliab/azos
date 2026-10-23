@@ -9,4 +9,4 @@ def test_mesh_kernel_is_boolean_false() -> None:
     script = ROOT / "workers" / "download-tracker" / "scripts" / "verify-mesh-kernel.mjs"
     done = subprocess.run(["node", str(script)], check=False, capture_output=True, text=True)
     assert done.returncode == 0, done.stderr
-    assert "mesh kernel field: 6 passed" in done.stdout
+    assert "mesh kernel field: 17 passed" in done.stdout

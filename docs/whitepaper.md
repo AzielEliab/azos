@@ -215,8 +215,8 @@ is not.
 
 The Worker homepage shows a suite Live Nodes strip. `/v1/mesh/*` PROXY
 to aziel-runtime. The proxy forwards the runtime document and does not
-rewrite its mode flags. AZ-OS health keeps `mesh_node_live` false. The
-local fallback is default OFF. QNM rollup is live|locked|isolated counts
+rewrite its mode flags. AZ-OS health keeps `mesh_node_live` true. The
+local fallback node mesh is on. QNM rollup is live|locked|isolated counts
 only. QNS-CD-1.0 (photon QNS1 packet transfer) is a hub cite / Worker
 mesh cross-map only — local `qnsd` lives in `qnm-node/`; runtime cites
 + catalog field live in aziel-runtime; AZInterface holds pair custody.

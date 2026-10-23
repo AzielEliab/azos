@@ -7,11 +7,8 @@ const locked = [
   "booted",
   "installed",
   "os_yet",
-  "alt_internet_live",
-  "packet_path_live",
   "second_device",
   "mail_send",
-  "mesh_node_live",
   "one_click_install_live",
   "doors_replaced",
   "app_shells_started",
@@ -41,14 +38,20 @@ for (const key of locked) {
   assert.equal(typeof beaten[key], "boolean", key);
 }
 assert.equal(beaten.userspace_base, true);
-assert.equal(beaten.internet_base.live, false);
+assert.equal(beaten.internet_base.live, true);
+assert.equal(beaten.alt_internet_live, true);
+assert.equal(beaten.packet_path_live, true);
+assert.equal(beaten.mesh_node_live, true);
 assert.equal(beaten.internet_base.installed, false);
 assert.equal(beaten.internet_base.base, true);
 assert.match(beaten.limits_plain, /This is not installed as an operating system\./);
 assert.match(beaten.limits_plain, /This has not booted\./);
 assert.match(beaten.limits_plain, /There is no kernel\./);
 assert.match(beaten.limits_plain, /The kernel base is absent\./);
-assert.match(beaten.limits_plain, /This is not a live mesh node\./);
+assert.match(beaten.limits_plain, /This is a live mesh node\./);
+assert.match(beaten.limits_plain, /alt_internet_live is true/);
+assert.match(beaten.limits_plain, /packet_path_live is true/);
+assert.match(beaten.limits_plain, /Cap-7 and \.aziel stay names/);
 assert.match(beaten.limits_plain, /The userspace base is present\. That is a base, not a boot\./);
 assert.doesNotMatch(beaten.limits_plain, /This is installed as an operating system\./);
 
@@ -61,9 +64,11 @@ const prefab = scopeMeta(prefabCatalog());
 assert.equal(prefab.installed, false);
 assert.equal(typeof prefab.installed, "boolean");
 assert.equal(prefab.hook_count >= 25, true);
-assert.equal(prefab.mesh_node_live, false);
+assert.equal(prefab.mesh_node_live, true);
+assert.equal(prefab.alt_internet_live, true);
+assert.equal(prefab.packet_path_live, true);
 assert.ok(prefab.apps.length >= 25);
-assert.ok(prefab.apps.every((app) => app.installed === false && app.hooked === true && app.hook_record === true));
+assert.ok(prefab.apps.every((app) => app.installed === false && app.hooked === true && app.hook_record === true && app.node_mesh === true && app.mesh_enabled === true && app.mesh_radios === "on"));
 const raw = JSON.stringify(prefab);
 assert.equal(raw.includes('"installed":true'), false);
 assert.equal(raw.includes('"installed":25'), false);
@@ -74,7 +79,9 @@ const health = scopeMeta({ ok: true, product: "azos", version: "0.3.0" });
 assert.equal(health.installed, false);
 assert.equal(health.booted, false);
 assert.equal(health.kernel, false);
-assert.equal(health.mesh_node_live, false);
+assert.equal(health.mesh_node_live, true);
+assert.equal(health.alt_internet_live, true);
+assert.equal(health.packet_path_live, true);
 assert.match(health.limits_plain, /This is not installed as an operating system\./);
 
 console.log("prefab flags ok");

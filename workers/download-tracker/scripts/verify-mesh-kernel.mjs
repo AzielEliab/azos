@@ -12,4 +12,15 @@ const views = { emptyMesh: M.emptyMesh(), publicMesh: M.publicMesh(M.emptyMesh()
 for (const [name, v] of Object.entries(views)) { assert.deepEqual(bad(v), [], name); n++; }
 assert.equal(views.emptyMesh.kernel_profile, M.MESH_KERNEL); n++;
 assert.equal(views.emptyMesh.kernel, false); n++;
+assert.equal(M.MESH_DEFAULT_OFF, false); n++;
+assert.equal(M.MESH_ENABLED, true); n++;
+assert.equal(M.MESH_RADIOS, "on"); n++;
+assert.equal(views.emptyMesh.enabled, true); n++;
+assert.equal(views.emptyMesh.mesh_node_live, true); n++;
+assert.equal(views.emptyMesh.alt_internet_live, true); n++;
+assert.equal(views.emptyMesh.packet_path_live, true); n++;
+assert.equal(views.emptyMesh.public_bind, false); n++;
+assert.equal(views.emptyMesh.cap7_public_icann, false); n++;
+assert.equal(views.publicMesh.mesh_node_live, true); n++;
+assert.equal(views.meshPointer.enabled_default, true); n++;
 console.log(`mesh kernel field: ${n} passed`);

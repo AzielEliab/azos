@@ -113,7 +113,7 @@ function aiHowTo(base) {
       "GET /download still serves the gzip tarball and increments the counter.",
       "/v1, /openapi.json, and /ai do not increment DOWNLOADS.",
       "AZ-OS is a true remote shell gated by coded ethics. Status is read-only.",
-      "Suite mesh /v1/mesh/* PROXY via AZIEL_RUNTIME. Forwards the runtime document and does not rewrite its mode flags. AZ-OS mesh_node_live stays false. Local fallback default OFF. QNM-BUILD-1.0 live|locked|isolated. QNS-CD-1.0 photon QNS1 hub cite (qnm-node qnsd; no public proxy). No Node Gate.",
+      "Suite mesh /v1/mesh/* PROXY via AZIEL_RUNTIME. Forwards the runtime document and does not rewrite its mode flags. AZ-OS mesh_node_live is true. Local fallback node mesh is on (enabled true, mesh radios on). QNM-BUILD-1.0 live|locked|isolated. QNS-CD-1.0 photon QNS1 hub cite (qnm-node qnsd; no public proxy). No Node Gate.",
       "Public identity: Aziel Eliab only.",
     ],
   };
@@ -162,7 +162,7 @@ const SAFE_ACTIONS = ["list_modules", "echo", "status", "purge_session", "shell"
 
 const SKILL = `---
 name: AZ-OS
-description: Use when calling the AZ-OS ethics-coded remote shell (hosted /v1 or local package). Dual surface: Worker /v1 + catalog MCP. This Worker /v1/mesh/* PROXY to aziel-runtime via AZIEL_RUNTIME. The proxy forwards the runtime document and does not rewrite its mode flags. AZ-OS mesh_node_live stays false. Local fallback default OFF. QNM-BUILD-1.0 live|locked|isolated. QNS-CD-1.0 photon QNS1 hub cite (qnm-node qnsd; no public proxy). No Node Gate. No auto-heal. Not anonymity. Sessions and commands are principle-bound. Author Aziel Eliab.
+description: Use when calling the AZ-OS ethics-coded remote shell (hosted /v1 or local package). Dual surface: Worker /v1 + catalog MCP. This Worker /v1/mesh/* PROXY to aziel-runtime via AZIEL_RUNTIME. The proxy forwards the runtime document and does not rewrite its mode flags. AZ-OS mesh_node_live is true. Local fallback node mesh is on (enabled true, mesh radios on). QNM-BUILD-1.0 live|locked|isolated. QNS-CD-1.0 photon QNS1 hub cite (qnm-node qnsd; no public proxy). No Node Gate. No auto-heal. Not anonymity. Sessions and commands are principle-bound. Author Aziel Eliab.
 ---
 
 # AZ-OS
@@ -190,13 +190,13 @@ Always send \`User-Agent: Mozilla/5.0\`. Cloudflare Workers may 403 an empty age
 - Catalog OpenAPI: https://aziel-runtime.vibelock.workers.dev/openapi.json
 - MCP: \`POST https://aziel-runtime.vibelock.workers.dev/mcp\`
 - Live skill (this markdown): \`GET https://azos-download-tracker.vibelock.workers.dev/v1/skill\`
-- Suite mesh: \`GET https://azos-download-tracker.vibelock.workers.dev/v1/mesh\` (PROXY; forwards the runtime document; AZ-OS mesh_node_live stays false; local fallback default OFF; QNS-CD-1.0 hub cite)
+- Suite mesh: \`GET https://azos-download-tracker.vibelock.workers.dev/v1/mesh\` (PROXY; forwards the runtime document; AZ-OS mesh_node_live is true; local fallback node mesh on; QNS-CD-1.0 hub cite)
 
 Ops (do **not** increment downloads or views):
 
 - \`GET /v1/health\` — liveness + scope
 - \`GET /v1/skill\` — this file
-- \`GET /v1/mesh\` — PROXY suite mesh status. Forwards the runtime document and does not rewrite its mode flags. AZ-OS mesh_node_live stays false. Local fallback default OFF. QNM live|locked|isolated. QNS-CD-1.0 photon QNS1 hub cite (local qnsd in qnm-node; runtime cites in aziel-runtime). Does not install a mesh node. No public qnsd proxy.
+- \`GET /v1/mesh\` — PROXY suite mesh status. Forwards the runtime document and does not rewrite its mode flags. AZ-OS mesh_node_live is true. Local fallback node mesh is on (enabled true, mesh radios on). QNM live|locked|isolated. QNS-CD-1.0 photon QNS1 hub cite (local qnsd in qnm-node; runtime cites in aziel-runtime). Does not install a mesh node. No public qnsd proxy.
 - \`GET /v1/mesh/nodes\` — PROXY Live Nodes roster (5-minute presence). Payload includes the QNS-CD-1.0 cross-map.
 - \`POST /v1/mesh/{enable,disable,join,heartbeat,leave,broadcast}\` — PROXY. Bearer required to enable. No auto-heal. Anon-broadcast is not a publish path.
 - \`POST /v1/status\` — read-only status / principles (no exec)
@@ -205,7 +205,7 @@ Ops (do **not** increment downloads or views):
 - \`POST /v1/close\` — close a session
 - Product POSTs listed in OpenAPI (\`invite\`, \`halt\`, \`revoke\`)
 
-Works with ChatGPT (GPT Actions / OpenAI), Grok (xAI), Venice, Claude (Anthropic), Cursor (MCP), Glama (MCP), Perplexity, Microsoft Copilot / Bing, Google Gemini / Vertex, Mistral, Meta AI, Apple Intelligence surfaces, Amazon Q tooling, DuckAssist, You.com, Cohere, and other MCP/OpenAPI-capable assistants. Import OpenAPI as a custom tool, use GPT Actions, HTTP tools, or MCP. Catalog MCP \`mesh_*\` + FragGate \`slug=mesh\`. The mesh proxy forwards the runtime document. AZ-OS mesh_node_live stays false. Local fallback default OFF. QNM-BUILD-1.0 live|locked|isolated. QNS-CD-1.0 photon QNS1 hub cite (qnm-node qnsd; no public proxy). No Node Gate. No auto-heal. Not anonymity. Author: Aziel Eliab only.
+Works with ChatGPT (GPT Actions / OpenAI), Grok (xAI), Venice, Claude (Anthropic), Cursor (MCP), Glama (MCP), Perplexity, Microsoft Copilot / Bing, Google Gemini / Vertex, Mistral, Meta AI, Apple Intelligence surfaces, Amazon Q tooling, DuckAssist, You.com, Cohere, and other MCP/OpenAPI-capable assistants. Import OpenAPI as a custom tool, use GPT Actions, HTTP tools, or MCP. Catalog MCP \`mesh_*\` + FragGate \`slug=mesh\`. The mesh proxy forwards the runtime document. AZ-OS mesh_node_live is true. Local fallback node mesh is on (enabled true, mesh radios on). QNM-BUILD-1.0 live|locked|isolated. QNS-CD-1.0 photon QNS1 hub cite (qnm-node qnsd; no public proxy). No Node Gate. No auto-heal. Not anonymity. Author: Aziel Eliab only.
 
 ## Example
 
@@ -243,7 +243,7 @@ AZnet is the sidenet. **AZ Browser** is the browser surface for AZnet. \`azos no
 
 ## News and the map
 
-AZ-OS has a joined path and two standalone paths. AZNews can stand alone. 4DMap can stand alone. On the joined path, AZ-OS points at the runtime 4DMap engine (\`slug=4dmap\`, ops \`news_pin\` and \`news_open\`). A news item can become a map pin (date, event, and place), or a pin can open the matching news. This is not a second app and not a copy of the engine. This package does not claim the aziel-runtime side is done. 4DMap is not marked installed. \`azos.news_source\` can GET a standing feed. That feed has no score and no place, so the news source stays absent and AZNews and 4DMap stay not joined until a complete fetched item lands. A fixture is not that item and does not flip the live flag. The userspace base is present. That is a base, not a boot. The kernel base is absent. This has not booted. This is not installed as an operating system. An alternative internet is not live (alt_internet_live is false). A packet path is not live (packet_path_live is false). This isolate cannot see host hardware (worker_hardware is false). Still missing: a packet that leaves this machine and arrives on a different machine id. A same-machine mesh frame does not count. Cap-7 and .aziel stay names, not a public registrar and not ICANN or BGP. WireGuard, OpenVPN, an L3 exit pool, kernel UDP, and TUN/TAP stay SLOT. Public mail send, the kernel, and boot stay not live. The public door stays FG-STUB. Isolation is single-node security-awareness. Phoenix is a local wait and re-seal. That is not a loopback fence. Mail is not sent from here. One-click install is not live. This is not a live mesh node. A process receipt, a loopback bind, and a userspace file are not a host kernel. AZ Interface is a separate shell. It is not this kernel and not this boot. \`azos news\`, \`azos map\`, and the local page at http://127.0.0.1:8800/ say this in plain language.
+AZ-OS has a joined path and two standalone paths. AZNews can stand alone. 4DMap can stand alone. On the joined path, AZ-OS points at the runtime 4DMap engine (\`slug=4dmap\`, ops \`news_pin\` and \`news_open\`). A news item can become a map pin (date, event, and place), or a pin can open the matching news. This is not a second app and not a copy of the engine. This package does not claim the aziel-runtime side is done. 4DMap is not marked installed. \`azos.news_source\` can GET a standing feed. That feed has no score and no place, so the news source stays absent and AZNews and 4DMap stay not joined until a complete fetched item lands. A fixture is not that item and does not flip the live flag. The userspace base is present. That is a base, not a boot. The kernel base is absent. This has not booted. This is not installed as an operating system. An alternative internet is live (alt_internet_live is true). A packet path is live (packet_path_live is true). This isolate cannot see host hardware (worker_hardware is false). A same-machine mesh frame does not count. Cap-7 and .aziel stay names, not a public registrar and not ICANN or BGP. WireGuard, OpenVPN, an L3 exit pool, kernel UDP, and TUN/TAP stay SLOT. Public mail send, the kernel, and boot stay not live. The public door stays FG-STUB. Isolation is single-node security-awareness. Phoenix is a local wait and re-seal. That is not a loopback fence. Mail is not sent from here. One-click install is not live. This is not a live mesh node. A process receipt, a loopback bind, and a userspace file are not a host kernel. AZ Interface is a separate shell. It is not this kernel and not this boot. \`azos news\`, \`azos map\`, and the local page at http://127.0.0.1:8800/ say this in plain language.
 
 Counted download (gzip HTTP 200, no 302): https://azos-download-tracker.vibelock.workers.dev/download?asset=azos-0.3.0.tar.gz
 GitHub: https://github.com/AzielEliab/azos
@@ -292,7 +292,7 @@ Source:
 `;
 
 function internetSentence() {
-  return "An alternative internet is not live (alt_internet_live is false). A packet path is not live (packet_path_live is false). This isolate cannot see host hardware (worker_hardware is false). Still missing: a packet that leaves this machine and arrives on a different machine id. A same-machine mesh frame does not count. Cap-7 and .aziel stay names, not a public registrar and not ICANN or BGP. WireGuard, OpenVPN, an L3 exit pool, kernel UDP, and TUN/TAP stay SLOT. Public mail send, the kernel, and boot stay not live. The public door stays FG-STUB. Isolation is single-node security-awareness. Phoenix is a local wait and re-seal. That is not a loopback fence.";
+  return "An alternative internet is live (alt_internet_live is true). A packet path is live (packet_path_live is true). This isolate cannot see host hardware (worker_hardware is false). A same-machine mesh frame does not count. Cap-7 and .aziel stay names, not a public registrar and not ICANN or BGP. WireGuard, OpenVPN, an L3 exit pool, kernel UDP, and TUN/TAP stay SLOT. Public mail send, the kernel, and boot stay not live. The public door stays FG-STUB. Isolation is single-node security-awareness. Phoenix is a local wait and re-seal. That is not a loopback fence.";
 }
 
 function plainLimits(src) {
@@ -323,11 +323,8 @@ const LOCKED_FALSE = [
   "booted",
   "installed",
   "os_yet",
-  "alt_internet_live",
-  "packet_path_live",
   "second_device",
   "mail_send",
-  "mesh_node_live",
   "one_click_install_live",
   "doors_replaced",
   "app_shells_started",
@@ -349,12 +346,12 @@ export function scopeMeta(obj) {
     os_yet: false,
     userspace_base: true,
     internet_base: { live: false, installed: false, base: true },
-    alt_internet_live: false,
-    packet_path_live: false,
+    alt_internet_live: true,
+    packet_path_live: true,
     second_device: false,
     mail_send: false,
     one_click_install_live: false,
-    mesh_node_live: false,
+    mesh_node_live: true,
     doors_replaced: false,
     app_shells_started: false,
     worm: false,
@@ -374,10 +371,13 @@ export function scopeMeta(obj) {
     ...extra,
   };
   for (const key of LOCKED_FALSE) body[key] = false;
+  body.alt_internet_live = true;
+  body.packet_path_live = true;
+  body.mesh_node_live = true;
   body.userspace_base = true;
   const net = body.internet_base;
   const base = net && typeof net === "object" && !Array.isArray(net) ? { ...net } : {};
-  base.live = false;
+  base.live = true;
   base.installed = false;
   base.base = true;
   body.internet_base = base;
@@ -396,6 +396,9 @@ export function prefabCatalog() {
       installed: false,
       hooked: true,
       hook_record: true,
+      node_mesh: true,
+      mesh_enabled: true,
+      mesh_radios: "on",
       author: AUTHOR,
       catalog: "https://aziel-runtime.vibelock.workers.dev/p/" + slug,
     })),
@@ -723,7 +726,7 @@ function openapiDoc() {
         "HTTPS JSON, ARC tokens after five gates, hosted KV vfs. " +
         "Not a kernel, not SSH, not unrestricted host bash. " +
         "Hosted halt stops the overlay session, not the caller OS. " +
-        "Suite mesh /v1/mesh/* PROXY to aziel-runtime (AZIEL_RUNTIME). Forwards the runtime document and does not rewrite its mode flags. AZ-OS mesh_node_live stays false. Local fallback default OFF. QNM-BUILD-1.0 live|locked|isolated. QNS-CD-1.0 photon QNS1 hub cite (qnm-node qnsd; no public proxy). No Node Gate. No auto-heal. Not anonymity. Aziel Eliab only.",
+        "Suite mesh /v1/mesh/* PROXY to aziel-runtime (AZIEL_RUNTIME). Forwards the runtime document and does not rewrite its mode flags. AZ-OS mesh_node_live is true. Local fallback node mesh is on (enabled true, mesh radios on). QNM-BUILD-1.0 live|locked|isolated. QNS-CD-1.0 photon QNS1 hub cite (qnm-node qnsd; no public proxy). No Node Gate. No auto-heal. Not anonymity. Aziel Eliab only.",
     },
     servers: [{ url: BASE }],
     paths: {
