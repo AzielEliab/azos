@@ -11,6 +11,7 @@
 import { meshOpenApiPaths, meshPointer } from "./mesh.js";
 import { joinStatus } from "./newsmap.js";
 import { receiveTether, tetherState } from "./tether.js";
+import { handleCollabRoute } from "./collab.js";
 import { handleNewsmap } from "./newsmap-door.js";
 function runtimeCors() {
   return {
@@ -203,6 +204,7 @@ Ops (do **not** increment downloads or views):
 - \`POST /v1/session\` — open an ethics-gated shell session
 - \`POST /v1/exec\` — run one principle-bound command in that session
 - \`POST /v1/close\` — close a session
+- \`GET /v1/collab/tip\` — AZRT-AZOS-TETHER session tip read (AZBOT-NODE-COLLAB-1.0). Receipt tips only. Rewrite refused. Does not enable mesh radios and does not rewrite runtime mesh mode flags.
 - Product POSTs listed in OpenAPI (\`invite\`, \`halt\`, \`revoke\`)
 
 Works with ChatGPT (GPT Actions / OpenAI), Grok (xAI), Venice, Claude (Anthropic), Cursor (MCP), Glama (MCP), Perplexity, Microsoft Copilot / Bing, Google Gemini / Vertex, Mistral, Meta AI, Apple Intelligence surfaces, Amazon Q tooling, DuckAssist, You.com, Cohere, and other MCP/OpenAPI-capable assistants. Import OpenAPI as a custom tool, use GPT Actions, HTTP tools, or MCP. Catalog MCP \`mesh_*\` + FragGate \`slug=mesh\`. The mesh proxy forwards the runtime document. AZ-OS mesh_node_live is true. Local fallback node mesh is on (enabled true, mesh radios on). QNM-BUILD-1.0 live|locked|isolated. QNS-CD-1.0 photon QNS1 hub cite (qnm-node qnsd; no public proxy). No Node Gate. No auto-heal. Not anonymity. Author: Aziel Eliab only.
@@ -848,6 +850,14 @@ function openapiDoc() {
           responses: { "200": { description: "4DMap can stand alone. Not installed." } },
         },
       },
+      "/v1/collab/tip": {
+        get: {
+          operationId: "azosCollabTip",
+          summary: "Multi-party session receipt tip (AZBOT-NODE-COLLAB-1.0). Share only. Rewrite refused.",
+          description: "AZRT-AZOS-TETHER-1.0. Reads the stored session-chain tip (primary, secondary, seq, verified). Does not return row documents. POST is COLLAB-REWRITE-REFUSED. Does not enable mesh radios and does not rewrite runtime mesh mode flags. Public AZ-OS exec, shell, and lattice stay refused. Vault wipe, scorch, and unlock stay local-only.",
+          responses: { "200": { description: "Session tip or an empty tip" }, "403": { description: "Rewrite refused" } },
+        },
+      },
       "/v1/tether": {
         get: {
           summary: "Runtime cross-tether: dual-lattice tips this tracker verified and stored",
@@ -919,6 +929,8 @@ function openapiDoc() {
 export async function handleRuntime(request, url, env) {
   const path = url.pathname;
   if (path === "/v1/mesh" || path.startsWith("/v1/mesh/")) return null;
+  const collab = await handleCollabRoute(request, url, env);
+  if (collab) return runtimeJson(scopeMeta(collab.body), collab.status);
   if (path === "/v1/health" && request.method === "GET") {
     return runtimeJson(scopeMeta({ ok: true, product: PRODUCT, version: VERSION }));
   }
@@ -1037,6 +1049,7 @@ export async function handleRuntime(request, url, env) {
         "POST /v1/session", "POST /v1/exec", "POST /v1/close",
         "GET /v1/prefab", "GET /v1/newsmap", "GET /v1/aznews", "GET /v1/map", "POST /v1/newsmap/{op}",
         "GET /v1/lattice", "POST /v1/lattice",
+        "GET /v1/collab/tip",
         "POST /v1/halt", "POST /v1/revoke",
         "GET /openapi.json", "GET /ai",
       ],

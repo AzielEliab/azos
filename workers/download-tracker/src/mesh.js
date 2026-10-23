@@ -532,7 +532,7 @@ async function originFetch(env, pathAndQuery, init, request) {
  * A successful response is the runtime document plus the QNS-CD cite.
  * This function does not rewrite enabled, node_gate, auto_heal, or anonymity_network.
  * AZ-OS health mesh_node_live is true. public_bind stays false. This is not a Cap-7 egress.
- * GET on this route does not install a mesh node.
+ * GET on this route does not install a mesh node and does not enable radios.
  */
 export async function runMeshProxy(env, request, pathAndQuery) {
   const pathOnly = normalizeMeshPath(pathAndQuery);

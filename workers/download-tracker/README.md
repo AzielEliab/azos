@@ -45,6 +45,12 @@ is shown as bot on read (`views_bot = views - views_human`). Author: Aziel Eliab
 
 The runtime does not exec into AZ-OS. The runtime FragGate `azos` `exec`, `shell`, and `lattice` refusal stays (REMAIN-OFF item 8). This is not the TemporalLock `/v1/lattice` route. Not mesh membership, not a second device, not a public ledger.
 
+## AZBot session tip (AZBOT-NODE-COLLAB-1.0)
+
+`GET /v1/collab/tip` reads the tether-stored `session` chain tip only (primary, secondary, seq, verified). Other methods return `COLLAB-REWRITE-REFUSED` and write nothing. The local package `azos/collab.py` re-gates an AZBot handoff on a live session and appends a returned receipt onto TemporalLock and the ChainLock formula this package already exposes. Parties can read that tip. They cannot rewrite it.
+
+Public AZ-OS exec, shell, and lattice stay refused. Vault wipe, scorch, and unlock stay local-only (`FG-STUB` on a public handoff). `GET /v1/mesh` does not enable radios. This route does not invent a public enable and does not rewrite runtime mesh mode flags. OPERATOR-OVERRIDE lives on a proxied mesh document stay the runtime's. Cap-7 stays a name, not ICANN. See `docs/designs/AZBOT-NODE-COLLAB-1.0.md`.
+
 Test: `node scripts/verify-tether.mjs` (uses `scripts/fixtures/azos-tether-vector.json`, copied from aziel-runtime `fixtures/azos-tether-vector.json`, signed with a public test-only seed).
 
 ## AZ-LOCKSTEP-1.0 (shared design + contract with aziel-runtime)
