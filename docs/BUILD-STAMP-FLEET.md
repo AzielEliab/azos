@@ -13,7 +13,7 @@ Canonical implementation (copy these files; do not rewrite them):
 - `workers/download-tracker/wrangler.toml` lines under the `BUILD-STAMP-1.0` comment (`[version_metadata]` binding `CF_VERSION_METADATA`)
 - Wiring in `workers/download-tracker/src/index.js`: `stampHealth(path, request, response, env)` on the way out of `fetch`
 
-Live AZ-OS (`https://azos-download-tracker.vibelock.workers.dev/v1/health`) already returns the four fields. `git_sha` matches `main` `22018518d6fe111aa4b12f61460acff526ad9770`. That landed in #31.
+Live AZ-OS (`https://azos-download-tracker.vibelock.workers.dev/v1/health`) already returns the four fields. `git_sha` matches `main` `5b7e79f6ebbf11cf2524fd9722e67a053a245a37`. That landed in #31.
 
 AZInterface (`https://azinterface-download-tracker.vibelock.workers.dev/v1/health`) already returns the same four fields. Leave `AzielEliab/azinterface` alone.
 
@@ -25,7 +25,7 @@ ZionPattern Solver (`https://zsolver-download-tracker.vibelock.workers.dev/v1/he
 
 ```json
 {
-  "git_sha": "22018518d6fe111aa4b12f61460acff526ad9770",
+  "git_sha": "5b7e79f6ebbf11cf2524fd9722e67a053a245a37",
   "git_sha_source": "env.GIT_SHA (deploy --var)",
   "version_id": "21c0b388-b17a-449e-800a-bd433ef41380",
   "version_id_source": "cf_version_metadata"
