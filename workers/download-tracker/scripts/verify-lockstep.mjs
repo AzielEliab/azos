@@ -50,8 +50,10 @@ for (const file of Object.keys(pin.files)) {
 const c = PINNED.contract;
 assert.deepEqual(c.locks, { softwares: 42, mcp_tools: 36, stub_op_count: 363, software_count: 33, health_count: 41 }); n++;
 ok(c.runtime.version === "2.0.0-rc1", "runtime version");
-const namedLive = new Set(["mesh_node_live", "alt_internet_live", "packet_path_live"]);
+// Cap-7 name-plane flags are ON in the runtime contract since c0bb9d33 (#367). Cap-7 is names only: not ICANN, no registrar, no egress.
+const namedLive = new Set(["mesh_node_live", "alt_internet_live", "packet_path_live", "cap7_live", "cap7_factory_live", "cap7_active_use", "cap7_name_plane_live", "cap7_is_name_plane"]);
 for (const [k, v] of Object.entries(c.flags)) ok(v === namedLive.has(k), namedLive.has(k) ? `flag ${k} is ON` : `flag ${k} stays false`);
+ok(c.flags.cap7_public_icann === false && c.flags.paid_registrar === false && c.flags.dns_publish === false && c.flags.cap7_public_egress === false, "Cap-7 is not ICANN and not a public egress");
 ok(c.legs[LEG] && c.legs[LEG].independent === true && c.legs[LEG].optional === true, "this leg is independent + optional");
 
 // 3. same chains, key, mesh
