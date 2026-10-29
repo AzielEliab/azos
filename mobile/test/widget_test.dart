@@ -28,6 +28,7 @@ const List<String> _liveClaims = <String>[
   'There is a second device',
   'second device is true',
   'One-click install is live.',
+  'Mesh radios are on',
 ];
 
 void main() {

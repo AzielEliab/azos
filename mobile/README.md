@@ -1,6 +1,6 @@
 # AZ-OS human app
 
-A person can open this Flutter app on Android, iPhone, and desktop (Linux, macOS, and Windows). It reads the same sentences as the public worker at https://azos-download-tracker.vibelock.workers.dev/. Kernel, boot, install, mail send, and one-click install stay not live. The worker's alt internet, packet path, and mesh node sentences stay as that page publishes them. Cap-7 is not ICANN.
+A person can open this Flutter app on Android, iPhone, and desktop (Linux, macOS, and Windows). It reads the same sentences as the public worker at https://azos-download-tracker.vibelock.workers.dev/. Kernel, boot, install, mail send, and one-click install stay not live. The worker's alt internet, packet path, and mesh node sentences stay as that page publishes them. Those three true flags are Softwares membership, not the QNS cite plane. This app does not start a mesh node. GET /v1/mesh never enables. Cap-7 is names only, not ICANN. Auto-update, RF, and satellite stay off.
 
 The userspace base is present. That is a base, not a boot.
 

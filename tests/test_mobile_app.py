@@ -40,6 +40,7 @@ LIVE_CLAIMS = (
     "One-click install is live.",
     "userspace_is_boot': true",
     "That is a boot.",
+    "Mesh radios are on",
 )
 
 FALSE_FLAGS = (
@@ -112,6 +113,14 @@ def test_app_sentences_match_the_worker_and_invite() -> None:
     assert "alt_internet_live is true" in text
     assert "packet_path_live is true" in text
     assert "This is a live mesh node." in text
+    assert "The public worker says this is a live mesh node." in text
+    assert "are Softwares membership." in text
+    assert "That membership is not the QNS cite plane." in text
+    assert "Cap-7 stays names only, not ICANN." in text
+    assert "GET /v1/mesh never enables." in text
+    assert "This page does not start a mesh node." in text
+    assert "RF and satellite stay off." in text
+    assert "Radio PHY is absent." in text
     assert "The public door stays FG-STUB." in text
     assert "Isolation is single-node security-awareness." in text
     assert "Phoenix is a local wait and re-seal." in text

@@ -1,9 +1,12 @@
-/// Sentences a person reads. They match the public worker.
+/// Sentences a person reads. The limit block quotes the public worker.
 ///
 /// userspace_base may stay a base. It is not a boot. Kernel, boot,
-/// install, mail send, and one-click install stay not live. The worker
-/// currently publishes alt_internet_live, packet_path_live, and
-/// mesh_node_live true. Cap-7 is not ICANN.
+/// install, mail send, and one-click install stay not live.
+/// mesh_node_live, alt_internet_live, and packet_path_live true are
+/// Softwares membership on that public worker quote. That membership
+/// is not the QNS cite plane. Cap-7 stays names only, not ICANN.
+/// GET /v1/mesh never enables. This page does not start a mesh node.
+/// Auto-update, RF, and satellite stay off. Radio PHY stays absent.
 library;
 
 const Map<String, bool> kFlags = <String, bool>{
@@ -85,11 +88,16 @@ const String kNewsPage =
     'This page does not claim the aziel-runtime side is done. The news source is absent. Nothing here is live or merged.';
 
 const String kMeshPage =
-    'This page is a live mesh node. mesh_node_live is true. Mesh radios are on. '
-    'public_bind stays false. Cap-7 is a name, not ICANN. '
+    'The public worker says this is a live mesh node. '
+    'mesh_node_live, alt_internet_live, and packet_path_live true are Softwares membership. '
+    'That membership is not the QNS cite plane. '
+    'This page does not start a mesh node. GET /v1/mesh never enables. '
+    'public_bind stays false. Cap-7 stays names only, not ICANN. '
+    'RF and satellite stay off. Radio PHY is absent. '
     'The cite is QNM-BUILD-1.0 and QNS-CD-1.0. Not an anonymity network.';
 
-const String kMeshStay = 'This page does not start a mesh node.';
+const String kMeshStay =
+    'This page does not start a mesh node. GET /v1/mesh never enables.';
 
 const String kSecondDevicePage = 'There is no second device.';
 
