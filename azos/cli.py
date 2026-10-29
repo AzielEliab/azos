@@ -57,7 +57,7 @@ Advanced:
   invite    Print the adoption text and download URL
   import    Read a JSON file into .azos-state.json
   export    Write .azos-state.json to a file
-  node      Local AZnet hash client (sidenet). Three layers by need.
+  node      Local AZnet hash client. SIDENET-P4 receipts: p4, menu, seal, rejoin.
   news      AZNews, alone or joined to the map. The news source is absent.
   map       4DMap pins, alone. 4DMap is not installed.
   version   Print the package version
@@ -179,8 +179,23 @@ def _build_parser() -> AzosParser:
         "op",
         nargs="?",
         default="status",
-        choices=("status", "stamp", "verify", "garden", "memorial", "memorial-list", "probe"),
-        help="status, stamp, verify, garden, memorial, memorial-list, or probe.",
+        choices=(
+            "status",
+            "stamp",
+            "verify",
+            "garden",
+            "memorial",
+            "memorial-list",
+            "probe",
+            "p4",
+            "menu",
+            "seal",
+            "phoenix",
+            "reseal",
+            "reheal",
+            "rejoin",
+        ),
+        help="AZnet: status, stamp, verify, garden, memorial, memorial-list, probe. SIDENET-P4: p4, menu, seal, phoenix, reseal, reheal, rejoin.",
     )
     p_node.add_argument(
         "--layer",
@@ -460,9 +475,109 @@ def _map_command(args: argparse.Namespace, *, as_json: bool) -> int:
     return 0 if rec.get("ok") else 1
 
 
+_SIDENET_OPS = frozenset({"p4", "menu", "seal", "phoenix", "reseal", "reheal", "rejoin"})
+
+
+def _sidenet_token_hash(rt: Runtime, *, token: str | None, actor: str) -> str:
+    from azos.errors import HaltedError
+    from azos.gate import authorize
+    from azos.sidenet import SIDENET_ACTIONS, sidenet_proposal
+
+    if rt.halted:
+        raise HaltedError()
+    if token:
+        if not rt.arc.verify(token):
+            raise AuthorizationError("unauthorized: token missing or revoked")
+        return rt.arc.token_hash(token)
+    result = authorize(sidenet_proposal(actor), SIDENET_ACTIONS)
+    if not result.passed:
+        raise AuthorizationError("unauthorized: ethics gates refused the offline node")
+    issued = rt.arc.issue(action="sidenet", actor=actor)
+    return rt.arc.token_hash(issued)
+
+
+def _human_sidenet_write(op: str, result: dict) -> str:
+    if op == "rejoin":
+        if result.get("joined"):
+            return (
+                f"Rejoined L0 at {result.get('origin')}.\n"
+                "Softwares desk: frozen\n"
+                f"Presence tip: {result.get('tip')}\n"
+            )
+        reached = "L0 answered" if result.get("reachable") else "L0 did not answer"
+        return (
+            f"Local tip kept. {reached}.\n"
+            f"Code: {result.get('code')}\n"
+            "Softwares desk: frozen\n"
+            "\n"
+            "Next: azos node p4\n"
+        )
+    if op == "reheal":
+        return (
+            f"Reheal: {result.get('cure')}.\n"
+            f"Presence tip: {result.get('tip') or '(none yet)'}\n"
+            "Neighbor vote: refused\n"
+        )
+    if op == "phoenix":
+        return (
+            "Phoenix is waiting locally.\n"
+            "The presence tip is unchanged. No public hostname was restored.\n"
+            "\n"
+            "Next: azos node reseal\n"
+        )
+    tip = result.get("hash") or result.get("tip") or "(none yet)"
+    return f"{op}: local receipt recorded.\nPresence tip: {tip}\n"
+
+
+def _sidenet_command(rt: Runtime, args: argparse.Namespace, *, as_json: bool) -> int:
+    from azos.sidenet import OfflineNode as SidenetNode
+    from azos.sidenet import SidenetRefuse, menu_lines, status_lines
+
+    op = args.op or "p4"
+    node = SidenetNode(Path.cwd())
+    try:
+        if op == "p4":
+            record = node.status()
+            human = status_lines(record)
+        elif op == "menu":
+            record = node.menu()
+            human = menu_lines(record)
+        else:
+            token_hash = _sidenet_token_hash(rt, token=args.token, actor=args.actor)
+            if op == "seal":
+                record = node.seal(token_hash=token_hash)
+            elif op == "phoenix":
+                record = node.phoenix(token_hash=token_hash)
+            elif op == "reseal":
+                record = node.reseal(token_hash=token_hash)
+            elif op == "reheal":
+                record = node.reheal(token_hash=token_hash)
+            elif op == "rejoin":
+                record = node.rejoin(token_hash=token_hash)
+            else:
+                sys.stderr.write(f'Unknown node action "{op}". Try: azos node --help\n')
+                return 2
+            human = _human_sidenet_write(op, record)
+    except AuthorizationError as exc:
+        _write_auth_error(exc)
+        return 1
+    except SidenetRefuse as exc:
+        sys.stderr.write(f"{exc}\nNext: azos node menu\n")
+        return 1
+    except AzosError as exc:
+        _write_error(exc)
+        return 1
+    _emit(record, as_json=as_json, human=human)
+    if op == "rejoin" and not record.get("joined"):
+        return 1
+    return 0
+
+
 def _node_command(rt: Runtime, args: argparse.Namespace, *, as_json: bool) -> int:
-    node = OfflineNode(root=Path.cwd(), layer=args.layer)
     op = args.op or "status"
+    if op in _SIDENET_OPS:
+        return _sidenet_command(rt, args, as_json=as_json)
+    node = OfflineNode(root=Path.cwd(), layer=args.layer)
     try:
         if op == "status":
             rec = node.status(
