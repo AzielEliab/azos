@@ -58,7 +58,7 @@ Advanced (same command names as before):
 | `azos import FILE` | Read JSON into `.azos-state.json` |
 | `azos export FILE` | Write `.azos-state.json` |
 | `azos version` | Package version |
-| `azos node` | Local AZnet hash client. Sidenet is AZnet |
+| `azos node` | Local AZnet hash client. Sidenet is AZnet. `azos node p4` is the SIDENET-P4 receipt chain |
 | `azos news` | AZNews, alone or joined to the map. The news source is absent |
 | `azos map` | Standalone 4DMap pins. 4DMap is not installed |
 
@@ -70,7 +70,15 @@ Advanced (same command names as before):
 | `stacked` | Same local garden. FragGate HTTPS stays the online door. |
 | `standalone` | Same local garden. No shell session. Softwares desk unchanged. |
 
-These names are overlay modes. The command does not install or replace an operating system. `azos node probe` is the only node command that uses the network: it sends `GET /v1/health` and does not call a FragGate op. Online calls still go through `https://aziel-runtime.vibelock.workers.dev/v1/fraggate/call`. The Softwares desk is unchanged.
+These names are overlay modes. The command does not install or replace an operating system. `azos node probe` sends `GET /v1/health` and does not call a FragGate op. `azos node rejoin` is the SIDENET-P4 command that calls published L0 health, then mesh join and heartbeat, and only when the operator asks. Other node commands stay on disk. Online calls still go through `https://aziel-runtime.vibelock.workers.dev/v1/fraggate/call`. The Softwares desk is unchanged.
+
+### SIDENET-P4
+
+`azos node p4` is a stacked receipt client beside the AZnet garden. It is not a kernel and not a Softwares card. Receipts and the presence tip stay in `.azos/node/sidenet-p4/`. The AZnet files in `.azos/node/` stay the AZnet files.
+
+`azos node menu` prints the multi-survival menu. Plane B, Plane C, the live-node API, and any DOI stay **SLOT**. The Softwares desk stays **frozen** (no cards are invented here, and this client does not change the shell's Softwares or QNM mesh flags). Radio PHY stays **absent**. Auto-update, RF, and satellite stay off. No ICANN `.az` name is claimed. Cap-7 is a published cite (`internet_reachable: false`, `icann_tld_az: false`).
+
+`azos node phoenix` waits locally. `azos node reseal` continues from this node's own tip. A neighbor vote-to-fix is refused. If the network is down, `azos node rejoin` keeps the local tip and L0 is **unreachable**, not a joined mesh. See [docs/SIDENET-P4.md](docs/SIDENET-P4.md).
 
 `--json` on `status`, `doctor`, `session`, `exec`, `halt`, `purge`, `import`, `export`, `node`, `news`, and `map` prints the machine record. `azos --json` prints status.
 
@@ -94,7 +102,7 @@ This package is a prefab of catalog hooks, including TemporalLock timeslates cha
 
 | Layer | What it does |
 |---|---|
-| Protocols | HTTPS JSON on the Worker, HTTP on `127.0.0.1:8800`, and CLI stdin (`azos shell`). `azos node probe` may GET FragGate health. Other node commands stay on disk. |
+| Protocols | HTTPS JSON on the Worker, HTTP on `127.0.0.1:8800`, and CLI stdin (`azos shell`). `azos node probe` may GET FragGate health. `azos node rejoin` may call published L0 health, join, and heartbeat. Other node commands stay on disk. |
 | Auth | A token is issued only after five checks pass: definition, evidence, impact, integrity, responsibility. The token is hashed at rest. A name is not a privilege. |
 | Sandbox | Session folder: local `.azos/workspace/<id>/`. Closed command list. |
 | Halt | Stops new commands. The watch (Lumen) stays on and can still revoke a token or purge `.azos`. |

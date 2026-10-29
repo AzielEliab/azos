@@ -57,6 +57,7 @@ feed. Other checks stay on this machine.
     surface for AZnet and stays a separate product. Layers `base`, `stacked`,
     and `standalone` stay additive overlay modes. Do not add a fourth layer
     for the browser, and do not install a second operating system.
+14. **SIDENET-P4 is a stacked receipt client.** Receipts stay in `.azos/node/sidenet-p4/`. Do not replace the AZnet garden, invent Softwares cards, claim an ICANN name, or add a radio PHY. Phoenix waits and re-seals locally. Neighbor vote-to-fix stays refused. Plane B/C and the live-node API stay SLOT. QNM mesh flags and the Softwares desk stay as this shell already publishes them. Auto-update, RF, and satellite stay off. Cap-7 is not ICANN.
 
 ## Where to change things
 
@@ -80,4 +81,5 @@ feed. Other checks stay on this machine.
 - Hosted shell: `workers/download-tracker/src/runtime.js`
 - Suite mesh / QNM Live Nodes: `workers/download-tracker/src/mesh.js` (`/v1/mesh/*` PROXY to aziel-runtime; QNS-CD-1.0 hub cite, not a qnsd proxy).
 - Offline AZnet node client: `azos/node.py` (`azos node`). Local hash refs. Softwares desk stays frozen.
+- SIDENET-P4 stacked receipts: `azos/sidenet.py` (`azos node p4`). Not a Softwares card. Does not replace `azos/node.py`.
 - Sigil / brand mark (no words): `azos/templates/sigil.svg`

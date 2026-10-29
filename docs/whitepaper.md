@@ -250,6 +250,19 @@ a FragGate op. Online execution stays on
 probe leaves the local garden as it was. A broken local chain is
 reported and not rewritten.
 
-## 12. Motto
+## 12. SIDENET-P4 stacked offline node
+
+SIDENET-P4 is a stacked receipt client in this package (`azos node p4`).
+It holds receipts and the presence tip under `.azos/node/sidenet-p4/`,
+beside the AZnet garden, and it does not replace that garden. It
+rejoins L0 FragGate over HTTPS only when the operator asks and a
+published front answers. Phoenix is local wait / re-seal. REHEAL does
+not take a neighbor vote. The Softwares desk is not copied, and this
+client does not roll Softwares or QNM mesh flags back. Plane B, Plane
+C, and the live-node API stay SLOT. Radio PHY is absent. Auto-update,
+RF, and satellite stay off. No ICANN `.az` name is claimed. Cap-7 is a
+published cite, not an internet door.
+
+## 13. Motto
 
 Integrity precedes execution.
