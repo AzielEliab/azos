@@ -1,87 +1,88 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
+import 'facts.dart';
+import 'hints.dart';
 import 'theme.dart';
 
-const invite = '''AZ-OS — ethics-coded remote shell (voluntary; not an infection)
-
-AZ-OS is a true remote shell gated by coded ethics. It is not a kernel,
-not a bootloader, not a hypervisor, and not malware. It is not
-unrestricted host bash and not SSH. You run it because you choose to.
-
-Principles
-  1. Integrity precedes execution.
-     No module or action runs without a token from ARC.
-  2. Time-bound actions are final.
-     Authorized executions append to an immutable sha256 chain. No rewrite.
-  3. Understanding precedes modification.
-     Extending or loading a module requires an explicit comprehension
-     checkbox and a short restatement of intent.
-  4. The system protects itself architecturally.
-     Unsigned or unauthorized run() raises AuthorizationError. Default deny.
-  5. Propagation is not infection.
-     This invite prints principles and a download URL. AZ-OS does not
-     copy itself onto other machines.
-
-You are invited to run AZ-OS yourself. This is not a silent block.
-Adoption is voluntary.
-
-Counted download:
-  https://azos-download-tracker.vibelock.workers.dev/
-
-Source:
-  https://github.com/AzielEliab/azos
-''';
-
-void main() {
-  runApp(const AzosApp());
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  runApp(AzosApp(hints: PrefsHintStore(prefs)));
 }
 
 class AzosApp extends StatelessWidget {
-  const AzosApp({super.key});
+  const AzosApp({required this.hints, super.key});
+
+  final HintStore hints;
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'AZ-OS',
-      debugShowCheckedModeBanner: false,
-      theme: buildAppTheme(),
-      home: const ControlPage(),
+    return HintScope(
+      store: hints,
+      child: MaterialApp(
+        title: 'AZ-OS',
+        debugShowCheckedModeBanner: false,
+        theme: buildAppTheme(),
+        home: const HomePage(),
+      ),
     );
   }
 }
 
-class ControlPage extends StatefulWidget {
-  const ControlPage({super.key});
-
-  @override
-  State<ControlPage> createState() => _ControlPageState();
+class _Nav {
+  const _Nav(this.id, this.name, this.icon);
+  final String id;
+  final String name;
+  final IconData icon;
 }
 
-class _ControlPageState extends State<ControlPage> {
+const List<_Nav> _nav = <_Nav>[
+  _Nav('sentences', 'Sentences', Icons.article_outlined),
+  _Nav('invite', 'Invite', Icons.mail_outline),
+  _Nav('controls', 'Controls', Icons.tune),
+];
+
+class HomePage extends StatefulWidget {
+  const HomePage({super.key});
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  int _section = 0;
+  int _page = 0;
   String? _token;
   bool _halted = false;
-  String _status = 'No token yet. This phone has not booted an operating system.';
-  bool _showInvite = true;
+  String _status = kNoToken;
+
+  Future<void> _select(int index) async {
+    final item = _nav[index];
+    await meetControl(context, item.id, item.name, kHints[item.id]!);
+    if (!mounted) return;
+    setState(() => _section = index);
+  }
 
   void _issue() {
     if (_halted) {
-      setState(() => _status = 'This phone is halted. A new token is refused.');
+      setState(() => _status = kIssueRefused);
       return;
     }
-    final r = Random.secure();
-    final bytes = List<int>.generate(32, (_) => r.nextInt(256));
+    final random = Random.secure();
+    final bytes = List<int>.generate(32, (_) => random.nextInt(256));
     setState(() {
       _token = bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
-      _status = 'A token was issued in memory. Integrity precedes execution. This is not a boot.';
+      _status = kIssued;
     });
   }
 
   void _revoke() {
     setState(() {
       _token = null;
-      _status = 'The token was revoked. The next command is refused until a new token is issued.';
+      _status = kRevoked;
     });
   }
 
@@ -89,83 +90,232 @@ class _ControlPageState extends State<ControlPage> {
     setState(() {
       _halted = true;
       _token = null;
-      _status = 'Halted. The watch label stays on. Tokens were revoked. The phone operating system keeps running.';
+      _status = kHalted;
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    final wide = MediaQuery.sizeOf(context).width >= 900;
     return Scaffold(
       appBar: AppBar(title: const Text('AZ-OS')),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
+      body: SafeArea(
+        child: Row(
+          children: [
+            if (wide) _rail(),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Padding(
+                    padding: EdgeInsets.fromLTRB(16, 12, 16, 0),
+                    child: Text(kOpeningLine),
+                  ),
+                  Expanded(child: _body()),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+      bottomNavigationBar: wide ? null : _bar(),
+    );
+  }
+
+  Widget _rail() {
+    return NavigationRail(
+      selectedIndex: _section,
+      onDestinationSelected: (index) => _select(index),
+      labelType: NavigationRailLabelType.all,
+      destinations: [
+        for (final item in _nav)
+          NavigationRailDestination(
+            icon: Icon(item.icon),
+            label: Text(item.name),
+          ),
+      ],
+    );
+  }
+
+  Widget _bar() {
+    return NavigationBar(
+      selectedIndex: _section,
+      onDestinationSelected: (index) => _select(index),
+      destinations: [
+        for (final item in _nav)
+          NavigationDestination(icon: Icon(item.icon), label: item.name),
+      ],
+    );
+  }
+
+  Widget _body() {
+    switch (_section) {
+      case 1:
+        return _invite();
+      case 2:
+        return _controls();
+      default:
+        return _sentences();
+    }
+  }
+
+  Widget _sentences() {
+    final page = kSentencePages[_page];
+    final last = _page >= kSentencePages.length - 1;
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Card(
-            color: const Color(0xFF2A1515),
-            child: const Padding(
-              padding: EdgeInsets.all(12),
-              child: Text(
-                'Ethics-coded remote shell. NOT a kernel. NOT a worm. NOT malware. '
-                'NOT unrestricted host bash. Propagation is invitation, not infection.',
-                style: TextStyle(height: 1.4),
+          const Text(
+            'Integrity precedes execution.',
+            style: TextStyle(
+                color: kGold, fontStyle: FontStyle.italic, fontSize: 16),
+          ),
+          const SizedBox(height: 12),
+          Expanded(
+            child: Card(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: Text(page,
+                    style: const TextStyle(fontSize: 22, height: 1.4)),
               ),
             ),
           ),
           const SizedBox(height: 8),
-          const Text(
-            'Integrity precedes execution.',
-            style: TextStyle(color: kGold, fontStyle: FontStyle.italic, fontSize: 16),
-          ),
-          const SizedBox(height: 16),
-          Text(_status),
           Text(
-            _token == null
-                ? 'No token is showing.'
-                : 'A token was issued. Only the first 16 characters are shown here.',
+            'Sentence ${_page + 1} of ${kSentencePages.length}',
+            style: const TextStyle(color: kGoldDim),
           ),
-          Text(
-            _halted
-                ? 'This phone is halted. The watch label stays on. There is no kernel, and this has not booted.'
-                : 'The watch label is on. There is no kernel. This has not booted. The userspace base is present. That is a base, not a boot.',
-          ),
-          const Text(
-            'The internet base is not live and not installed. An alternative internet is not live. Mail is not sent from here. This phone is not a live mesh node. AZNews and 4DMap are not joined and not live.',
-          ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           Wrap(
             spacing: 8,
             runSpacing: 8,
             children: [
-              FilledButton(onPressed: _issue, child: const Text('Issue token')),
-              OutlinedButton(onPressed: _revoke, child: const Text('Revoke')),
-              OutlinedButton(onPressed: _halt, child: const Text('Halt')),
-              OutlinedButton(
-                onPressed: () => setState(() => _showInvite = !_showInvite),
-                child: const Text('Invite'),
+              HintButton(
+                id: 'previous',
+                name: 'Previous',
+                hint: kHints['previous']!,
+                onPressed: _page == 0 ? null : () => setState(() => _page -= 1),
+              ),
+              HintButton(
+                id: 'next',
+                name: 'Next',
+                hint: kHints['next']!,
+                filled: true,
+                onPressed: last ? null : () => setState(() => _page += 1),
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          const Text(
-            'Invite writes no files. Halt/revoke are labels on in-memory state. '
-            'This phone app does not execute host modules, does not copy itself, '
-            'and does not wipe a disk.',
-            style: TextStyle(color: kGoldDim, fontSize: 12),
-          ),
-          if (_showInvite) ...[
-            const SizedBox(height: 16),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: SelectableText(
-                  invite,
-                  style: const TextStyle(fontFamily: 'monospace', fontSize: 12, height: 1.4),
-                ),
-              ),
-            ),
-          ],
         ],
       ),
     );
+  }
+
+  Widget _invite() {
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: const [
+        Text(
+          'Propagation is invitation, not infection. This text writes no files.',
+        ),
+        SizedBox(height: 12),
+        Card(
+          child: Padding(
+            padding: EdgeInsets.all(12),
+            child: SelectableText(
+              kInvite,
+              style:
+                  TextStyle(fontFamily: 'monospace', fontSize: 13, height: 1.4),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _controls() {
+    final preview = _token?.substring(0, 16);
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        Text(_status),
+        const SizedBox(height: 8),
+        Text(preview == null ? kTokenHidden : kTokenShown),
+        if (preview != null) Text(preview),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            HintButton(
+              id: 'issue',
+              name: 'Issue token',
+              hint: kHints['issue']!,
+              filled: true,
+              onPressed: _issue,
+            ),
+            HintButton(
+              id: 'revoke',
+              name: 'Revoke',
+              hint: kHints['revoke']!,
+              onPressed: _revoke,
+            ),
+            HintButton(
+              id: 'halt',
+              name: 'Halt',
+              hint: kHints['halt']!,
+              onPressed: _halt,
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        const Text(kWatchLine),
+        const SizedBox(height: 8),
+        const Text(kAppNotInstalled),
+        const SizedBox(height: 8),
+        const Text(kSecondDevicePage),
+        const SizedBox(height: 8),
+        const Text(kLimitsPlain),
+        const SizedBox(height: 12),
+        const Text(kControlNote,
+            style: TextStyle(color: kGoldDim, fontSize: 12)),
+      ],
+    );
+  }
+}
+
+class HintButton extends StatelessWidget {
+  const HintButton({
+    required this.id,
+    required this.name,
+    required this.hint,
+    required this.onPressed,
+    this.filled = false,
+    super.key,
+  });
+
+  final String id;
+  final String name;
+  final String hint;
+  final VoidCallback? onPressed;
+  final bool filled;
+
+  @override
+  Widget build(BuildContext context) {
+    final child = Text(name);
+    final VoidCallback? handler = onPressed == null
+        ? null
+        : () async {
+            await meetControl(context, id, name, hint);
+            if (!context.mounted) return;
+            onPressed!();
+          };
+    if (filled) {
+      return FilledButton(
+          key: Key('control-$id'), onPressed: handler, child: child);
+    }
+    return OutlinedButton(
+        key: Key('control-$id'), onPressed: handler, child: child);
   }
 }
