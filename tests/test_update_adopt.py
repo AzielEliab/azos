@@ -885,6 +885,111 @@ def test_concurrent_updates_keep_the_highest_verified_floor(tmp_path: Path) -> N
     assert _active(tmp_path) == same
 
 
+def test_changed_tree_file_does_not_finish_the_commit(tmp_path: Path) -> None:
+    private, public = _keys()
+    _trust(tmp_path, public)
+    blob = _tar({"hello.txt": b"signed\n", "nested/keep.txt": b"keep\n"})
+
+    def install(seq: int) -> Path:
+        signed = _manifest(blob, seq=seq, name="tree.tar")
+        _drop(tmp_path, signed, _sign(private, signed), blob)
+        adopted = boot_update(tmp_path)
+        assert adopted["code"] == "UPDATE-OK"
+        assert adopted["floor_seq"] == seq
+        return tmp_path / ".azos" / "update" / "generations" / "current" / "tree"
+
+    tree = install(3)
+    artifact = tmp_path / ".azos" / "update" / "generations" / "current" / "artifact.bin"
+    signed_bytes = artifact.read_bytes()
+    (tree / "hello.txt").write_bytes(b"changed\n")
+    assert artifact.read_bytes() == signed_bytes
+    _rewind(tmp_path, 0, 0)
+    changed = boot_update(tmp_path)
+    assert changed["recovered"] == "current-rejected"
+    assert changed["code"] != "UPDATE-OK"
+    assert changed.get("installed_seq") in (None, 0)
+    assert _floor(tmp_path) in (None, 0)
+    assert changed["live"] is False and changed["booted"] is False
+
+    tree = install(4)
+    (tree / "extra.txt").write_text("extra\n", encoding="utf-8")
+    _rewind(tmp_path, 4, 4)
+    extra = boot_update(tmp_path)
+    assert extra["recovered"] == "current-rejected"
+    assert extra["applied"] is False
+    assert _floor(tmp_path) == 4
+
+    tree = install(5)
+    (tree / "nested" / "keep.txt").unlink()
+    _rewind(tmp_path, 5, 5)
+    missing = boot_update(tmp_path)
+    assert missing["recovered"] == "current-rejected"
+    assert _floor(tmp_path) == 5
+
+    tree = install(6)
+    hello = tree / "hello.txt"
+    hello.unlink()
+    hello.symlink_to("/tmp")
+    _rewind(tmp_path, 6, 6)
+    linked = boot_update(tmp_path)
+    assert linked["recovered"] == "current-rejected"
+    assert _floor(tmp_path) == 6
+    assert not (tmp_path / ".azos" / "update" / "generations" / "current" / "tree" / "hello.txt").is_symlink()
+
+
+def test_ancestor_walk_refuses_world_writable_and_self_owned_sticky(tmp_path: Path) -> None:
+    from azos.update_apply import ancestor_verdict
+
+    euid = os.geteuid()
+    directory = stat.S_IFDIR
+    assert ancestor_verdict(directory | 0o1777, 0, euid) == "boundary"
+    assert ancestor_verdict(directory | 0o1777, euid, euid) == "unsafe"
+    assert ancestor_verdict(directory | 0o1755, euid, euid) == "continue"
+    assert ancestor_verdict(directory | 0o755, euid, euid) == "continue"
+    assert ancestor_verdict(directory | 0o777, euid, euid) == "unsafe"
+    assert ancestor_verdict(stat.S_IFLNK | 0o777, euid, euid) == "unsafe"
+    assert ancestor_verdict(directory | 0o755, euid + 1, euid) == "unsafe"
+    assert ancestor_verdict(directory | 0o755, 0, euid) == "continue"
+
+    private, public = _keys()
+    blob = _tar({"hello.txt": b"root\n"})
+    manifest = _manifest(blob, seq=1, name="root.tar")
+    tmp_path.chmod(0o777)
+    _trust(tmp_path, public)
+    _drop(tmp_path, manifest, _sign(private, manifest), blob)
+    refused = boot_update(tmp_path)
+    assert refused["code"] == "UPDATE-TRUST-REFUSED"
+    assert refused["applied"] is False
+    assert refused["configured"] is False
+    assert refused["live"] is False
+    assert public not in json.dumps(refused)
+    assert not _hello(tmp_path).exists()
+    tmp_path.chmod(0o755)
+
+    holder = tmp_path / "holder"
+    sticky = holder / "sticky"
+    install = sticky / "install"
+    install.mkdir(parents=True)
+    holder.chmod(0o777)
+    sticky.chmod(0o1755)
+    install.chmod(0o755)
+    _trust(install, public)
+    _drop(install, manifest, _sign(private, manifest), blob)
+    hidden = boot_update(install)
+    assert hidden["code"] == "UPDATE-TRUST-REFUSED"
+    assert hidden["applied"] is False
+
+    real = tmp_path / "real-root"
+    real.mkdir(mode=0o755)
+    link = tmp_path / "linked-root"
+    link.symlink_to(real)
+    _trust(real, public)
+    _drop(real, manifest, _sign(private, manifest), blob)
+    via_link = boot_update(link)
+    assert via_link["code"] == "UPDATE-TRUST-REFUSED"
+    assert via_link["applied"] is False
+
+
 def test_init_does_not_call_the_userspace_updater() -> None:
     init = (Path(__file__).resolve().parents[1] / "image" / "init").read_text(encoding="utf-8")
     assert "update_apply" not in init

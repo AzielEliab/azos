@@ -25,6 +25,11 @@ Boundary (this slice does not pretend these are done):
   share it: ``tools/auto_update_updater.py`` ``apply_offer`` compares length and
   hash, and ``src/auto-update/node-host.js`` has no generation recover
   (``healthCheck`` returns false). Those files stay in aziel-runtime.
+- Ancestor modes are read again immediately before ``renameat``. A chmod of an
+  ancestor after that check and before the rename is the residual window.
+  ``current`` and ``staging`` are swapped with ``renameat`` on a dirfd opened
+  ``O_DIRECTORY|O_NOFOLLOW``, so a symlink planted at those names is not followed.
+  Ancestors above the generation directory are not held open for the whole call.
 
 Author: Aziel Eliab.
 """
@@ -96,6 +101,8 @@ TRUST_NEED: tuple[str, ...] = (
     "max_bytes is optional and cannot exceed 33554432. Declared sizes above the cap are UPDATE-BOUND and are not downloaded.",
     "Paid satellite_relay stays HELD. mesh_node, alt_internet, and packet_path membership do not make a carrier present.",
     "trust.json must be a regular file owned by this user, not a symlink, and not writable by group or other (mode 0600). .azos and .azos/update must match. Mode 0666 is refused.",
+    "Every ancestor of .azos/update is checked. Group or world write is refused. An ancestor owned by another user is refused unless that owner is root. A symlink is refused. Only a root-owned sticky directory, such as /tmp, stops the walk. A sticky directory owned by this user does not stop the walk.",
+    "The extracted tree is checked against the signed artifact before activation and again during recovery. A changed, extra, or missing file, or a symlink, is current-rejected and does not move the floor.",
 )
 
 LOCK_WAIT_SECONDS = 2.0
@@ -224,10 +231,135 @@ def _anchor_component(path: Path, *, want_file: bool) -> str | None:
     return None
 
 
+def ancestor_verdict(mode: int, uid: int, euid: int) -> str:
+    """``unsafe``, ``boundary``, or ``continue`` for one ancestor directory.
+
+    Only a root-owned sticky directory stops the walk. A sticky directory
+    owned by this user does not. Group or world write is refused unless that
+    root-owned sticky boundary applies. Another user's directory is refused
+    when that user is not root.
+    """
+    if stat.S_ISLNK(mode) or not stat.S_ISDIR(mode):
+        return "unsafe"
+    if uid != euid and uid != 0:
+        return "unsafe"
+    loose = bool(mode & 0o022)
+    root_sticky = bool(mode & stat.S_ISVTX) and uid == 0
+    if root_sticky:
+        return "boundary"
+    if loose:
+        return "unsafe"
+    return "continue"
+
+
+def _ancestor_reason(update_home: Path) -> str | None:
+    """Walk every ancestor of ``.azos/update``. None means the walk is safe."""
+    try:
+        euid = os.geteuid()
+    except OSError:
+        return "owner"
+    current = Path(update_home).parent
+    seen: set[Path] = set()
+    while current not in seen:
+        seen.add(current)
+        try:
+            info = current.lstat()
+        except OSError:
+            return "unreadable ancestor"
+        if stat.S_ISLNK(info.st_mode):
+            return "symlinked ancestor"
+        verdict = ancestor_verdict(info.st_mode, info.st_uid, euid)
+        if verdict == "unsafe":
+            return "unsafe ancestor"
+        if verdict == "boundary":
+            return None
+        parent = current.parent
+        if parent == current:
+            return None
+        current = parent
+    return "ancestor cycle"
+
+
+def _rename_within(parent: Path, source: str, dest: str) -> None:
+    """``renameat`` on a no-follow directory fd. Does not follow a planted symlink."""
+    flags = os.O_RDONLY | os.O_DIRECTORY
+    if hasattr(os, "O_NOFOLLOW"):
+        flags |= os.O_NOFOLLOW
+    dirfd = os.open(parent, flags)
+    try:
+        info = os.fstat(dirfd)
+        if not stat.S_ISDIR(info.st_mode):
+            raise _Unsafe("generation directory")
+        os.rename(source, dest, src_dir_fd=dirfd, dst_dir_fd=dirfd)
+    finally:
+        os.close(dirfd)
+
+
+def _tree_matches(tree: Path, blob: bytes) -> bool:
+    """Every extracted file must equal the signed artifact. No extras, no links."""
+    if tree.is_symlink() or not tree.is_dir():
+        return False
+    try:
+        handle = tarfile.open(fileobj=io.BytesIO(blob), mode="r:*")
+    except tarfile.TarError:
+        payload = tree / "payload"
+        files = [path for path in tree.rglob("*") if not path.is_dir()]
+        if len(files) != 1 or files[0] != payload or payload.is_symlink() or not payload.is_file():
+            return False
+        if not _inside(tree, payload):
+            return False
+        return payload.read_bytes() == bytes(blob)
+    expected: dict[str, bytes] = {}
+    expected_dirs: set[str] = set()
+    try:
+        with handle:
+            for member in handle.getmembers():
+                if member.issym() or member.islnk() or not (member.isfile() or member.isdir()):
+                    return False
+                rel = _safe_member_name(member.name)
+                if rel is None:
+                    return False
+                name = rel.as_posix()
+                if member.isdir():
+                    expected_dirs.add(name)
+                    continue
+                source = handle.extractfile(member)
+                if source is None:
+                    return False
+                expected[name] = source.read()
+    except (tarfile.TarError, OSError):
+        return False
+    actual: dict[str, bytes] = {}
+    actual_dirs: set[str] = set()
+    for path in tree.rglob("*"):
+        if path.is_symlink() or not _inside(tree, path):
+            return False
+        name = path.relative_to(tree).as_posix()
+        if path.is_dir():
+            actual_dirs.add(name)
+            continue
+        if not path.is_file():
+            return False
+        actual[name] = path.read_bytes()
+    if actual != expected:
+        return False
+    allowed_dirs = set(expected_dirs)
+    for name in expected:
+        parts = name.split("/")
+        for index in range(1, len(parts)):
+            allowed_dirs.add("/".join(parts[:index]))
+    if not actual_dirs <= allowed_dirs or not expected_dirs <= actual_dirs:
+        return False
+    return True
+
+
 def _trust_anchor_reason(path: Path, root: Path) -> str | None:
     """None when the file is missing or safe to read. A string refuses the anchor."""
     if not path.exists() and not path.is_symlink():
         return None
+    ancestor = _ancestor_reason(path.parent)
+    if ancestor:
+        return ancestor
     try:
         relative = path.relative_to(root)
     except ValueError:
@@ -938,6 +1070,11 @@ class AzosUpdateHost:
             before = self.hooks.get("before_ready")
             if callable(before):
                 before(staging)
+            on_disk = (staging / "artifact.bin").read_bytes()
+            if on_disk != bytes(data) or not _tree_matches(staging / "tree", bytes(data)):
+                raise _Unsafe("tree does not match the signed artifact")
+            if _ancestor_reason(self.home):
+                raise _Unsafe("ancestor refused")
             (staging / "manifest.json").write_text(
                 json.dumps(manifest, sort_keys=True) + "\n", encoding="utf-8"
             )
@@ -951,13 +1088,15 @@ class AzosUpdateHost:
         current = self.gen / "current"
         previous = self.gen / "previous"
         staging = self.gen / "staging"
-        if not (staging / "READY").is_file():
+        if _ancestor_reason(self.home):
+            raise _Unsafe("ancestor refused")
+        if not (staging / "READY").is_file() or not self._directory_healthy(staging):
             raise _Unsafe("staging is not ready")
         if previous.exists() or previous.is_symlink():
             _rm(previous)
         if current.exists() or current.is_symlink():
-            os.replace(current, previous)
-        os.replace(staging, current)
+            _rename_within(self.gen, "current", "previous")
+        _rename_within(self.gen, "staging", "current")
         self._swapped = True
 
     def health_check(self) -> bool:
@@ -981,6 +1120,8 @@ class AzosUpdateHost:
         if not _artifact_matches(manifest, data):
             return False
         tree = directory / "tree"
+        if not _tree_matches(tree, data):
+            return False
         if tree.is_symlink() or not tree.is_dir():
             return False
         for path in tree.rglob("*"):
@@ -1035,6 +1176,12 @@ class AzosUpdateHost:
             return
         seq = verdict.get("seq")
         if not V.sint(seq) or seq <= high:
+            return
+        if _ancestor_reason(self.home):
+            return
+        if not self.health_check():
+            self._reject_current()
+            self.recovered = "current-rejected"
             return
         state["installed_seq"] = seq
         state["floor_seq"] = max(high, seq)
