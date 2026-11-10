@@ -21,6 +21,10 @@ Boundary (this slice does not pretend these are done):
 - Worker ``/v1/version`` on AZ-OS stays a lockstep gap.
 - No published ``auto-update-manifest.json`` is assumed to exist.
 - Runtime PR 387 is not modified.
+- The empty-artifact recover hole is in this host. The copied engine does not
+  share it: ``tools/auto_update_updater.py`` ``apply_offer`` compares length and
+  hash, and ``src/auto-update/node-host.js`` has no generation recover
+  (``healthCheck`` returns false). Those files stay in aziel-runtime.
 
 Author: Aziel Eliab.
 """
@@ -32,12 +36,19 @@ import io
 import json
 import os
 import shutil
+import stat
 import tarfile
+import time
 import urllib.error
 import urllib.request
 from pathlib import Path
 from typing import Any, Callable, Mapping
 from urllib.parse import urlparse
+
+try:
+    import fcntl
+except ImportError:  # pragma: no cover - Linux has fcntl
+    fcntl = None  # type: ignore[assignment]
 
 from azos import update_engine as U
 from azos import update_verify as V
@@ -84,7 +95,11 @@ TRUST_NEED: tuple[str, ...] = (
     + ". No such asset is assumed to exist. The fetch fails closed when it is missing.",
     "max_bytes is optional and cannot exceed 33554432. Declared sizes above the cap are UPDATE-BOUND and are not downloaded.",
     "Paid satellite_relay stays HELD. mesh_node, alt_internet, and packet_path membership do not make a carrier present.",
+    "trust.json must be a regular file owned by this user, not a symlink, and not writable by group or other (mode 0600). .azos and .azos/update must match. Mode 0666 is refused.",
 )
+
+LOCK_WAIT_SECONDS = 2.0
+LOCK_STALE_SECONDS = 30.0
 
 BOUNDARY: tuple[str, ...] = (
     "image/init does not run this module. QEMU PID 1 stays AZOS-BOOT-1 with guardian absent.",
@@ -166,6 +181,254 @@ def _auto_on(trust_flag: object) -> bool:
     return os.environ.get("AUTO_UPDATE") == "on"
 
 
+def _artifact_matches(manifest: object, data: bytes | bytearray) -> bool:
+    """True only when ``data`` is exactly the signed size and sha256, including empty."""
+    if not isinstance(manifest, dict) or not isinstance(data, (bytes, bytearray)):
+        return False
+    artifact = manifest.get("artifact")
+    if not isinstance(artifact, dict):
+        return False
+    size = artifact.get("size")
+    digest = artifact.get("sha256")
+    if isinstance(size, bool) or not isinstance(size, int) or size < 0:
+        return False
+    if not isinstance(digest, str) or V.HEX64.fullmatch(digest) is None:
+        return False
+    raw = bytes(data)
+    if len(raw) != size:
+        return False
+    return hashlib.sha256(raw).hexdigest() == digest
+
+
+def _anchor_component(path: Path, *, want_file: bool) -> str | None:
+    """Refuse a symlink, a wrong type, group/other write, or a different owner."""
+    if path.is_symlink():
+        return "symlink"
+    try:
+        info = path.lstat()
+    except OSError:
+        return "unreadable"
+    if want_file and not stat.S_ISREG(info.st_mode):
+        return "not a regular file"
+    if not want_file and not stat.S_ISDIR(info.st_mode):
+        return "not a directory"
+    if info.st_mode & 0o022:
+        return "writable by group or other"
+    if hasattr(os, "geteuid"):
+        try:
+            owner = os.geteuid()
+        except OSError:
+            owner = None
+        if owner is not None and info.st_uid != owner:
+            return "owner is not this user"
+    return None
+
+
+def _trust_anchor_reason(path: Path, root: Path) -> str | None:
+    """None when the file is missing or safe to read. A string refuses the anchor."""
+    if not path.exists() and not path.is_symlink():
+        return None
+    try:
+        relative = path.relative_to(root)
+    except ValueError:
+        return "path escapes the update root"
+    cursor = Path(root)
+    for part in relative.parts[:-1]:
+        cursor = cursor / part
+        if not cursor.exists() and not cursor.is_symlink():
+            return None
+        reason = _anchor_component(cursor, want_file=False)
+        if reason:
+            return reason
+    reason = _anchor_component(path, want_file=True)
+    if reason:
+        return reason
+    flags = os.O_RDONLY
+    if hasattr(os, "O_NOFOLLOW"):
+        flags |= os.O_NOFOLLOW
+    try:
+        fd = os.open(path, flags)
+    except OSError:
+        return "symlink or unreadable"
+    try:
+        info = os.fstat(fd)
+        if not stat.S_ISREG(info.st_mode) or info.st_mode & 0o022:
+            return "writable by group or other"
+        if hasattr(os, "geteuid") and info.st_uid != os.geteuid():
+            return "owner is not this user"
+    finally:
+        os.close(fd)
+    return None
+
+
+def _read_regular(path: Path, cap: int) -> bytes:
+    """Read a regular file without following a symlink swapped in underneath."""
+    flags = os.O_RDONLY
+    if hasattr(os, "O_NOFOLLOW"):
+        flags |= os.O_NOFOLLOW
+    fd = os.open(path, flags)
+    try:
+        info = os.fstat(fd)
+        if not stat.S_ISREG(info.st_mode):
+            raise OSError("not a regular file")
+        if info.st_size > cap:
+            raise _Bound
+        chunks: list[bytes] = []
+        remaining = cap + 1
+        while remaining:
+            piece = os.read(fd, min(65536, remaining))
+            if not piece:
+                break
+            chunks.append(piece)
+            remaining -= len(piece)
+            if sum(len(item) for item in chunks) > cap:
+                raise _Bound
+        return b"".join(chunks)
+    finally:
+        os.close(fd)
+
+
+class UpdateLock:
+    """Serialize recover and apply across processes.
+
+    ``flock`` drops when the holder exits, including a crash, so a dead
+    process does not stick the critical section. A live holder is not
+    evicted. This does not delete generations or the lock file to steal
+    the section.
+    """
+
+    def __init__(self, home: Path) -> None:
+        self.home = home
+        self.path = home / "update.lock"
+        self.fd: int | None = None
+        self._held = False
+        self._slot: Path | None = None
+
+    def acquire(self) -> bool:
+        try:
+            self.home.mkdir(parents=True, exist_ok=True, mode=0o700)
+        except OSError:
+            return False
+        if self.path.is_symlink():
+            return False
+        flags = os.O_CREAT | os.O_RDWR
+        if hasattr(os, "O_NOFOLLOW"):
+            flags |= os.O_NOFOLLOW
+        try:
+            self.fd = os.open(self.path, flags, 0o600)
+        except OSError:
+            return False
+        try:
+            os.fchmod(self.fd, 0o600)
+        except OSError:
+            pass
+        if fcntl is None:
+            return self._acquire_directory()
+        deadline = time.monotonic() + LOCK_WAIT_SECONDS
+        while True:
+            try:
+                fcntl.flock(self.fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except BlockingIOError:
+                if time.monotonic() >= deadline:
+                    return False
+                time.sleep(0.05)
+                continue
+            except OSError:
+                return False
+            self._held = True
+            self._write_record()
+            return True
+
+    def _write_record(self) -> None:
+        if self.fd is None:
+            return
+        payload = json.dumps({"pid": os.getpid(), "started": time.time()}).encode("ascii")
+        os.ftruncate(self.fd, 0)
+        os.lseek(self.fd, 0, os.SEEK_SET)
+        os.write(self.fd, payload)
+        os.fsync(self.fd)
+
+    def _acquire_directory(self) -> bool:
+        """Fallback when flock is missing. A live pid is never removed."""
+        slot = self.home / "update.lock.d"
+        deadline = time.monotonic() + LOCK_WAIT_SECONDS
+        while True:
+            try:
+                os.mkdir(slot, 0o700)
+            except FileExistsError:
+                if time.monotonic() >= deadline:
+                    return False
+                if _lock_dir_is_dead(slot) and _age_seconds(slot) >= LOCK_STALE_SECONDS:
+                    try:
+                        owner = slot / "owner"
+                        if owner.is_file() and not owner.is_symlink():
+                            owner.unlink()
+                        os.rmdir(slot)
+                    except OSError:
+                        return False
+                    continue
+                time.sleep(0.05)
+                continue
+            try:
+                (slot / "owner").write_text(
+                    json.dumps({"pid": os.getpid(), "started": time.time()}),
+                    encoding="ascii",
+                )
+            except OSError:
+                return False
+            self._slot = slot
+            self._held = True
+            return True
+
+    def release(self) -> None:
+        if self._slot is not None and self._held:
+            owner = self._slot / "owner"
+            try:
+                if owner.is_file() and not owner.is_symlink():
+                    owner.unlink()
+                os.rmdir(self._slot)
+            except OSError:
+                pass
+            self._slot = None
+        if self.fd is None:
+            self._held = False
+            return
+        try:
+            if self._held and fcntl is not None:
+                fcntl.flock(self.fd, fcntl.LOCK_UN)
+        finally:
+            os.close(self.fd)
+            self.fd = None
+            self._held = False
+
+
+def _age_seconds(path: Path) -> float:
+    try:
+        return max(0.0, time.time() - path.stat().st_mtime)
+    except OSError:
+        return 0.0
+
+
+def _lock_dir_is_dead(slot: Path) -> bool:
+    owner = slot / "owner"
+    try:
+        record = json.loads(owner.read_text(encoding="ascii"))
+        pid = int(record.get("pid"))
+    except (OSError, ValueError, TypeError, json.JSONDecodeError):
+        return _age_seconds(slot) >= LOCK_STALE_SECONDS
+    if pid <= 0:
+        return False
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return True
+    except PermissionError:
+        return False
+    except OSError:
+        return False
+    return False
+
+
 def load_trust(root: Path | str) -> dict[str, Any]:
     """Read operator trust. Missing or refused trust does not invent a key."""
     path = _update_home(Path(root)) / "trust.json"
@@ -184,17 +447,24 @@ def load_trust(root: Path | str) -> dict[str, Any]:
     }
     if os.environ.get("AUTO_UPDATE") == "on":
         base["enabled"] = True
-    if not path.is_file() or path.is_symlink():
+    anchor = _trust_anchor_reason(path, Path(root))
+    if anchor:
+        base["code"] = "UPDATE-TRUST-REFUSED"
+        base["trust_refused"] = True
+        base["enabled"] = False
+        base["need"] = [
+            "trust.json was refused ("
+            + anchor
+            + "). It must be a regular file owned by this user, mode 0600, not a symlink. .azos and .azos/update must match."
+        ]
+        return base
+    if not path.exists():
         return base
     try:
-        raw = path.read_text(encoding="utf-8")
-        if len(raw.encode("utf-8")) > ENVELOPE_MAX:
-            base["code"] = "UPDATE-TRUST-REFUSED"
-            base["trust_refused"] = True
-            base["enabled"] = False
-            return base
+        raw_bytes = _read_regular(path, ENVELOPE_MAX)
+        raw = raw_bytes.decode("utf-8")
         loaded = json.loads(raw)
-    except (OSError, UnicodeError, json.JSONDecodeError):
+    except (OSError, UnicodeError, json.JSONDecodeError, _Bound):
         base["code"] = "UPDATE-TRUST-REFUSED"
         base["trust_refused"] = True
         base["enabled"] = False
@@ -542,7 +812,10 @@ class AzosUpdateHost:
             return
         self.home.mkdir(parents=True, exist_ok=True, mode=0o700)
         tmp = self.state_path.with_suffix(".json.tmp")
-        tmp.write_text(json.dumps(state, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        with tmp.open("w", encoding="utf-8") as handle:
+            handle.write(json.dumps(state, indent=2, sort_keys=True) + "\n")
+            handle.flush()
+            os.fsync(handle.fileno())
         os.replace(tmp, self.state_path)
 
     def write_receipt(self, row: dict[str, Any]) -> None:
@@ -688,27 +961,26 @@ class AzosUpdateHost:
         self._swapped = True
 
     def health_check(self) -> bool:
-        current = self.gen / "current"
-        ready = current / "READY"
-        blob = current / "artifact.bin"
-        manifest_path = current / "manifest.json"
+        return self._directory_healthy(self.gen / "current")
+
+    def _directory_healthy(self, directory: Path) -> bool:
+        ready = directory / "READY"
+        blob = directory / "artifact.bin"
+        manifest_path = directory / "manifest.json"
+        if directory.is_symlink() or not directory.is_dir():
+            return False
         if not ready.is_file() or ready.is_symlink() or not blob.is_file() or blob.is_symlink():
             return False
-        if not manifest_path.is_file():
+        if not manifest_path.is_file() or manifest_path.is_symlink():
             return False
         try:
             manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
             data = blob.read_bytes()
         except (OSError, UnicodeError, json.JSONDecodeError):
             return False
-        if not isinstance(manifest, dict) or not isinstance(manifest.get("artifact"), dict):
+        if not _artifact_matches(manifest, data):
             return False
-        artifact = manifest["artifact"]
-        if len(data) != artifact.get("size"):
-            return False
-        if hashlib.sha256(data).hexdigest() != artifact.get("sha256"):
-            return False
-        tree = current / "tree"
+        tree = directory / "tree"
         if tree.is_symlink() or not tree.is_dir():
             return False
         for path in tree.rglob("*"):
@@ -729,114 +1001,193 @@ class AzosUpdateHost:
         self._swapped = False
 
     def recover(self) -> None:
-        """Drop an unfinished staging dir. Finish or reject a current generation."""
-        staging = self.gen / "staging"
-        if staging.exists() and not (staging / "READY").is_file():
-            _rm(staging)
-            self.recovered = "staging-discarded"
-        elif staging.exists() and (self.gen / "current").exists():
-            _rm(staging)
-            self.recovered = "staging-discarded"
+        """Finish or reject a generation only after bytes, size, and trust match.
+
+        An empty ``artifact.bin`` is accepted only when the signed manifest
+        declares size 0 and that hash. It never counts as a longer artifact.
+        The recorded high-water floor is not lowered.
+        """
+        self._finish_or_drop_staging()
         current = self.gen / "current"
         if not current.is_dir() or current.is_symlink():
-            previous = self.gen / "previous"
-            if previous.is_dir() and not previous.is_symlink() and not current.exists():
-                os.replace(previous, current)
-                self.recovered = "previous-restored"
-            return
-        if not (current / "READY").is_file():
+            if not self._restore_matching_previous():
+                return
+        if current.is_symlink() or not (current / "READY").is_file() or (current / "READY").is_symlink():
             self._reject_current()
             self.recovered = "current-rejected"
             return
-        if not self.public_key:
-            return
-        verdict = self._current_verdict()
-        if verdict is None:
+        verdict = self._generation_verdict(current)
+        if verdict is None or verdict.get("bytes_ok") is not True:
             self._reject_current()
             self.recovered = "current-rejected"
+            return
+        if not self.health_check():
+            self._reject_current()
+            self.recovered = "current-rejected"
+            return
+        if verdict.get("trusted") is not True:
             return
         state = self.load()
         if self._state_bad:
             return
-        seq = verdict["seq"]
-        installed = state.get("installed_seq") if V.sint(state.get("installed_seq")) else 0
-        floor = state.get("floor_seq") if V.sint(state.get("floor_seq")) else 0
-        if seq > max(installed or 0, floor or 0) and verdict["ok"] is True:
-            state["installed_seq"] = seq
-            state["floor_seq"] = max(floor or 0, seq)
-            state["manifest_hash"] = verdict["manifest_hash"]
-            state["served_manifest"] = {
-                "manifest": verdict["manifest"],
-                "signature": verdict["signature"],
-            }
-            state["last_code"] = "UPDATE-OK"
-            state["product"] = self.product
-            self.save(state)
-            self.recovered = "commit-finished"
-        elif verdict["ok"] is not True:
-            self._reject_current()
-            self.recovered = "current-rejected"
+        high = self._high_water(state)
+        if high is None:
+            return
+        seq = verdict.get("seq")
+        if not V.sint(seq) or seq <= high:
+            return
+        state["installed_seq"] = seq
+        state["floor_seq"] = max(high, seq)
+        state["manifest_hash"] = verdict.get("manifest_hash")
+        state["served_manifest"] = {
+            "manifest": verdict.get("manifest"),
+            "signature": verdict.get("signature"),
+        }
+        state["last_code"] = "UPDATE-OK"
+        state["product"] = self.product
+        self.save(state)
+        recorded = self._recorded_high()
+        if recorded is None or recorded < seq:
+            return
+        self.recovered = "commit-finished"
 
-    def _current_verdict(self) -> dict[str, Any] | None:
+    def _finish_or_drop_staging(self) -> None:
+        staging = self.gen / "staging"
         current = self.gen / "current"
+        if not staging.exists() and not staging.is_symlink():
+            return
+        ready = staging / "READY"
+        if staging.is_symlink() or not ready.is_file() or ready.is_symlink() or current.exists() or current.is_symlink():
+            _rm(staging)
+            self.recovered = "staging-discarded"
+            return
+        verdict = self._generation_verdict(staging)
+        high = self._recorded_high()
+        if (
+            verdict
+            and verdict.get("bytes_ok") is True
+            and verdict.get("trusted") is True
+            and high is not None
+            and V.sint(verdict.get("seq"))
+            and verdict["seq"] > high
+            and self._directory_healthy(staging)
+        ):
+            os.replace(staging, current)
+            self.recovered = "staging-promoted"
+            return
+        _rm(staging)
+        self.recovered = "staging-discarded"
+
+    def _generation_verdict(self, directory: Path) -> dict[str, Any] | None:
+        """Judge one generation. Empty bytes are hashed. Missing bytes are not a match."""
+        if directory.is_symlink() or not directory.is_dir():
+            return None
+        blob = directory / "artifact.bin"
+        manifest_path = directory / "manifest.json"
+        sig_path = directory / "signature.txt"
+        if blob.is_symlink() or manifest_path.is_symlink() or sig_path.is_symlink():
+            return {"bytes_ok": False, "trusted": False, "seq": 0}
+        if not manifest_path.is_file() or not sig_path.is_file():
+            return None
+        if not blob.is_file():
+            return {"bytes_ok": False, "trusted": False, "seq": 0}
         try:
-            manifest = json.loads((current / "manifest.json").read_text(encoding="utf-8"))
-            signature = (current / "signature.txt").read_text(encoding="utf-8").strip()
-            data = (current / "artifact.bin").read_bytes()
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            signature = sig_path.read_text(encoding="utf-8").strip()
+            data = blob.read_bytes()
         except (OSError, UnicodeError, json.JSONDecodeError):
             return None
-        if not isinstance(manifest, dict):
-            return None
-        artifact = manifest.get("artifact") if isinstance(manifest.get("artifact"), dict) else {}
-        if data and hashlib.sha256(data).hexdigest() != artifact.get("sha256"):
-            return {"ok": False, "seq": 0, "manifest": manifest, "signature": signature, "manifest_hash": None}
-        verdict = V.verify_manifest(manifest, signature, {"product": self.product, "installed_seq": 0, "floor_seq": 0}, self.public_key)
-        # verify_manifest also refuses when seq is not newer than 0. Re-check
-        # signature and shape ourselves when the generation is already the floor.
-        if verdict.get("code") == "UPDATE-DOWNGRADE":
-            fresh = dict(verdict)
-            fresh["ok"] = V.shape_ok(manifest) and isinstance(signature, str) and V.sig_ok(self.public_key or "", manifest, signature)
-            fresh["seq"] = manifest.get("version_seq") if V.sint(manifest.get("version_seq")) else 0
-            fresh["manifest"] = manifest
-            fresh["signature"] = signature
-            fresh["manifest_hash"] = V.manifest_hash(manifest) if fresh["ok"] else None
-            return fresh
+        seq = manifest.get("version_seq") if isinstance(manifest, dict) else 0
+        matched = _artifact_matches(manifest, data)
+        if not matched:
+            return {"bytes_ok": False, "trusted": False, "seq": seq if V.sint(seq) else 0, "manifest": manifest}
+        trusted = self._signature_trusted(manifest, signature)
+        digest = V.manifest_hash(manifest) if trusted and isinstance(manifest, dict) else None
         return {
-            "ok": verdict.get("ok") is True,
-            "seq": manifest.get("version_seq") if V.sint(manifest.get("version_seq")) else 0,
+            "bytes_ok": True,
+            "trusted": trusted,
+            "seq": seq if V.sint(seq) else 0,
             "manifest": manifest,
             "signature": signature,
-            "manifest_hash": verdict.get("manifest_hash"),
+            "manifest_hash": digest,
         }
+
+    def _signature_trusted(self, manifest: object, signature: object) -> bool:
+        if not self.public_key or not isinstance(manifest, dict) or not isinstance(signature, str):
+            return False
+        if not V.shape_ok(manifest):
+            return False
+        if manifest.get("product") != self.product:
+            return False
+        if manifest.get("channel") not in V.ACCEPTED_CHANNELS:
+            return False
+        if self.public_key == V.RELEASE_PUBLIC_KEY and manifest["product"] not in V.RELEASE_KEY_PRODUCTS:
+            return False
+        return V.sig_ok(self.public_key, manifest, signature)
+
+    def _high_water(self, state: Mapping[str, Any] | None) -> int | None:
+        if not isinstance(state, dict):
+            return None
+        floor = state.get("floor_seq")
+        installed = state.get("installed_seq")
+        if isinstance(floor, bool) or not isinstance(floor, int) or floor < 0:
+            return None
+        if isinstance(installed, bool) or not isinstance(installed, int) or installed < 0:
+            return None
+        return max(floor, installed)
+
+    def _recorded_high(self) -> int | None:
+        if not self.state_path.exists() and not self.state_path.is_symlink():
+            return 0
+        if self.state_path.is_symlink() or not self.state_path.is_file():
+            return None
+        try:
+            loaded = json.loads(self.state_path.read_text(encoding="utf-8"))
+        except (OSError, UnicodeError, json.JSONDecodeError):
+            return None
+        return self._high_water(loaded if isinstance(loaded, dict) else None)
+
+    def _restore_matching_previous(self) -> bool:
+        previous = self.gen / "previous"
+        current = self.gen / "current"
+        verdict = self._generation_verdict(previous)
+        high = self._recorded_high()
+        if (
+            not verdict
+            or verdict.get("bytes_ok") is not True
+            or verdict.get("trusted") is not True
+            or high is None
+            or not V.sint(verdict.get("seq"))
+            or verdict["seq"] != high
+            or high <= 0
+            or not self._directory_healthy(previous)
+        ):
+            return False
+        os.replace(previous, current)
+        self.recovered = "previous-restored"
+        return True
 
     def _reject_current(self) -> None:
         current = self.gen / "current"
         previous = self.gen / "previous"
         rejected = self.gen / "rejected"
-        if previous.is_dir() and not previous.is_symlink() and self._previous_ok():
-            _rm(rejected)
-            os.replace(current, rejected)
-            os.replace(previous, current)
-            return
+        high = self._recorded_high()
+        verdict = self._generation_verdict(previous) if previous.is_dir() and not previous.is_symlink() else None
+        restore = (
+            verdict is not None
+            and verdict.get("bytes_ok") is True
+            and verdict.get("trusted") is True
+            and high is not None
+            and V.sint(verdict.get("seq"))
+            and verdict["seq"] == high
+            and high > 0
+            and self._directory_healthy(previous)
+        )
         _rm(rejected)
         if current.exists() or current.is_symlink():
             os.replace(current, rejected)
-
-    def _previous_ok(self) -> bool:
-        previous = self.gen / "previous"
-        blob = previous / "artifact.bin"
-        manifest_path = previous / "manifest.json"
-        if not blob.is_file() or not manifest_path.is_file():
-            return False
-        try:
-            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-            data = blob.read_bytes()
-        except (OSError, UnicodeError, json.JSONDecodeError):
-            return False
-        artifact = manifest.get("artifact") if isinstance(manifest, dict) else None
-        if not isinstance(artifact, dict):
-            return False
-        return hashlib.sha256(data).hexdigest() == artifact.get("sha256")
+        if restore:
+            os.replace(previous, current)
 
 
 def _refuse(host: AzosUpdateHost, code: str, source: str) -> dict[str, Any]:
@@ -884,6 +1235,22 @@ def _apply_candidate(
     )
 
 
+def _locked_out(root: Path) -> dict[str, Any]:
+    """Another live process holds the update lock. Do not evict it or the floor."""
+    trust = load_trust(root)
+    host = AzosUpdateHost(
+        root,
+        {"product": trust.get("product") or "azos", "enabled": False, "public_key": None, "max_bytes": DEFAULT_MAX},
+    )
+    return _public(
+        host,
+        trust,
+        {"ok": False, "code": "UPDATE-LOCK", "live": False, "applied": False},
+        mesh=None,
+        internet={"attempted": False, "code": None},
+    )
+
+
 def apply_candidate(
     root: Path | str,
     manifest: dict[str, Any],
@@ -898,13 +1265,23 @@ def apply_candidate(
     ``source`` ``mesh:lan`` still reports hardware false. This process has no
     Track 2 session and does not treat the caller as a second device.
     """
-    trust = load_trust(root)
-    host = AzosUpdateHost(Path(root), trust, hooks)
-    host.recover()
-    if source.startswith("mesh:"):
-        host.offline = True
-    decision = _apply_candidate(host, {"manifest": manifest, "signature": signature, "data": data}, source)
-    return _public(host, trust, decision, mesh=None, internet=None)
+    root_path = Path(root)
+    lock = UpdateLock(_update_home(root_path))
+    if not lock.acquire():
+        try:
+            return _locked_out(root_path)
+        finally:
+            lock.release()
+    try:
+        trust = load_trust(root_path)
+        host = AzosUpdateHost(root_path, trust, hooks)
+        host.recover()
+        if source.startswith("mesh:"):
+            host.offline = True
+        decision = _apply_candidate(host, {"manifest": manifest, "signature": signature, "data": data}, source)
+        return _public(host, trust, decision, mesh=None, internet=None)
+    finally:
+        lock.release()
 
 
 def _public(
@@ -983,25 +1360,38 @@ def boot_update(root: Path | str, *, hooks: Mapping[str, Any] | None = None) -> 
     """Run the signed update path for one directory. Default result is UPDATE-OFF.
 
     This is the userspace boot and install call. It does not boot hardware.
+    Recover and apply share one cross-process lock.
     """
     root_path = Path(root)
+    lock = UpdateLock(_update_home(root_path))
+    if not lock.acquire():
+        try:
+            return _locked_out(root_path)
+        finally:
+            lock.release()
     try:
-        return _boot_update(root_path, hooks or {})
-    except Exception:
-        trust = {
-            "configured": False,
-            "product": "azos",
-            "need": list(TRUST_NEED),
-            "enabled": False,
-        }
-        host = AzosUpdateHost(root_path, {"product": "azos", "enabled": False, "public_key": None, "max_bytes": DEFAULT_MAX})
-        return _public(
-            host,
-            trust,
-            {"ok": False, "code": "UPDATE-STATE", "live": False},
-            mesh=None,
-            internet={"attempted": False, "code": None},
-        )
+        try:
+            return _boot_update(root_path, hooks or {})
+        except Exception:
+            trust = {
+                "configured": False,
+                "product": "azos",
+                "need": list(TRUST_NEED),
+                "enabled": False,
+            }
+            host = AzosUpdateHost(
+                root_path,
+                {"product": "azos", "enabled": False, "public_key": None, "max_bytes": DEFAULT_MAX},
+            )
+            return _public(
+                host,
+                trust,
+                {"ok": False, "code": "UPDATE-STATE", "live": False},
+                mesh=None,
+                internet={"attempted": False, "code": None},
+            )
+    finally:
+        lock.release()
 
 
 def _boot_update(root: Path, hooks: Mapping[str, Any]) -> dict[str, Any]:

@@ -10,6 +10,7 @@ import base64
 import hashlib
 import io
 import json
+import os
 import stat
 import tarfile
 from pathlib import Path
@@ -658,6 +659,230 @@ def test_sidenet_update_is_the_boot_path_and_not_a_radio(tmp_path: Path, monkeyp
     capsys.readouterr()
     assert main(["update", "--json"]) == 1
     assert "halted" in capsys.readouterr().err.lower()
+
+
+def _rewind(root: Path, floor: int, installed: int) -> None:
+    path = root / ".azos" / "update" / "state.json"
+    state = json.loads(path.read_text(encoding="utf-8"))
+    state["installed_seq"] = installed
+    state["floor_seq"] = floor
+    state["manifest_hash"] = None
+    state["last_code"] = None
+    path.write_text(json.dumps(state), encoding="utf-8")
+    incoming = root / ".azos" / "update" / "incoming"
+    if incoming.is_dir():
+        for child in incoming.iterdir():
+            child.unlink()
+
+
+def _active(root: Path) -> bytes | None:
+    path = root / ".azos" / "update" / "generations" / "current" / "artifact.bin"
+    if not path.is_file() or path.is_symlink():
+        return None
+    return path.read_bytes()
+
+
+def _case(root: Path, private, payload: bytes, seq: int) -> None:
+    manifest = _manifest(payload, seq=seq, name=f"payload-{seq}.bin")
+    _drop(root, manifest, _sign(private, manifest), payload)
+    adopted = boot_update(root)
+    assert adopted["code"] == "UPDATE-OK"
+    assert adopted["floor_seq"] == seq
+    assert _active(root) == payload
+
+
+def test_recover_hashes_empty_truncated_missing_and_real_zero(tmp_path: Path) -> None:
+    """Empty bytes are a match only when the manifest declares size 0."""
+    private, public = _keys()
+    _trust(tmp_path, public)
+    _case(tmp_path, private, b"", 1)
+    zero = tmp_path / ".azos" / "update" / "generations" / "current" / "artifact.bin"
+    zero.write_bytes(b"\x00")
+    _rewind(tmp_path, 0, 0)
+    poisoned = boot_update(tmp_path)
+    assert poisoned["recovered"] == "current-rejected"
+    assert poisoned["installed_seq"] in (None, 0)
+    assert _floor(tmp_path) in (None, 0)
+    assert _active(tmp_path) != b"\x00"
+
+    seq = 1
+    for length in (1, 4, 32):
+        payload = bytes(range(length))
+        seq += 1
+        _case(tmp_path, private, payload, seq)
+        artifact = tmp_path / ".azos" / "update" / "generations" / "current" / "artifact.bin"
+        artifact.write_bytes(b"")
+        _rewind(tmp_path, 0, 0)
+        emptied = boot_update(tmp_path)
+        assert emptied["recovered"] != "commit-finished"
+        assert emptied["code"] != "UPDATE-OK"
+        assert emptied.get("installed_seq") in (None, 0)
+        assert _floor(tmp_path) in (None, 0)
+        assert _active(tmp_path) != b""
+        seq += 1
+        _case(tmp_path, private, payload, seq)
+        artifact = tmp_path / ".azos" / "update" / "generations" / "current" / "artifact.bin"
+        artifact.write_bytes(payload[:-1])
+        _rewind(tmp_path, seq, seq)
+        truncated = boot_update(tmp_path)
+        assert truncated["applied"] is False
+        assert _floor(tmp_path) == seq
+        assert _active(tmp_path) != payload[:-1]
+        seq += 1
+        miss_seq = seq
+        _case(tmp_path, private, payload, miss_seq)
+        missing_path = tmp_path / ".azos" / "update" / "generations" / "current" / "artifact.bin"
+        missing_path.unlink()
+        _rewind(tmp_path, miss_seq, miss_seq)
+        missing = boot_update(tmp_path)
+        assert missing["recovered"] == "current-rejected"
+        assert missing["applied"] is False
+        assert _floor(tmp_path) == miss_seq
+        assert _active(tmp_path) is None or _active(tmp_path) == payload
+
+
+def test_trust_anchor_refuses_group_write_symlink_and_other_owner(tmp_path: Path, monkeypatch) -> None:
+    private, public = _keys()
+    blob = _tar({"hello.txt": b"secret-path\n"})
+    manifest = _manifest(blob, seq=1)
+    _trust(tmp_path, public)
+    path = tmp_path / ".azos" / "update" / "trust.json"
+    path.chmod(0o666)
+    _drop(tmp_path, manifest, _sign(private, manifest), blob)
+    refused = boot_update(tmp_path)
+    assert refused["code"] == "UPDATE-TRUST-REFUSED"
+    assert refused["configured"] is False
+    assert refused["applied"] is False
+    assert public not in json.dumps(refused)
+    assert not _hello(tmp_path).exists()
+    path.chmod(0o600)
+    directory = path.parent
+    directory.chmod(0o777)
+    open_dir = boot_update(tmp_path)
+    assert open_dir["code"] == "UPDATE-TRUST-REFUSED"
+    assert open_dir["applied"] is False
+    directory.chmod(0o700)
+    linked = tmp_path / "elsewhere-trust.json"
+    linked.write_text(path.read_text(encoding="utf-8"), encoding="utf-8")
+    path.unlink()
+    path.symlink_to(linked)
+    assert boot_update(tmp_path)["code"] == "UPDATE-TRUST-REFUSED"
+    path.unlink()
+    path.write_text(linked.read_text(encoding="utf-8"), encoding="utf-8")
+    path.chmod(0o600)
+
+    real_uid = os.geteuid()
+    monkeypatch.setattr(os, "geteuid", lambda: real_uid + 1)
+    owned = boot_update(tmp_path)
+    assert owned["code"] == "UPDATE-TRUST-REFUSED"
+    assert owned["applied"] is False
+    assert owned["configured"] is False
+
+
+def _hold_lock(root: str, ready: str, seconds: float) -> None:
+    import time
+    from pathlib import Path
+
+    from azos.update_apply import UpdateLock
+
+    lock = UpdateLock(Path(root) / ".azos" / "update")
+    assert lock.acquire()
+    Path(ready).write_text("held", encoding="utf-8")
+    try:
+        time.sleep(seconds)
+    finally:
+        lock.release()
+
+
+def _hold_until_killed(root: str, ready: str) -> None:
+    import time
+    from pathlib import Path
+
+    from azos.update_apply import UpdateLock
+
+    lock = UpdateLock(Path(root) / ".azos" / "update")
+    assert lock.acquire()
+    Path(ready).write_text("held", encoding="utf-8")
+    time.sleep(30)
+
+
+def _apply_job(root: str, manifest: dict, signature: str, blob: bytes, sink) -> None:
+    from azos.update_apply import apply_candidate
+
+    result = apply_candidate(root, manifest, signature, blob, "offline")
+    sink.put((result.get("code"), result.get("floor_seq"), result.get("installed_seq")))
+
+
+def test_concurrent_updates_keep_the_highest_verified_floor(tmp_path: Path) -> None:
+    import multiprocessing
+    import os
+    import time
+
+    private, public = _keys()
+    _trust(tmp_path, public)
+    low = b"low-seq"
+    high = b"high-seq-bytes"
+    low_manifest = _manifest(low, seq=2, name="low.bin")
+    high_manifest = _manifest(high, seq=6, name="high.bin")
+    low_sig = _sign(private, low_manifest)
+    high_sig = _sign(private, high_manifest)
+    ctx = multiprocessing.get_context("spawn")
+    sink = ctx.Queue()
+    first = ctx.Process(target=_apply_job, args=(str(tmp_path), low_manifest, low_sig, low, sink))
+    second = ctx.Process(target=_apply_job, args=(str(tmp_path), high_manifest, high_sig, high, sink))
+    first.start()
+    second.start()
+    first.join(10)
+    second.join(10)
+    assert first.exitcode == 0 and second.exitcode == 0
+    codes = [sink.get(timeout=5), sink.get(timeout=5)]
+    assert _floor(tmp_path) == 6
+    assert _active(tmp_path) == high
+    assert any(code == "UPDATE-OK" for code, _floor_seq, _installed in codes)
+    assert all(item[1] is None or item[1] <= 6 for item in codes)
+    same = b"same-bytes"
+    same_manifest = _manifest(same, seq=8, name="same.bin")
+    same_sig = _sign(private, same_manifest)
+    again = ctx.Queue()
+    left = ctx.Process(target=_apply_job, args=(str(tmp_path), same_manifest, same_sig, same, again))
+    right = ctx.Process(target=_apply_job, args=(str(tmp_path), same_manifest, same_sig, same, again))
+    left.start()
+    right.start()
+    left.join(10)
+    right.join(10)
+    assert left.exitcode == 0 and right.exitcode == 0
+    pair = [again.get(timeout=5)[0], again.get(timeout=5)[0]]
+    assert "UPDATE-OK" in pair
+    assert pair.count("UPDATE-OK") == 1
+    assert "UPDATE-DOWNGRADE" in pair
+    assert _floor(tmp_path) == 8
+    assert _active(tmp_path) == same
+    ready = tmp_path / "lock-ready"
+    holder = ctx.Process(target=_hold_lock, args=(str(tmp_path), str(ready), 5))
+    holder.start()
+    for _ in range(50):
+        if ready.is_file():
+            break
+        time.sleep(0.05)
+    blocked = boot_update(tmp_path)
+    assert blocked["code"] == "UPDATE-LOCK"
+    assert blocked["applied"] is False
+    assert _floor(tmp_path) == 8
+    assert _active(tmp_path) == same
+    holder.join(10)
+    crashed = ctx.Process(target=_hold_until_killed, args=(str(tmp_path), str(ready)))
+    ready.unlink()
+    crashed.start()
+    for _ in range(50):
+        if ready.is_file():
+            break
+        time.sleep(0.05)
+    os.kill(crashed.pid, 9)
+    crashed.join(10)
+    resumed = boot_update(tmp_path)
+    assert resumed["code"] != "UPDATE-LOCK"
+    assert _floor(tmp_path) == 8
+    assert _active(tmp_path) == same
 
 
 def test_init_does_not_call_the_userspace_updater() -> None:
