@@ -106,6 +106,11 @@ def _check_sidenet() -> Check:
         return _fail("sidenet", "cap7")
     if items.get("radio-phy", {}).get("status") == "LIVE":
         return _fail("sidenet", "radio phy")
+    auto = items.get("auto-update", {})
+    if auto.get("status") == "LIVE" or auto.get("live") is True or auto.get("radio_phy") is True:
+        return _fail("sidenet", "auto-update")
+    if auto.get("satellite_relay") != "HELD" or auto.get("second_device") is True:
+        return _fail("sidenet", "satellite")
     if items.get("softwares-desk", {}).get("status") != "FROZEN":
         return _fail("sidenet", "softwares desk")
     home = node.dir
@@ -269,6 +274,28 @@ def _check_doors() -> Check:
     return _ok("doors", "userspace base, not a boot")
 
 
+def _check_update() -> Check:
+    from azos.update_apply import boot_update
+
+    try:
+        with tempfile.TemporaryDirectory() as tmp:
+            result = boot_update(tmp)
+    except Exception as exc:  # noqa: BLE001
+        return _fail("update", str(exc))
+    if result.get("code") != "UPDATE-OFF":
+        return _fail("update", str(result.get("code")))
+    if result.get("live") is True or result.get("applied") is True or result.get("booted") is True:
+        return _fail("update", "flags")
+    if result.get("os_yet") is True or result.get("installed") is True or result.get("one_click_install_live") is True:
+        return _fail("update", "install")
+    if result.get("radio_phy") is True or result.get("second_device") is True or result.get("satellite_relay") != "HELD":
+        return _fail("update", "carrier")
+    need = result.get("need") if isinstance(result.get("need"), list) else []
+    if not any("trust.json" in str(item) for item in need):
+        return _fail("update", "need")
+    return _ok("update", "signed update off until trust is configured")
+
+
 CHECKS: tuple[Callable[[], Check], ...] = (
     _check_version,
     _check_identity,
@@ -279,6 +306,7 @@ CHECKS: tuple[Callable[[], Check], ...] = (
     _check_sidenet,
     _check_news_map,
     _check_doors,
+    _check_update,
 )
 
 

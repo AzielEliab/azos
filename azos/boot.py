@@ -26,6 +26,9 @@ def boot_overlay(root: Path | str) -> dict[str, Any]:
     userspace_text = userspace.read_text(encoding="utf-8") if userspace.is_file() else ""
     home = session_dir(root_path) / "boot"
     home.mkdir(parents=True, exist_ok=True)
+    from azos.install import adopt_signed
+
+    update = adopt_signed(root_path)
     body = {
         "booted": False,
         "hardware": False,
@@ -33,6 +36,9 @@ def boot_overlay(root: Path | str) -> dict[str, Any]:
         "process_receipt_is_boot": False,
         "kernel_base": False,
         "entry_hash": entered.get("content_hash"),
+        "update_code": update.get("code") if isinstance(update.get("code"), str) else "UPDATE-STATE",
+        "update_applied": update.get("applied") is True,
+        "update_live": False,
     }
     digest = sha_bytes(canon(body))
     record = dict(body)
@@ -51,6 +57,8 @@ def boot_overlay(root: Path | str) -> dict[str, Any]:
         and loaded.get("userspace_is_boot") is False
         and loaded.get("process_receipt_is_boot") is False
         and loaded.get("kernel_base") is False
+        and loaded.get("update_live") is False
+        and loaded.get("update_applied") is body["update_applied"]
         and loaded.get("content_hash") == digest
         and sha_bytes(canon(checked)) == digest
         and userspace_text != "booted"
@@ -67,4 +75,5 @@ def boot_overlay(root: Path | str) -> dict[str, Any]:
         "code": "BOOT-ABSENT",
         "content_hash": digest if receipt_ok else None,
         "plain": "This has not booted.",
+        "update": update,
     }
