@@ -178,32 +178,53 @@ def _text(raw: bytes) -> str:
     return raw.split(b"\0", 1)[0].decode("utf-8", errors="replace")
 
 
-def encode_mesh(src: str, dst: str, host: str, payload: bytes) -> bytes:
-    raw = bytearray(74 + len(payload))
-    raw[0:7] = b"AZMESH1"
-    raw[7] = 1
-    raw[8:24] = _pad(src, 16)
-    raw[24:40] = _pad(dst, 16)
-    raw[40:72] = _pad(host, 32)
-    raw[72] = (len(payload) >> 8) & 0xFF
-    raw[73] = len(payload) & 0xFF
-    raw[74:] = payload
-    return _frame(bytes(raw))
+def encode_mesh(
+    src: str,
+    dst: str,
+    host: str,
+    payload: bytes,
+    *,
+    peer_public: bytes,
+    ephemeral_private: bytes | None = None,
+    nonce: bytes | None = None,
+    message_id: bytes | None = None,
+) -> bytes:
+    """Seal one UDP mesh frame to the full peer public key.
+
+    AZMESH1 plaintext plus a CRC is not produced. The header is associated
+    data for AES-GCM. ``peer_public`` is the recipient's raw 32-byte key.
+    """
+    from azos.mesh_seal import seal_frame
+
+    return seal_frame(
+        src,
+        dst,
+        host,
+        payload,
+        peer_public=peer_public,
+        ephemeral_private=ephemeral_private,
+        nonce=nonce,
+        message_id=message_id,
+    )
 
 
-def parse_mesh(frame: bytes) -> dict[str, Any] | None:
-    if len(frame) < 78 or not _crc_ok(frame) or frame[0:7] != b"AZMESH1" or frame[7] != 1:
-        return None
-    length = (frame[72] << 8) | frame[73]
-    if 74 + length + 4 != len(frame):
+def parse_mesh(frame: bytes, *, static_private: bytes) -> dict[str, Any] | None:
+    """Open a sealed frame. Unsealed and tampered frames return None."""
+    from azos.mesh_seal import open_frame
+
+    opened = open_frame(frame, static_private=static_private)
+    if not opened.get("ok"):
         return None
     return {
-        "src": _text(frame[8:24]),
-        "dst": _text(frame[24:40]),
-        "host": _text(frame[40:72]),
-        "payload": frame[74:74 + length],
+        "src": opened["src"],
+        "dst": opened["dst"],
+        "host": opened["host"],
+        "payload": opened["payload"],
+        "peer_public_key": opened["peer_public_key"],
         "packet_live": False,
         "mock": False,
+        "public_icann": False,
+        "bgp": False,
     }
 
 
@@ -417,8 +438,20 @@ def exchange_mesh(address: str, host: str | None = None) -> dict[str, Any]:
             "second_device": False,
             "foreign_arrival": False,
         }
+    from azos.mesh_seal import MeshSealError, public_from_private
+
+    try:
+        alice_sk = os.urandom(32)
+        bob_sk = os.urandom(32)
+        alice_pk = public_from_private(alice_sk)
+        bob_pk = public_from_private(bob_sk)
+    except MeshSealError:
+        return _not_carried(local)
     payload = os.urandom(16)
-    request = encode_mesh("az-node-a", "az-node-b", local, payload)
+    try:
+        request = encode_mesh("az-node-a", "az-node-b", local, payload, peer_public=bob_pk)
+    except MeshSealError:
+        return _not_carried(local)
     server = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     selector: selectors.BaseSelector | None = None
@@ -435,11 +468,22 @@ def exchange_mesh(address: str, host: str | None = None) -> dict[str, Any]:
         if not events:
             return _not_carried(local)
         message, rinfo = server.recvfrom(4096)
-        remote = parse_mesh(message)
+        remote = parse_mesh(message, static_private=bob_sk)
         if remote is None or remote["dst"] != "az-node-b" or remote["src"] != "az-node-a":
             return _not_carried(local)
+        if remote.get("peer_public_key") != bob_pk:
+            return _not_carried(local)
         reply_host = local
-        reply = encode_mesh("az-node-b", "az-node-a", reply_host, remote["payload"])
+        try:
+            reply = encode_mesh(
+                "az-node-b",
+                "az-node-a",
+                reply_host,
+                remote["payload"],
+                peer_public=alice_pk,
+            )
+        except MeshSealError:
+            return _not_carried(local)
         selector.unregister(server)
         selector.register(client, selectors.EVENT_READ)
         server.sendto(reply, rinfo)
@@ -447,13 +491,14 @@ def exchange_mesh(address: str, host: str | None = None) -> dict[str, Any]:
         if not back_events:
             return _not_carried(local)
         reply_bytes, reply_from = client.recvfrom(4096)
-        parsed = parse_mesh(reply_bytes)
+        parsed = parse_mesh(reply_bytes, static_private=alice_sk)
         sent = _sha(payload)
         received = _sha(parsed["payload"]) if parsed else None
         match = bool(
             parsed
             and parsed["src"] == "az-node-b"
             and parsed["dst"] == "az-node-a"
+            and parsed.get("peer_public_key") == alice_pk
             and received == sent
             and len(parsed["payload"]) == len(payload)
         )
@@ -478,7 +523,7 @@ def exchange_mesh(address: str, host: str | None = None) -> dict[str, Any]:
             "received_sha256": received,
             "sent_frame_sha256": _sha(request),
             "received_frame_sha256": _sha(reply_bytes) if parsed else None,
-            "frame_magic": "AZMESH1",
+            "frame_magic": "AZMESH2",
             "src_node": "az-node-a",
             "dst_node": "az-node-b",
             "local_host": local,

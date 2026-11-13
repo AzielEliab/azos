@@ -296,6 +296,26 @@ def _check_update() -> Check:
     return _ok("update", "signed update off until trust is configured")
 
 
+def _check_measure() -> Check:
+    from azos.measure import self_measure
+
+    report = self_measure()
+    status = report.get("status")
+    if status not in {"verified", "mismatch", "unknown"}:
+        return _fail("measure", "status")
+    if report.get("booted") is True or report.get("live") is True or report.get("installed") is True:
+        return _fail("measure", "flags")
+    if report.get("satellite_relay") != "HELD" or report.get("cap7_is_path") is True or report.get("public_icann") is True:
+        return _fail("measure", "cap7")
+    if status == "verified" and not (report.get("signed") is True and report.get("match") is True and report.get("pinned") is True):
+        return _fail("measure", "fake verified")
+    if not report.get("pinned") and status != "unknown":
+        return _fail("measure", "unpinned")
+    if status == "mismatch" and report.get("signed") is not True:
+        return _fail("measure", "unsigned mismatch")
+    return _ok("measure", str(status))
+
+
 CHECKS: tuple[Callable[[], Check], ...] = (
     _check_version,
     _check_identity,
@@ -307,6 +327,7 @@ CHECKS: tuple[Callable[[], Check], ...] = (
     _check_news_map,
     _check_doors,
     _check_update,
+    _check_measure,
 )
 
 
