@@ -290,6 +290,7 @@ def _human_status(st: dict) -> str:
         f"Log entries: {st.get('log_length', 0)}\n"
         f"Active tokens: {tokens.get('active', 0)}\n"
         f"Open sessions: {shell.get('active', 0)}\n"
+        f"Self-measure: {st.get('self_measure') if st.get('self_measure') in {'verified', 'mismatch', 'unknown'} else 'unknown'}\n"
         "\n"
         f"{human_limits(st)}\n"
         "\n"
@@ -773,6 +774,9 @@ def _exit_code(exc: SystemExit) -> int:
 
 
 def main(argv: Sequence[str] | None = None) -> int:
+    from azos.measure import self_measure
+
+    self_measure()
     raw = list(sys.argv[1:] if argv is None else argv)
     as_json = "--json" in raw
     args_list = [item for item in raw if item != "--json"]

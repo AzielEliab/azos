@@ -166,8 +166,12 @@ class Runtime:
         return out
 
     def status(self) -> dict[str, Any]:
+        from azos.measure import self_measure
+
         arc = self.arc.snapshot()
         scope = scope_dict()
+        measured = self_measure()
+        measure_status = measured.get("status") if measured.get("status") in {"verified", "mismatch", "unknown"} else "unknown"
         return {
             "overlay": "AZ-OS",
             "interface": "AZ Interface",
@@ -182,6 +186,7 @@ class Runtime:
             "shell": self.shell.snapshot(),
             "offline_node": _offline_node_summary(self.root),
             "news_map": _news_map_summary(self.root),
+            "self_measure": measure_status,
             **scope,
             "prefab": prefab_snapshot(),
             "lattice": self.lattice.snapshot(),
