@@ -93,6 +93,27 @@ def place(dest: Path | str) -> dict[str, Any]:
     }
 
 
+def adopt_signed(dest: Path | str) -> dict[str, Any]:
+    """Run the signed install/update path into ``dest``.
+
+    This is the install call. It does not run curl, pip, or ``install.sh``.
+    It does not mark the host operating system installed. With no operator
+    trust file the result is ``UPDATE-OFF`` or ``UPDATE-NO-KEY``.
+    """
+    from azos.update_apply import boot_update
+
+    result = boot_update(dest)
+    result["remote_curl"] = False
+    result["pip_ran"] = False
+    result["host_shell"] = False
+    result["host_os"] = False
+    result["os_yet"] = False
+    result["installed"] = False
+    result["one_click_install_live"] = False
+    result["booted"] = False
+    return result
+
+
 def one_click(dest: Path | str) -> dict[str, Any]:
     """Run the in-process install path. Do not run curl or pip."""
     if not _SCRIPT.is_file():

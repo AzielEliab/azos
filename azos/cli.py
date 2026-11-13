@@ -57,7 +57,8 @@ Advanced:
   invite    Print the adoption text and download URL
   import    Read a JSON file into .azos-state.json
   export    Write .azos-state.json to a file
-  node      Local AZnet hash client. SIDENET-P4 receipts: p4, menu, seal, rejoin.
+  node      Local AZnet hash client. SIDENET-P4 receipts: p4, menu, seal, rejoin, update.
+  update    Signed install/update under .azos/update. Default off.
   news      AZNews, alone or joined to the map. The news source is absent.
   map       4DMap pins, alone. 4DMap is not installed.
   version   Print the package version
@@ -194,8 +195,9 @@ def _build_parser() -> AzosParser:
             "reseal",
             "reheal",
             "rejoin",
+            "update",
         ),
-        help="AZnet: status, stamp, verify, garden, memorial, memorial-list, probe. SIDENET-P4: p4, menu, seal, phoenix, reseal, reheal, rejoin.",
+        help="AZnet: status, stamp, verify, garden, memorial, memorial-list, probe. SIDENET-P4: p4, menu, seal, phoenix, reseal, reheal, rejoin, update.",
     )
     p_node.add_argument(
         "--layer",
@@ -241,6 +243,10 @@ def _build_parser() -> AzosParser:
     )
     p_map.add_argument("--actor", default="operator", help="Name on the offline record.")
     p_map.add_argument("--event", default=None, help="Cited tail-event id to pin.")
+
+    p_update = add("update", "Signed install/update under .azos/update. Default off.")
+    p_update.add_argument("--actor", default="operator", help="Name for the ethics check.")
+    p_update.add_argument("--token", default=None, help="Issued token.")
 
     return parser
 
@@ -475,7 +481,7 @@ def _map_command(args: argparse.Namespace, *, as_json: bool) -> int:
     return 0 if rec.get("ok") else 1
 
 
-_SIDENET_OPS = frozenset({"p4", "menu", "seal", "phoenix", "reseal", "reheal", "rejoin"})
+_SIDENET_OPS = frozenset({"p4", "menu", "seal", "phoenix", "reseal", "reheal", "rejoin", "update"})
 
 
 def _sidenet_token_hash(rt: Runtime, *, token: str | None, actor: str) -> str:
@@ -494,6 +500,28 @@ def _sidenet_token_hash(rt: Runtime, *, token: str | None, actor: str) -> str:
         raise AuthorizationError("unauthorized: ethics gates refused the offline node")
     issued = rt.arc.issue(action="sidenet", actor=actor)
     return rt.arc.token_hash(issued)
+
+
+def _human_update(result: dict) -> str:
+    lines = [
+        f"Signed update: {result.get('code')}",
+        "Live: false",
+        "Booted: false",
+        "This is not an operating system install.",
+        "Radio: absent. Satellite: HELD.",
+    ]
+    if result.get("applied") is True:
+        lines.append("A signed artifact is active under .azos/update/generations/current.")
+    fingerprint = result.get("key_fingerprint")
+    if isinstance(fingerprint, str):
+        lines.append(f"Key fingerprint: {fingerprint}")
+    need = result.get("need") if isinstance(result.get("need"), list) else []
+    if need:
+        lines.append("Configuration:")
+        lines.extend(str(item) for item in need)
+    lines.append("")
+    lines.append("Next: azos update --json")
+    return "\n".join(lines) + "\n"
 
 
 def _human_sidenet_write(op: str, result: dict) -> str:
@@ -525,6 +553,14 @@ def _human_sidenet_write(op: str, result: dict) -> str:
             "\n"
             "Next: azos node reseal\n"
         )
+    if op == "update":
+        return (
+            f"Signed update: {result.get('code')}\n"
+            "Live: false. Booted: false. Radio: absent. Satellite: HELD.\n"
+            "A mesh membership flag is not a carrier.\n"
+            "\n"
+            "Next: azos update --json\n"
+        )
     tip = result.get("hash") or result.get("tip") or "(none yet)"
     return f"{op}: local receipt recorded.\nPresence tip: {tip}\n"
 
@@ -554,6 +590,8 @@ def _sidenet_command(rt: Runtime, args: argparse.Namespace, *, as_json: bool) ->
                 record = node.reheal(token_hash=token_hash)
             elif op == "rejoin":
                 record = node.rejoin(token_hash=token_hash)
+            elif op == "update":
+                record = node.signed_update(token_hash=token_hash)
             else:
                 sys.stderr.write(f'Unknown node action "{op}". Try: azos node --help\n')
                 return 2
@@ -868,6 +906,33 @@ def main(argv: Sequence[str] | None = None) -> int:
         from azos.doctor import run_doctor
 
         return run_doctor(as_json=as_json)
+
+    if args.cmd == "update":
+        from azos.errors import HaltedError
+        from azos.gate import authorize
+        from azos.install import adopt_signed
+        from azos.update_apply import UPDATE_ACTIONS, update_proposal
+
+        try:
+            if rt.halted:
+                raise HaltedError()
+            if args.token:
+                if not rt.arc.verify(args.token):
+                    raise AuthorizationError("unauthorized: token missing or revoked")
+            else:
+                gate = authorize(update_proposal(args.actor), UPDATE_ACTIONS)
+                if not gate.passed:
+                    raise AuthorizationError("unauthorized: ethics gates refused the signed update")
+                rt.arc.issue(action="update", actor=args.actor)
+            record = adopt_signed(Path.cwd())
+        except AuthorizationError as exc:
+            _write_auth_error(exc)
+            return 1
+        except AzosError as exc:
+            _write_error(exc)
+            return 1
+        _emit(record, as_json=as_json, human=_human_update(record))
+        return 0
 
     if args.cmd == "node":
         return _node_command(rt, args, as_json=as_json)

@@ -69,6 +69,25 @@ _DEFINITIVE = frozenset(
 )
 
 
+def _auto_update_view(root: Path) -> dict[str, Any]:
+    """Read-only signed-update report. Does not apply and does not fetch."""
+    from azos.update_apply import trust_view
+
+    view = trust_view(root)
+    return {
+        "spec": view.get("spec"),
+        "configured": view.get("configured") is True,
+        "enabled": view.get("enabled") is True,
+        "live": False,
+        "radio_phy": False,
+        "second_device": False,
+        "hardware": False,
+        "satellite_relay": "HELD",
+        "membership_only": True,
+        "code": view.get("code"),
+    }
+
+
 class SidenetRefuse(AzosError):
     """A sidenet law refused the call. The code is the reason."""
 
@@ -228,6 +247,7 @@ class OfflineNode:
             },
             "radio_phy": False,
             "icann_tld_az": False,
+            "auto_update": _auto_update_view(self.root),
             "rewrite_key": False,
             "lie_to_survive": False,
             "neighbor_vote_to_fix": False,
@@ -321,6 +341,21 @@ class OfflineNode:
                 "status": "ABSENT",
                 "fake": False,
                 "note": "No Wi-Fi, Bluetooth, RF, or photon PHY on this client. qnm-node probes hardware. Absent is not LIVE.",
+            },
+            {
+                "id": "auto-update",
+                "status": "CONFIGURED" if _auto_update_view(self.root).get("enabled") else "OFF",
+                "live": False,
+                "radio_phy": False,
+                "second_device": False,
+                "hardware": False,
+                "satellite_relay": "HELD",
+                "membership_only": True,
+                "note": (
+                    "Signed update is a separate call (azos node update). "
+                    "Default off. A mesh membership flag is not a carrier. "
+                    "Paid satellite relay stays HELD. A file inbox is not a second device."
+                ),
             },
             {
                 "id": "qnm-node",
@@ -471,6 +506,25 @@ class OfflineNode:
                 "posture": "isolated",
             }
         raise SidenetRefuse("SIDENET-NO-FOREIGN-TIP", "foreign tip refused; neighbors do not heal this node")
+
+    def signed_update(self, *, token_hash: str) -> dict[str, Any]:
+        """Run the same signed update path as userspace boot. Does not rejoin L0.
+
+        Carrier hardware stays absent. The call does not append a sidenet receipt
+        and does not treat membership as delivery.
+        """
+        self._require_token(token_hash)
+        from azos.install import adopt_signed
+
+        result = adopt_signed(self.root)
+        result["sidenet"] = SPEC
+        result["radio_phy"] = False
+        result["second_device"] = False
+        result["satellite_relay"] = "HELD"
+        result["hardware"] = False
+        result["live"] = False
+        result["booted"] = False
+        return result
 
     def rejoin(self, *, token_hash: str) -> dict[str, Any]:
         """Probe L0 and rejoin when HTTPS answers. Failure leaves the local tip."""
