@@ -15,6 +15,7 @@ from azos.measure import (
     SPEC,
     installed_files,
     measure_tree,
+    report_status,
     self_measure,
     tree_sha256,
 )
@@ -96,8 +97,73 @@ def test_missing_or_bad_signature_stays_unknown(tmp_path: Path) -> None:
     assert unpinned["pinned"] is False
 
 
+def test_dunder_hyphen_and_unlisted_py_fail_closed(tmp_path: Path) -> None:
+    root = tmp_path / "pkg"
+    root.mkdir()
+    init = root / "__init__.py"
+    main = root / "__main__.py"
+    extra = root / "pkg-extra"
+    extra.mkdir()
+    hyphen = extra / "hyphen-mod.py"
+    nested = extra / "__init__.py"
+    init.write_bytes(b"pkg = 1\n")
+    main.write_bytes(b"main = 1\n")
+    hyphen.write_bytes(b"x = 1\n")
+    nested.write_bytes(b"y = 1\n")
+    names = [row["path"] for row in installed_files(root)]
+    assert names == sorted(names)
+    assert "__init__.py" in names
+    assert "__main__.py" in names
+    assert "pkg-extra/hyphen-mod.py" in names
+    assert "pkg-extra/__init__.py" in names
+    manifest = json.loads(json.dumps(_manifest(root)))
+    public, signature = _sign(manifest)
+    assert measure_tree(root, manifest=manifest, signature=signature, public_key=public)["status"] == "verified"
+
+    init.write_bytes(b"PWNED")
+    changed_init = measure_tree(root, manifest=manifest, signature=signature, public_key=public)
+    assert changed_init["status"] == "mismatch"
+    assert changed_init["status"] != "verified"
+    assert changed_init["match"] is False
+    assert changed_init["signed"] is True
+
+    init.write_bytes(b"pkg = 1\n")
+    main.write_bytes(b"PWNED")
+    changed_main = measure_tree(root, manifest=manifest, signature=signature, public_key=public)
+    assert changed_main["status"] == "mismatch"
+    assert changed_main["match"] is False
+    assert report_status(changed_main) == "mismatch"
+
+    main.write_bytes(b"main = 1\n")
+    (root / "sidecar.py").write_bytes(b"PWNED")
+    dropped = measure_tree(root, manifest=manifest, signature=signature, public_key=public)
+    assert dropped["status"] == "mismatch"
+    assert dropped["status"] != "verified"
+    assert dropped["match"] is False
+    assert "sidecar.py" in [row["path"] for row in installed_files(root)]
+
+    (root / "sidecar.py").unlink()
+    (root / "odd name.py").write_bytes(b"PWNED")
+    illegal = measure_tree(root, manifest=manifest, signature=signature, public_key=public)
+    assert illegal["status"] == "mismatch"
+    assert illegal["code"] == "MEASURE-PATH"
+    assert illegal["status"] != "verified"
+    assert report_status(illegal) != "verified"
+
+
+def test_fake_verified_without_both_checks_stays_unknown() -> None:
+    assert report_status({"status": "verified", "signed": True, "match": False}) == "unknown"
+    assert report_status({"status": "verified", "signed": False, "match": True}) == "unknown"
+    assert report_status({"status": "verified", "signed": True, "match": True}) == "verified"
+    assert report_status({"status": "verified"}) == "unknown"
+
+
 def test_startup_measure_does_not_fake_verified(tmp_path: Path) -> None:
     assert PINNED_PUBLIC_KEY == ""
+    package = Path(self_measure.__code__.co_filename).resolve().parent
+    package_names = [row["path"] for row in installed_files(package)]
+    assert "__init__.py" in package_names
+    assert "__main__.py" in package_names
     report = self_measure()
     assert report["status"] == "unknown"
     assert report["pinned"] is False

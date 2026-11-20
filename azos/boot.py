@@ -27,13 +27,11 @@ def boot_overlay(root: Path | str) -> dict[str, Any]:
     home = session_dir(root_path) / "boot"
     home.mkdir(parents=True, exist_ok=True)
     from azos.install import adopt_signed
-    from azos.measure import self_measure
+    from azos.measure import report_status, self_measure
 
     update = adopt_signed(root_path)
     measured = self_measure()
-    measure_status = measured.get("status") if measured.get("status") in {"verified", "mismatch", "unknown"} else "unknown"
-    if measure_status == "verified" and not (measured.get("signed") is True and measured.get("match") is True):
-        measure_status = "unknown"
+    measure_status = report_status(measured)
     body = {
         "booted": False,
         "hardware": False,

@@ -15,6 +15,8 @@ from azos.mesh_seal import (
     LEGACY_MAGIC,
     MAGIC,
     NETWORK_ID,
+    MeshSealError,
+    ReplayWindow,
     open_frame,
     seal_frame,
 )
@@ -89,6 +91,72 @@ def test_tamper_and_unsealed_frames_are_refused() -> None:
     assert legacy["code"] == "MESH-UNSEALED"
     assert parse_mesh(_legacy(b"secret"), static_private=bob_sk) is None
     assert open_frame(b"not-a-frame", static_private=bob_sk)["code"] == "MESH-UNSEALED"
+
+
+def test_udp_receive_rejects_legacy_and_plaintext_by_default() -> None:
+    bob_sk, bob_pk = _box()
+    payload = b"sealed-ok"
+    frame = seal_frame("az-node-a", "az-node-b", "host", payload, peer_public=bob_pk)
+    opened = parse_mesh(frame, static_private=bob_sk)
+    assert opened is not None
+    assert opened["payload"] == payload
+    assert opened["packet_live"] is False
+    legacy = _legacy(b"plaintext-body")
+    assert legacy.startswith(LEGACY_MAGIC)
+    assert parse_mesh(legacy, static_private=bob_sk) is None
+    assert open_frame(legacy, static_private=bob_sk)["code"] == "MESH-UNSEALED"
+    assert open_frame(legacy, static_private=bob_sk)["ok"] is False
+    plaintext = b"plaintext udp frame without a seal"
+    assert parse_mesh(plaintext, static_private=bob_sk) is None
+    refused = open_frame(plaintext, static_private=bob_sk)
+    assert refused["ok"] is False
+    assert refused["code"] == "MESH-UNSEALED"
+    assert refused["payload"] is None
+    assert refused["packet_live"] is False
+    assert refused["satellite_relay"] == "HELD"
+    assert refused["cap7_is_path"] is False
+    assert refused["public_icann"] is False
+
+
+def test_low_order_keys_and_replay_are_refused() -> None:
+    bob_sk, bob_pk = _box()
+    try:
+        seal_frame("az-node-a", "az-node-b", "host", b"x", peer_public=b"\x00" * 32)
+    except MeshSealError as exc:
+        assert exc.code == "MESH-SEAL-LOW-ORDER"
+    else:
+        raise AssertionError("all-zero peer key was accepted")
+    small = bytes.fromhex("e0eb7a7c3b41b8ae1656e3faf19fc46ada098deb9c32b1fd866205165f49b800")
+    try:
+        seal_frame("az-node-a", "az-node-b", "host", b"x", peer_public=small)
+    except MeshSealError as exc:
+        assert exc.code == "MESH-SEAL-LOW-ORDER"
+    else:
+        raise AssertionError("small-order peer key was accepted")
+
+    frame = bytearray(seal_frame("az-node-a", "az-node-b", "host", b"secret", peer_public=bob_pk))
+    frame[72:104] = b"\x00" * 32
+    low = open_frame(bytes(frame), static_private=bob_sk, replay=ReplayWindow())
+    assert low["ok"] is False
+    assert low["code"] == "MESH-LOW-ORDER"
+    assert low["payload"] is None
+    assert low["packet_live"] is False
+
+    window = ReplayWindow(2)
+    first = seal_frame("a", "b", "h", b"one", peer_public=bob_pk)
+    second = seal_frame("a", "b", "h", b"two", peer_public=bob_pk)
+    third = seal_frame("a", "b", "h", b"three", peer_public=bob_pk)
+    assert open_frame(first, static_private=bob_sk, replay=window)["ok"] is True
+    again = open_frame(first, static_private=bob_sk, replay=window)
+    assert again["ok"] is False
+    assert again["code"] == "MESH-REPLAY"
+    assert again["payload"] is None
+    assert again["packet_live"] is False
+    assert open_frame(second, static_private=bob_sk, replay=window)["payload"] == b"two"
+    assert open_frame(third, static_private=bob_sk, replay=window)["payload"] == b"three"
+    aged = open_frame(first, static_private=bob_sk, replay=window)
+    assert aged["ok"] is True
+    assert aged["payload"] == b"one"
 
 
 def test_third_party_cannot_open() -> None:

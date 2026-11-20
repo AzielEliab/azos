@@ -209,9 +209,14 @@ def encode_mesh(
 
 
 def parse_mesh(frame: bytes, *, static_private: bytes) -> dict[str, Any] | None:
-    """Open a sealed frame. Unsealed and tampered frames return None."""
-    from azos.mesh_seal import open_frame
+    """Open one AZMESH2 frame. Legacy AZMESH1 and plaintext are refused.
 
+    There is no compatibility argument and no downgrade to a checksum frame.
+    """
+    from azos.mesh_seal import MAGIC, open_frame
+
+    if not isinstance(frame, (bytes, bytearray)) or not bytes(frame).startswith(MAGIC):
+        return None
     opened = open_frame(frame, static_private=static_private)
     if not opened.get("ok"):
         return None

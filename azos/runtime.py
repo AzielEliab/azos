@@ -166,12 +166,12 @@ class Runtime:
         return out
 
     def status(self) -> dict[str, Any]:
-        from azos.measure import self_measure
+        from azos.measure import report_status, self_measure
 
         arc = self.arc.snapshot()
         scope = scope_dict()
         measured = self_measure()
-        measure_status = measured.get("status") if measured.get("status") in {"verified", "mismatch", "unknown"} else "unknown"
+        measure_status = report_status(measured)
         return {
             "overlay": "AZ-OS",
             "interface": "AZ Interface",

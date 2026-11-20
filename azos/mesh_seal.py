@@ -10,7 +10,8 @@ that checksum with the shared seal:
 
 The recipient pin is the full 32-byte X25519 public key, the width
 qnm-node uses for a static box key. A truncated hint is refused.
-An AZMESH1 frame, a bad tag, or a substituted pin does not open.
+An AZMESH1 frame, a plaintext datagram, a bad tag, or a substituted pin
+does not open. The receive path is AZMESH2 only. There is no downgrade.
 
 Cap-7 is not ICANN. This module does not bind a public registrar,
 does not open a paid satellite, and does not mark a packet live.
@@ -24,6 +25,8 @@ import base64
 import hashlib
 import json
 import os
+import threading
+from collections import deque
 from typing import Any
 
 MAGIC = b"AZMESH2"
@@ -51,6 +54,8 @@ HEADER_LEN = (
     + 2
 )
 MAX_PAYLOAD = 1200
+REPLAY_WINDOW = 128
+_ZERO = b"\x00" * KEY_LEN
 
 _OFF_VERSION = len(MAGIC)
 _OFF_SRC = _OFF_VERSION + 1
@@ -144,6 +149,52 @@ def _info(header: dict[str, str]) -> bytes:
     return f"{header['version']}|{header['network_id']}|{header['message_id']}|{header['nonce']}".encode("utf-8")
 
 
+class ReplayWindow:
+    """Bounded memory of accepted message ids and nonces. Duplicates are refused."""
+
+    def __init__(self, cap: int = REPLAY_WINDOW) -> None:
+        if not isinstance(cap, int) or isinstance(cap, bool) or cap < 1:
+            raise MeshSealError("MESH-REPLAY-WINDOW")
+        self.cap = cap
+        self._lock = threading.Lock()
+        self._order: deque[tuple[bytes, bytes]] = deque()
+        self._ids: set[bytes] = set()
+        self._nonces: set[bytes] = set()
+
+    def accept(self, message_id: bytes, nonce: bytes) -> bool:
+        with self._lock:
+            if message_id in self._ids or nonce in self._nonces:
+                return False
+            self._order.append((message_id, nonce))
+            self._ids.add(message_id)
+            self._nonces.add(nonce)
+            while len(self._order) > self.cap:
+                old_id, old_nonce = self._order.popleft()
+                self._ids.discard(old_id)
+                self._nonces.discard(old_nonce)
+            return True
+
+
+_REPLAY = ReplayWindow()
+
+
+def _exchange(private: Any, remote_public: bytes) -> bytes:
+    """X25519 shared secret. All-zero output and small-order points are refused."""
+    if len(remote_public) != KEY_LEN or remote_public == _ZERO:
+        raise MeshSealError("MESH-SEAL-LOW-ORDER")
+    try:
+        _, _, _, X25519PublicKey, _, _ = _crypto()
+        shared = private.exchange(X25519PublicKey.from_public_bytes(remote_public))
+    except MeshSealError:
+        raise
+    except ValueError as exc:
+        # OpenSSL refuses a small-order point instead of returning 32 zero bytes.
+        raise MeshSealError("MESH-SEAL-LOW-ORDER") from exc
+    if not isinstance(shared, (bytes, bytearray)) or bytes(shared) == _ZERO:
+        raise MeshSealError("MESH-SEAL-LOW-ORDER")
+    return bytes(shared)
+
+
 def _derive(shared: bytes, header: dict[str, str]) -> bytes:
     hashes, _, _, _, _, HKDF = _crypto()
     return HKDF(
@@ -186,7 +237,7 @@ def seal_frame(
         raise MeshSealError("MESH-SEAL-PAYLOAD")
     peer = _require_key(peer_public, "MESH-SEAL-PIN")
     try:
-        _, serialization, X25519PrivateKey, X25519PublicKey, AESGCM, _ = _crypto()
+        _, serialization, X25519PrivateKey, _, AESGCM, _ = _crypto()
     except MeshSealError:
         raise
     except Exception as exc:  # noqa: BLE001
@@ -224,7 +275,7 @@ def seal_frame(
         message_id=mid,
     )
     try:
-        shared = ephemeral.exchange(X25519PublicKey.from_public_bytes(peer))
+        shared = _exchange(ephemeral, peer)
         key = _derive(shared, header)
         ciphertext = AESGCM(key).encrypt(nonce_b, bytes(payload), _canon(header))
     except MeshSealError:
@@ -249,8 +300,18 @@ def seal_frame(
     return bytes(raw)
 
 
-def open_frame(frame: bytes, *, static_private: bytes) -> dict[str, Any]:
-    """Open one frame. Unsealed, tampered, and third-party frames stay closed."""
+def open_frame(
+    frame: bytes,
+    *,
+    static_private: bytes,
+    replay: ReplayWindow | None = None,
+) -> dict[str, Any]:
+    """Open one AZMESH2 frame.
+
+    AZMESH1 and plaintext are refused. There is no downgrade and no
+    compatibility fallback. A repeated message id or nonce inside the
+    replay window is refused after a successful open.
+    """
     if not isinstance(frame, (bytes, bytearray)):
         return _refuse("MESH-UNSEALED")
     blob = bytes(frame)
@@ -286,13 +347,19 @@ def open_frame(frame: bytes, *, static_private: bytes) -> dict[str, Any]:
         message_id=mid,
     )
     try:
-        _, _, X25519PrivateKey, X25519PublicKey, AESGCM, _ = _crypto()
+        _, _, X25519PrivateKey, _, AESGCM, _ = _crypto()
         private = X25519PrivateKey.from_private_bytes(bytes(static_private))
-        shared = private.exchange(X25519PublicKey.from_public_bytes(eph_public))
+        try:
+            shared = _exchange(private, eph_public)
+        except MeshSealError:
+            return _refuse("MESH-LOW-ORDER")
         key = _derive(shared, header)
         payload = AESGCM(key).decrypt(nonce_b, blob[HEADER_LEN:], _canon(header))
     except Exception:  # noqa: BLE001
         return _refuse("MESH-TAMPER")
+    window = _REPLAY if replay is None else replay
+    if not window.accept(mid, nonce_b):
+        return _refuse("MESH-REPLAY")
     return {
         "ok": True,
         "code": "MESH-SEAL-OK",

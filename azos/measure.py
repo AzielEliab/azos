@@ -13,6 +13,12 @@ that tree to a signed manifest. The status is one of:
 other case. An empty pin stays unknown. This is not a boot, not a live
 flag, and not a paid satellite.
 
+Every file under the measured tree is hashed. ``__init__.py``,
+``__main__.py``, and hyphenated names are included. The only names
+left out are ``__pycache__``, ``*.pyc``, and the manifest files
+themselves. Any other unexpected file is part of the tree, or it
+fails closed. It is not dropped.
+
 Author: Aziel Eliab.
 """
 
@@ -35,11 +41,27 @@ MANIFEST_NAME = "self-measure.json"
 SIGNATURE_NAME = "self-measure.sig"
 
 _HEX64 = re.compile(r"^[a-f0-9]{64}$")
-_PATH = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._/-]{0,200}$")
-_SKIP_DIRS = {"__pycache__", ".git"}
+# Leading underscore is required for __init__.py and __main__.py.
+# Hyphen stays in the rest of a component. A leading letter or digit
+# still works. A component that fails this is not skipped.
+_PART = re.compile(r"^[A-Za-z0-9_][A-Za-z0-9._-]{0,127}$")
+_SKIP_DIRS = {"__pycache__"}
+_SKIP_SUFFIXES = {".pyc"}
 _SKIP_NAMES = {MANIFEST_NAME, SIGNATURE_NAME, "self-measure.pub"}
+_STATUSES = {"verified", "mismatch", "unknown"}
 
 _CACHE: dict[str, Any] | None = None
+
+
+class MeasurePathError(Exception):
+    """A measured file is not an allowed cache name and not a safe path.
+
+    The file is not ignored. Verification fails closed.
+    """
+
+    def __init__(self, path: str) -> None:
+        self.path = path
+        super().__init__(path)
 
 
 def _canon(value: Any) -> bytes:
@@ -77,11 +99,26 @@ def _blank(*, tree: str | None = None, pinned: bool = False) -> dict[str, Any]:
 
 
 def _path_ok(path: str) -> bool:
-    if not isinstance(path, str) or _PATH.fullmatch(path) is None:
+    if not isinstance(path, str) or not path or len(path) > 400:
         return False
-    if path.startswith("/") or "\\" in path or path.endswith("/"):
+    if path.startswith("/") or "\\" in path or "\x00" in path or path.endswith("/"):
         return False
-    return all(part not in {"", ".", ".."} for part in path.split("/"))
+    parts = path.split("/")
+    if any(part in {"", ".", ".."} for part in parts):
+        return False
+    return all(_PART.fullmatch(part) is not None for part in parts)
+
+
+def report_status(measured: object) -> str:
+    """The status boot and runtime may publish. Verified requires both checks."""
+    if not isinstance(measured, dict):
+        return "unknown"
+    status = measured.get("status")
+    if status not in _STATUSES:
+        return "unknown"
+    if status == "verified" and not (measured.get("signed") is True and measured.get("match") is True):
+        return "unknown"
+    return status
 
 
 def shape_ok(manifest: object) -> bool:
@@ -124,21 +161,28 @@ def sig_ok(public_key: str, manifest: dict[str, Any], signature: str) -> bool:
         return False
 
 
+def _explicit_skip(path: Path, rel: str) -> bool:
+    """True only for cache bytecode and the manifest files themselves."""
+    parts = rel.split("/")
+    if any(part in _SKIP_DIRS for part in parts):
+        return True
+    return path.suffix in _SKIP_SUFFIXES or path.name in _SKIP_NAMES
+
+
 def _hash_tree(root: Path) -> list[dict[str, str]]:
     if not root.is_dir() or root.is_symlink():
         raise OSError("install root is not a directory")
     rows: list[dict[str, str]] = []
     for path in root.rglob("*"):
-        if path.is_symlink() or not path.is_file():
+        if path.is_symlink():
+            raise MeasurePathError(path.name)
+        if not path.is_file():
             continue
         rel = path.relative_to(root).as_posix()
-        parts = rel.split("/")
-        if any(part in _SKIP_DIRS for part in parts):
-            continue
-        if path.name in _SKIP_NAMES or path.suffix == ".pyc":
+        if _explicit_skip(path, rel):
             continue
         if not _path_ok(rel):
-            continue
+            raise MeasurePathError(rel)
         digest = hashlib.sha256(path.read_bytes()).hexdigest()
         rows.append({"path": rel, "sha256": digest})
     rows.sort(key=lambda row: row["path"])
@@ -160,8 +204,28 @@ def measure_tree(
     """Compare ``root`` to a signed manifest. Never reports verified unless both checks pass."""
     pin = PINNED_PUBLIC_KEY if public_key is None else public_key
     pinned = bool(pin)
+
+    def _path_refused() -> dict[str, Any]:
+        report = _blank(pinned=pinned)
+        report["code"] = "MEASURE-PATH"
+        if (
+            pinned
+            and isinstance(signature, str)
+            and signature
+            and isinstance(manifest, dict)
+            and shape_ok(manifest)
+            and sig_ok(pin, manifest, signature)
+        ):
+            report["signed"] = True
+            report["manifest_present"] = True
+            report["status"] = "mismatch"
+            report["match"] = False
+        return report
+
     try:
         files = _hash_tree(Path(root))
+    except MeasurePathError:
+        return _path_refused()
     except OSError:
         return _blank(pinned=pinned)
     tree = tree_sha256(files) if files else None
