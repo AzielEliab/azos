@@ -13,11 +13,12 @@ that tree to a signed manifest. The status is one of:
 other case. An empty pin stays unknown. This is not a boot, not a live
 flag, and not a paid satellite.
 
-Every file under the measured tree is hashed. ``__init__.py``,
-``__main__.py``, and hyphenated names are included. The only names
-left out are ``__pycache__``, ``*.pyc``, and the manifest files
-themselves. Any other unexpected file is part of the tree, or it
-fails closed. It is not dropped.
+Every file under the measured tree is hashed, including
+``__init__.py``, ``__main__.py``, hyphenated names, ``__pycache__``,
+and ``.pyc`` bytecode. The only names left out are the manifest files
+at the top of the measured root. A nested ``self-measure.json`` is
+part of the tree. Any other unexpected file is hashed, or it fails
+closed. It is not dropped.
 
 Author: Aziel Eliab.
 """
@@ -45,16 +46,16 @@ _HEX64 = re.compile(r"^[a-f0-9]{64}$")
 # Hyphen stays in the rest of a component. A leading letter or digit
 # still works. A component that fails this is not skipped.
 _PART = re.compile(r"^[A-Za-z0-9_][A-Za-z0-9._-]{0,127}$")
-_SKIP_DIRS = {"__pycache__"}
-_SKIP_SUFFIXES = {".pyc"}
-_SKIP_NAMES = {MANIFEST_NAME, SIGNATURE_NAME, "self-measure.pub"}
+# Manifest files are excluded only when they sit at the top of the
+# measured root. A copy in a subdirectory is a program file.
+_TOP_MANIFESTS = frozenset({MANIFEST_NAME, SIGNATURE_NAME, "self-measure.pub"})
 _STATUSES = {"verified", "mismatch", "unknown"}
 
 _CACHE: dict[str, Any] | None = None
 
 
 class MeasurePathError(Exception):
-    """A measured file is not an allowed cache name and not a safe path.
+    """A measured file is not a safe path.
 
     The file is not ignored. Verification fails closed.
     """
@@ -161,12 +162,9 @@ def sig_ok(public_key: str, manifest: dict[str, Any], signature: str) -> bool:
         return False
 
 
-def _explicit_skip(path: Path, rel: str) -> bool:
-    """True only for cache bytecode and the manifest files themselves."""
-    parts = rel.split("/")
-    if any(part in _SKIP_DIRS for part in parts):
-        return True
-    return path.suffix in _SKIP_SUFFIXES or path.name in _SKIP_NAMES
+def _explicit_skip(rel: str) -> bool:
+    """True only for a manifest file at the top of the measured root."""
+    return "/" not in rel and rel in _TOP_MANIFESTS
 
 
 def _hash_tree(root: Path) -> list[dict[str, str]]:
@@ -179,7 +177,7 @@ def _hash_tree(root: Path) -> list[dict[str, str]]:
         if not path.is_file():
             continue
         rel = path.relative_to(root).as_posix()
-        if _explicit_skip(path, rel):
+        if _explicit_skip(rel):
             continue
         if not _path_ok(rel):
             raise MeasurePathError(rel)

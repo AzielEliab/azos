@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import base64
 import json
+import os
 from pathlib import Path
 
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
@@ -149,6 +150,72 @@ def test_dunder_hyphen_and_unlisted_py_fail_closed(tmp_path: Path) -> None:
     assert illegal["code"] == "MEASURE-PATH"
     assert illegal["status"] != "verified"
     assert report_status(illegal) != "verified"
+
+
+def _signed(root: Path) -> tuple[dict, str, str]:
+    manifest = json.loads(json.dumps(_manifest(root)))
+    public, signature = _sign(manifest)
+    return manifest, public, signature
+
+
+def test_pycache_and_stray_pyc_fail_closed(tmp_path: Path) -> None:
+    root = tmp_path / "azos"
+    root.mkdir()
+    init = root / "__init__.py"
+    init.write_bytes(b"pkg = 1\n")
+    manifest, public, signature = _signed(root)
+    assert measure_tree(root, manifest=manifest, signature=signature, public_key=public)["status"] == "verified"
+
+    cache = root / "__pycache__"
+    cache.mkdir()
+    poisoned = cache / "__init__.cpython-313.pyc"
+    poisoned.write_bytes(b"\x16\r\r\nPOISONED-BYTECODE")
+    source_stat = init.stat()
+    os.utime(poisoned, (source_stat.st_atime, source_stat.st_mtime))
+    assert init.read_bytes() == b"pkg = 1\n"
+    cached = measure_tree(root, manifest=manifest, signature=signature, public_key=public)
+    assert "__pycache__/__init__.cpython-313.pyc" in [row["path"] for row in installed_files(root)]
+    assert cached["status"] == "mismatch"
+    assert cached["status"] != "verified"
+    assert cached["match"] is False
+    assert cached["signed"] is True
+    assert report_status(cached) == "mismatch"
+
+    poisoned.unlink()
+    cache.rmdir()
+    assert measure_tree(root, manifest=manifest, signature=signature, public_key=public)["status"] == "verified"
+    (root / "evilmod.pyc").write_bytes(b"\x16\r\r\nSOURCELESS")
+    stray = measure_tree(root, manifest=manifest, signature=signature, public_key=public)
+    assert "evilmod.pyc" in [row["path"] for row in installed_files(root)]
+    assert stray["status"] == "mismatch"
+    assert stray["status"] != "verified"
+    assert stray["match"] is False
+    assert report_status(stray) != "verified"
+
+
+def test_nested_self_measure_file_is_a_mismatch(tmp_path: Path) -> None:
+    root = tmp_path / "azos"
+    root.mkdir()
+    (root / "app.py").write_bytes(b"print('azos')\n")
+    nested = root / "pkg-extra"
+    nested.mkdir()
+    manifest, public, signature = _signed(root)
+    assert measure_tree(root, manifest=manifest, signature=signature, public_key=public)["status"] == "verified"
+
+    (root / "self-measure.json").write_text("{}\n", encoding="utf-8")
+    (root / "self-measure.sig").write_text("not-a-signature\n", encoding="utf-8")
+    (root / "self-measure.pub").write_text("not-a-key\n", encoding="utf-8")
+    top = measure_tree(root, manifest=manifest, signature=signature, public_key=public)
+    assert top["status"] == "verified"
+    assert "self-measure.json" not in [row["path"] for row in installed_files(root)]
+
+    (nested / "self-measure.json").write_text('{"status":"verified"}\n', encoding="utf-8")
+    buried = measure_tree(root, manifest=manifest, signature=signature, public_key=public)
+    assert "pkg-extra/self-measure.json" in [row["path"] for row in installed_files(root)]
+    assert buried["status"] == "mismatch"
+    assert buried["status"] != "verified"
+    assert buried["match"] is False
+    assert report_status(buried) == "mismatch"
 
 
 def test_fake_verified_without_both_checks_stays_unknown() -> None:
