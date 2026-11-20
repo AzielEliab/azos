@@ -27,8 +27,11 @@ def boot_overlay(root: Path | str) -> dict[str, Any]:
     home = session_dir(root_path) / "boot"
     home.mkdir(parents=True, exist_ok=True)
     from azos.install import adopt_signed
+    from azos.measure import report_status, self_measure
 
     update = adopt_signed(root_path)
+    measured = self_measure()
+    measure_status = report_status(measured)
     body = {
         "booted": False,
         "hardware": False,
@@ -39,6 +42,7 @@ def boot_overlay(root: Path | str) -> dict[str, Any]:
         "update_code": update.get("code") if isinstance(update.get("code"), str) else "UPDATE-STATE",
         "update_applied": update.get("applied") is True,
         "update_live": False,
+        "self_measure": measure_status,
     }
     digest = sha_bytes(canon(body))
     record = dict(body)
@@ -76,4 +80,5 @@ def boot_overlay(root: Path | str) -> dict[str, Any]:
         "content_hash": digest if receipt_ok else None,
         "plain": "This has not booted.",
         "update": update,
+        "self_measure": measure_status,
     }
